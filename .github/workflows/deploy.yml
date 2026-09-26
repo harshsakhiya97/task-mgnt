@@ -1,0 +1,49 @@
+# Builds the app and uploads it to cPanel over FTP.
+# Runs when the `deploy` branch is pushed, or manually: Actions → Deploy to cPanel → Run workflow.
+# Needs repository secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+# Optional secret FTP_SERVER_DIR (default "./" = the FTP account's home folder, e.g. the site folder).
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [deploy]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cpanel
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Check the build has the Supabase settings
+        run: grep -q "supabase.co" dist/assets/*.js || (echo "VITE_SUPABASE_URL secret is missing" && exit 1)
+
+      - name: Upload to cPanel (only changed files)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          security: loose
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
