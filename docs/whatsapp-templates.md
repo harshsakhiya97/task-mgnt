@@ -60,6 +60,9 @@ Samples: name = Viral Sakhiya · date = 26-Sep-2026 · total = 18 · done = 14 �
 
 ---
 
+### About the `{{link}}` variable
+The web address inside `{{link}}` isn't fixed in the templates or the code. It comes from the app's `app_url` setting, currently `https://pride.viralsakhiya.com`. That setting updates itself whenever an admin opens the app at a new address, so a domain change needs no template or code change. For the same reason the link sits in the message text rather than in a WATI "Visit website" button: a button needs a fixed web address saved inside the template.
+
 ### Rules the app follows
 - **Phone numbers:** taken from each user's profile. 10-digit Indian numbers get `91` added. A user with no valid number is skipped, and System Check shows it.
 - **Own actions:** nobody gets a message about their own action.

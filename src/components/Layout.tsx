@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Activity, BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, UserRound, Users } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
+import { supabase } from '../lib/supabase'
 import { APP_VERSION, VERSION_LABEL, VERSION_SHORT } from '../lib/version'
 import { initials } from '../lib/initials'
 import type { Role } from '../lib/types'
@@ -62,6 +63,11 @@ export function Layout() {
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
+  // Keep the app's web address (used in WhatsApp links) in sync with where admins open it.
+  // The database ignores local/dev addresses, so this is safe on localhost.
+  useEffect(() => {
+    if (profile?.role === 'admin') supabase.rpc('sync_app_url', { p_url: window.location.origin }).then(() => {})
+  }, [profile?.role])
   useEffect(() => {
     try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0') } catch { /* ignore */ }
   }, [collapsed])
