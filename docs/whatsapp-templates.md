@@ -19,18 +19,18 @@ Goes to the assignee when a task, or a recurring task, is assigned or reassigned
 ```
 Hi {{name}},
 
-{{assigner}} has assigned you a task on Task Mgnt.
+You have a new task on Task Mgnt, assigned to you by {{assigner}}.
 
-Task: {{task_no}} – {{title}}
+Task: {{task}}
 Due: {{due}}
 
-Open the task: {{link}}
+Please open the task to see the details, update its status and add comments: {{link}}
 
 – Task Mgnt, Pride Educare
 ```
-Samples: name = Ravi · assigner = Viral Sakhiya · task_no = TM-125 · title = Prepare TVS weekly report · due = 27-Sep-2026, 10:00 AM - 11:30 AM · link = https://pride.viralsakhiya.com/tasks?task=abc
+Samples: name = Ravi · assigner = Viral Sakhiya · task = TM-125 – Prepare TVS weekly report · due = 27-Sep-2026, 10:00 AM - 11:30 AM · link = https://pride.viralsakhiya.com/tasks?task=abc
 
-For a recurring task: `task_no` = "Recurring" and `due` = "every Mon, Tue, Wed from 27-Sep-2026".
+For a recurring task: `task` = "Recurring – Daily stock check" and `due` = "every Mon, Tue, Wed from 27-Sep-2026".
 
 ## 2. `task_comment`
 Goes to the assigner when the assignee comments on the task. Several comments within 2 minutes arrive as one message, ending with "(+N more)".
@@ -38,29 +38,30 @@ Goes to the assigner when the assignee comments on the task. Several comments wi
 ```
 Hi {{name}},
 
-{{commenter}} commented on {{task_no}} – {{title}}:
+There is a new comment from {{commenter}} on a task you assigned.
 
-"{{comment}}"
+Task: {{task}}
+Comment: {{comment}}
 
-Reply here: {{link}}
+You can read the full conversation and reply on Task Mgnt: {{link}}
 
 – Task Mgnt, Pride Educare
 ```
-Samples: name = Viral Sakhiya · commenter = Ravi · task_no = TM-125 · title = Prepare TVS weekly report · comment = Done with the draft, please review · link = https://pride.viralsakhiya.com/tasks?task=abc
+Samples: name = Viral Sakhiya · commenter = Ravi · task = TM-125 – Prepare TVS weekly report · comment = Done with the draft, please review · link = https://pride.viralsakhiya.com/tasks?task=abc
 
 ## 3. `daily_task_report`
 Goes to every active admin at **8:00 pm** each day. It counts the tasks due that day.
 
 ```
-Hi {{name}}, here is today's task report ({{date}}).
+Hi {{name}}, here is the end-of-day task summary from Task Mgnt for {{date}}.
 
 Tasks due today: {{total}}
-Completed: {{done}}
-Expired: {{expired}}
-Still open: {{pending}}
-Older tasks still open: {{overdue}}
+Completed today: {{done}}
+Expired (not done by the end time): {{expired}}
+Still open for today: {{pending}}
+Older tasks that are still not done: {{overdue}}
 
-Full report: {{link}}
+Open the full report with details for every person: {{link}}
 
 – Task Mgnt, Pride Educare
 ```
