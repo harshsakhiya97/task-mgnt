@@ -7,6 +7,8 @@ Create these three templates in **WATI → Broadcast → Templates → New Templ
 - **Template name:** use exactly the name shown. The app sends to these names. If a name must differ, set the Edge Function secret `WATI_TEMPLATE_TASK_ASSIGNED` (or `..._TASK_COMMENT`, `..._DAILY_TASK_REPORT`) to your name.
 - **Variables:** type them exactly as written, in double curly braces, e.g. `{{name}}`. WATI keeps named variables, and the app fills them by name.
 
+WhatsApp doesn't allow a template to start or end with a variable, so each one ends with a sign-off line.
+
 When WATI asks for "sample values" for Meta's review, use the examples given under each template.
 
 ---
@@ -23,6 +25,8 @@ Task: {{task_no}} – {{title}}
 Due: {{due}}
 
 Open the task: {{link}}
+
+– Task Mgnt, Pride Educare
 ```
 Samples: name = Ravi · assigner = Viral Sakhiya · task_no = TM-125 · title = Prepare TVS weekly report · due = 27-Sep-2026, 10:00 AM - 11:30 AM · link = https://pride.viralsakhiya.com/tasks?task=abc
 
@@ -39,6 +43,8 @@ Hi {{name}},
 "{{comment}}"
 
 Reply here: {{link}}
+
+– Task Mgnt, Pride Educare
 ```
 Samples: name = Viral Sakhiya · commenter = Ravi · task_no = TM-125 · title = Prepare TVS weekly report · comment = Done with the draft, please review · link = https://pride.viralsakhiya.com/tasks?task=abc
 
@@ -55,6 +61,8 @@ Still open: {{pending}}
 Older tasks still open: {{overdue}}
 
 Full report: {{link}}
+
+– Task Mgnt, Pride Educare
 ```
 Samples: name = Viral Sakhiya · date = 26-Sep-2026 · total = 18 · done = 14 · expired = 3 · pending = 1 · overdue = 5 · link = https://pride.viralsakhiya.com/reports
 
