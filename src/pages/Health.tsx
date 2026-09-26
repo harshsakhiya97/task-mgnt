@@ -38,7 +38,7 @@ export function Health() {
       <Check title="WhatsApp sender (WATI)" run={async () => {
         const { data, error } = await supabase.functions.invoke('whatsapp-sender', { body: {} })
         if (error) throw new Error(error.message)
-        if (!data?.configured) throw new Error('Not set up yet: add WATI_API_URL and WATI_TOKEN in Supabase → Edge Functions → Secrets')
+        if (!data?.configured) throw new Error('Not set up yet: add the WATI_TOKEN secret in Supabase → Edge Functions → Secrets')
         return `Connected · sent ${data.sent}, failed ${data.failed} in this run`
       }} />
       <Check title="Edge Function (hello)" run={async () => {

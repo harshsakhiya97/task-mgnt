@@ -4,7 +4,7 @@
 // early does no harm (deployed with verify_jwt off for the cron call).
 //
 // Secrets (Supabase dashboard → Edge Functions → Secrets):
-//   WATI_API_URL   e.g. https://live-mt-server.wati.io/123456   (WATI → API Docs)
+//   WATI_API_URL   optional — defaults to Pride's WATI endpoint below (WATI → API Docs)
 //   WATI_TOKEN     the access token from WATI → API Docs ("Bearer …" is fine too)
 // Optional, if your WATI template names differ from the defaults:
 //   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT
@@ -17,6 +17,9 @@ interface Outbox {
   template: string
   params: Record<string, unknown>
 }
+
+// Pride's WATI API endpoint (not secret). A WATI_API_URL secret overrides it.
+const DEFAULT_WATI_API_URL = 'https://live-mt-server.wati.io/10103863'
 
 const INTERNAL_PARAMS = new Set(['more_count'])
 
@@ -61,10 +64,10 @@ async function sendOne(row: Outbox, apiUrl: string, token: string): Promise<{ ok
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
-  const apiUrl = Deno.env.get('WATI_API_URL')
+  const apiUrl = Deno.env.get('WATI_API_URL') || DEFAULT_WATI_API_URL
   const token = Deno.env.get('WATI_TOKEN')
   if (!apiUrl || !token) {
-    return reply({ configured: false, message: 'Set WATI_API_URL and WATI_TOKEN in the function secrets.' })
+    return reply({ configured: false, message: 'Set the WATI_TOKEN secret on this function (Supabase → Edge Functions → Secrets).' })
   }
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
