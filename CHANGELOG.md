@@ -3,6 +3,18 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, rebuild, then commit and tag (`git tag v1.1`).
 
+## Version 1.1 — 26 Sep 2026
+
+- **Reports** (admin, new sidebar item): pick a date range (Today / This Week / This Month / Last Month / Custom) and a team. Shows per-person Assigned, Completed, On time, Late, Expired and Pending, plus Completion % and On-time %, with totals. **Export Excel** downloads a Summary sheet and a Tasks sheet.
+- **WhatsApp via WATI:**
+  - Task assigned or reassigned → message to the assignee.
+  - Assignee comments → message to the assigner. Comments within 2 minutes are combined.
+  - Day-end report → admins at 8:00 pm.
+  - Messages go through a queue with retries. Sending starts once the WATI secrets are set. Templates are in `docs/whatsapp-templates.md`.
+- **System Check:** "WhatsApp sender" test and a log of the last 50 messages.
+- **Automatic deploy:** pushing the `deploy` branch builds and uploads to cPanel (GitHub Actions).
+- **Fix:** page-header and filter dropdowns no longer jump around when the selection changes.
+
 ## Version 1.0 — 25 Sep 2026
 
 First complete version of Task Mgnt (AI Execution OS) for Pride Educare.

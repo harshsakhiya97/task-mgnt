@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Activity, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, UserRound, Users } from 'lucide-react'
+import { Activity, BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, UserRound, Users } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { APP_VERSION, VERSION_LABEL, VERSION_SHORT } from '../lib/version'
 import { initials } from '../lib/initials'
@@ -29,6 +29,7 @@ const SECTIONS: { title: string; items: NavDef[] }[] = [
   {
     title: 'Administration',
     items: [
+      { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
       { to: '/users', label: 'Users & Roles', icon: Users, roles: ['admin'] },
       { to: '/health', label: 'System Check', icon: Activity, roles: ['admin'] },
     ],
@@ -42,6 +43,7 @@ const TITLES: Record<string, [string, string]> = {
   '/tasks': ['Tasks', 'Overview'],
   '/notifications': ['Notifications', 'Overview'],
   '/calendar': ['Calendar', 'Overview'],
+  '/reports': ['Reports', 'Overview'],
   '/users': ['Users & Roles', 'Overview'],
   '/health': ['System Check', 'Overview'],
   '/profile': ['Settings', 'My Profile'],

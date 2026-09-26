@@ -11,6 +11,7 @@ import { Profile } from './pages/Profile'
 import { ResetPassword } from './pages/ResetPassword'
 import { Setup } from './pages/Setup'
 import { Tasks } from './pages/Tasks'
+import { Reports } from './pages/Reports'
 import { Users } from './pages/Users'
 
 // The calendar library is large, so it's only downloaded when the Calendar page is opened.
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/calendar" element={<Suspense fallback={<div className="center">Loading calendar…</div>}><Calendar /></Suspense>} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/reports" element={<RequireAuth roles={['admin']}><Reports /></RequireAuth>} />
         <Route path="/users" element={<RequireAuth roles={['admin']}><Users /></RequireAuth>} />
         <Route path="/teams" element={<Navigate to="/users?tab=teams" replace />} />
         <Route path="/health" element={<RequireAuth roles={['admin']}><Health /></RequireAuth>} />
