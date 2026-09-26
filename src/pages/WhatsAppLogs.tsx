@@ -167,7 +167,7 @@ export function WhatsAppLogs() {
 function detailText(r: WaLog) {
   if (r.last_error) return r.last_error
   if (r.status === 'sent' && r.sent_at) return `Sent at ${new Date(r.sent_at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}`
-  if (r.status === 'queued') return new Date(r.send_after) > new Date() ? `Goes out at ${new Date(r.send_after).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : 'Going out within a minute'
+  if (r.status === 'queued') return new Date(r.send_after) > new Date() ? `Goes out at ${new Date(r.send_after).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : 'Going out now'
   return r.attempts ? `${r.attempts} attempt(s)` : ''
 }
 
