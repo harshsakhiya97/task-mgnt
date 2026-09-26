@@ -11,7 +11,8 @@ To release a new version: bump it there, add a section below, rebuild, then comm
   - Assignee comments → message to the assigner. Comments within 2 minutes are combined.
   - Day-end report → admins at 8:00 pm.
   - Messages go through a queue with retries. Sending starts once the WATI secrets are set. Templates are in `docs/whatsapp-templates.md`.
-- **System Check:** "WhatsApp sender" test and a log of the last 50 messages.
+- **WhatsApp Logs** (admin, new sidebar item): every message with date range, type and status filters, search, and count cards. Click a message to see exactly what was sent. Failed, expired or skipped messages can be sent again.
+- **System Check:** "WhatsApp sender" connection test.
 - **Automatic deploy:** pushing the `deploy` branch builds and uploads to cPanel (GitHub Actions).
 - **Fix:** page-header and filter dropdowns no longer jump around when the selection changes.
 
