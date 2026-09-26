@@ -134,7 +134,7 @@ export function WhatsAppLogs() {
         </div>
         <div className="table-scroll">
           {loading ? <div className="empty">Loading…</div> : visible.length === 0 ? (
-            <div className="empty"><MessageCircle size={40} /><b>No messages here</b>{rows.length ? 'Try changing the filters.' : 'Messages appear when tasks are assigned, commented on, and at the 8 pm report.'}</div>
+            <div className="empty"><MessageCircle size={40} /><b>No messages here</b>{rows.length ? 'Try changing the filters.' : 'Messages appear when tasks are assigned, commented on, and at the 9:15 pm report.'}</div>
           ) : (
             <table>
               <thead>

@@ -9,7 +9,7 @@ To release a new version: bump it there, add a section below, rebuild, then comm
 - **WhatsApp via WATI:**
   - Task assigned or reassigned → message to the assignee.
   - Assignee comments → message to the assigner. Comments within 2 minutes are combined.
-  - Day-end report → admins at 8:00 pm.
+  - Day-end report → admins at 9:15 pm every day.
   - Messages go through a queue with retries. Sending starts once the WATI secrets are set. Templates are in `docs/whatsapp-templates.md`.
 - **WhatsApp Logs** (admin, new sidebar item): every message with date range, type and status filters, search, and count cards. Click a message to see exactly what was sent. Failed, expired or skipped messages can be sent again.
 - **System Check:** "WhatsApp sender" connection test.

@@ -50,7 +50,7 @@ You can read the full conversation and reply on Task Mgnt: {{link}}
 Samples: name = Viral Sakhiya · commenter = Ravi · task = TM-125 – Prepare TVS weekly report · comment = Done with the draft, please review · link = https://pride.viralsakhiya.com/tasks?task=abc
 
 ## 3. `daily_task_report`
-Goes to every active admin at **8:00 pm** each day. It counts the tasks due that day.
+Goes to every active admin at **9:15 pm** every day. It counts the tasks due that day.
 
 ```
 Hi {{name}}, here is the end-of-day task summary from Task Mgnt for {{date}}.
