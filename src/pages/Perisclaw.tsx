@@ -47,6 +47,8 @@ export function Perisclaw() {
   const [assigner, setAssigner] = useState('')
   const [importExisting, setImportExisting] = useState(false)
   const [gemini, setGemini] = useState<boolean | null>(null)
+  const [robot, setRobot] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [entries, setEntries] = useState<Entry[]>([])
   const [filter, setFilter] = useState<Filter>('')
   const [page, setPage] = useState(1)
@@ -73,7 +75,7 @@ export function Perisclaw() {
   }, [])
   useEffect(() => { load() }, [load])
   useEffect(() => {
-    supabase.functions.invoke('perisclaw-sync', { body: { action: 'status' } }).then(({ data }) => setGemini(!!data?.gemini))
+    supabase.functions.invoke('perisclaw-sync', { body: { action: 'status' } }).then(({ data }) => { setGemini(!!data?.gemini); setRobot(data?.robot ?? null) })
   }, [])
   useEffect(() => { if (!assigner && profile && admins.some((a) => a.id === profile.id)) setAssigner(profile.id) }, [assigner, profile, admins])
 
@@ -124,7 +126,7 @@ export function Perisclaw() {
       <div className="panel pc-settings">
         <div className="pc-grid">
           <div>
-            <Field label="Google Sheet link" required hint='Share the sheet: Share → General access → "Anyone with the link" → Viewer. The app reads the tab that is open in the link.'>
+            <Field label="Google Sheet link" required hint={robot ? `Share the sheet with the robot account below as Viewer. The app reads the tab that is open in the link.` : 'Add the robot account (see right), then share the sheet with it as Viewer. The app reads the tab that is open in the link.'}>
               <input placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0" value={url} onChange={(e) => setUrl(e.target.value)} />
             </Field>
             <div className="form-grid">
@@ -156,9 +158,21 @@ export function Perisclaw() {
             <div className="pc-status-row"><span>Sync</span><b className={s?.enabled ? 'ok-text' : 'muted'}>{s?.enabled ? 'On — every 2 minutes' : 'Off'}</b></div>
             <div className="pc-status-row"><span>Gemini AI</span>
               <b className={gemini ? 'ok-text' : 'overdue-text'}>{gemini === null ? '…' : gemini ? 'Key added' : 'Key missing'}</b></div>
+            <div className="pc-status-row"><span>Robot account</span>
+              <b className={robot ? 'ok-text' : 'overdue-text'}>{robot ? 'Added' : 'Not added'}</b></div>
+            {robot && (
+              <div className="pc-robot">
+                <small className="muted">Share the sheet with this email as <b>Viewer</b>:</small>
+                <div className="pc-robot-email">
+                  <code>{robot}</code>
+                  <button type="button" className="secondary small-btn" onClick={() => { navigator.clipboard?.writeText(robot); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy'}</button>
+                </div>
+              </div>
+            )}
             <div className="pc-status-row"><span>Last checked</span><b>{when(s?.last_checked_at ?? null)}</b></div>
             {s?.last_result && <div className="pc-status-note">{s.last_result}</div>}
             {s?.last_error && <div className="alert error">{s.last_error}</div>}
+            {robot === null && gemini !== null && <p className="muted small">Add the robot account's JSON key as the <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> secret in Supabase → Edge Functions → Secrets (see docs/perisclaw.md).</p>}
             {gemini === false && <p className="muted small">Add the free key from aistudio.google.com as the <code>GEMINI_API_KEY</code> secret in Supabase → Edge Functions → Secrets.</p>}
           </div>
         </div>

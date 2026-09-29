@@ -40,6 +40,21 @@ export function sheetRows(csv: string): SheetRow[] {
   return out
 }
 
+/** Sheets API values (2-D array, first row = headers) → same row objects as sheetRows(). */
+export function valuesToRows(values: string[][]): SheetRow[] {
+  if (!values?.length) return []
+  const headers = values[0].map((h, i) => String(h ?? '').trim() || `Column ${i + 1}`)
+  const out: SheetRow[] = []
+  values.slice(1).forEach((cells, idx) => {
+    const data: Record<string, string> = {}
+    headers.forEach((h, i) => { const v = String(cells?.[i] ?? '').trim(); if (v) data[h] = v })
+    if (!Object.keys(data).length) return
+    const text = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join('\n')
+    out.push({ rowNumber: idx + 2, data, text })
+  })
+  return out
+}
+
 export async function sha256(text: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')

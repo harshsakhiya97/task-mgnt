@@ -11,8 +11,11 @@
 // Secrets (Supabase → Edge Functions → Secrets):
 //   GEMINI_API_KEY   free key from https://aistudio.google.com → Get API key
 //   GEMINI_MODEL     optional, default gemini-2.5-flash
+//   GOOGLE_SERVICE_ACCOUNT_JSON  the robot account's JSON key; the sheet is shared with its email as Viewer.
+//                    Without it the sheet must be shared as "anyone with the link can view".
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sha256, sheetRows, type AiResult, type Person } from './lib.ts'
+import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sha256, sheetRows, valuesToRows, type AiResult, type Person, type SheetRow } from './lib.ts'
+import { readServiceAccount, readSheetValues } from './google.ts'
 
 const MAX_ROWS_PER_RUN = 8          // stays well inside Gemini's free-tier rate limit
 
@@ -43,7 +46,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   const input = await req.json().catch(() => ({}))
   const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
-  if (input?.action === 'status') return reply({ gemini: !!geminiKey })
+  const sa = readServiceAccount()
+  if (input?.action === 'status') return reply({ gemini: !!geminiKey, robot: sa?.client_email ?? null })
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
   const { data: settings, error: sErr } = await db.from('perisclaw_settings').select('*').eq('id', 1).single()
@@ -57,21 +61,25 @@ Deno.serve(async (req) => {
   if (!settings.enabled || !settings.sheet_id) return reply({ skipped: 'Perisclaw sync is switched off' })
   if (!settings.assigner_id) return finish({ last_error: 'Choose which admin the tasks are created as' })
 
-  // 1. Read the sheet (must be shared as "anyone with the link can view").
-  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(settings.sheet_id)}/export?format=csv&gid=${encodeURIComponent(settings.sheet_gid ?? '0')}`
-  let csv = ''
+  // 1. Read the sheet: as the robot account if its key is set, otherwise via the public link.
+  let rows: SheetRow[] = []
   try {
-    const res = await fetch(url, { redirect: 'follow' })
-    const type = res.headers.get('content-type') ?? ''
-    csv = await res.text()
-    if (!res.ok || type.includes('text/html')) {
-      return finish({ last_error: `Can't read the sheet (${res.status}). In Google Sheets: Share → General access → "Anyone with the link" → Viewer.` })
+    if (sa) {
+      rows = valuesToRows(await readSheetValues(sa, settings.sheet_id, settings.sheet_gid ?? '0'))
+    } else {
+      const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(settings.sheet_id)}/export?format=csv&gid=${encodeURIComponent(settings.sheet_gid ?? '0')}`
+      const res = await fetch(url, { redirect: 'follow' })
+      const type = res.headers.get('content-type') ?? ''
+      const csv = await res.text()
+      if (!res.ok || type.includes('text/html')) {
+        return finish({ last_error: `Can't read the sheet (${res.status}). Add the robot account (GOOGLE_SERVICE_ACCOUNT_JSON secret) and share the sheet with it, or share the sheet as "Anyone with the link → Viewer".` })
+      }
+      rows = sheetRows(csv)
     }
   } catch (e) {
-    return finish({ last_error: `Can't reach Google Sheets: ${e instanceof Error ? e.message : e}` })
+    return finish({ last_error: e instanceof Error ? e.message : String(e) })
   }
 
-  const rows = sheetRows(csv)
   const keyed = await Promise.all(rows.map(async (r) => ({ row: r, hash: await sha256(rowKey(r)) })))
 
   // 2. First read of a newly connected sheet: remember what's already there (unless importing).
