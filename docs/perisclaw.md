@@ -34,7 +34,7 @@ Admin on WhatsApp → Perisclaw → new row in Google Sheet
 Without a robot account, the app can still read a sheet shared as "Anyone with the link → Viewer".
 
 ## How rows are handled
-- **Added as task:** Gemini found exactly one matching team member, a task, and a due date today or later, and it's at least 75 % sure. The task is created as the chosen admin, the assignee gets the usual WhatsApp message, and the original row is kept in the task description.
+- **Added as task:** Gemini found exactly one matching team member, a task, and a due date today or later, and it's at least 75 % sure. The task is created as the chosen admin, the assignee gets the usual WhatsApp message. The task gets only the AI's title and description; the original row stays on the Perisclaw page.
 - **Waiting for you:** anything unclear:
   - unknown or ambiguous person
   - no date, or a date in the past

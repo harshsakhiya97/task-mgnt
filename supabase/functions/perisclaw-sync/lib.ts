@@ -87,7 +87,7 @@ export const GEMINI_SCHEMA = {
     assignee_number: { type: 'INTEGER', description: 'number of the person from the team list; 0 if none or unsure' },
     assignee_text: { type: 'STRING', description: 'the assignee exactly as written in the row' },
     title: { type: 'STRING', description: 'short task title, max 80 characters, imperative' },
-    description: { type: 'STRING', description: 'other useful details from the row, keeping line breaks (\\n) and one list item per line; empty if none' },
+    description: { type: 'STRING', description: 'other useful details from the row, with line breaks and one list item per line; empty if none' },
     due_date: { type: 'STRING', description: 'YYYY-MM-DD; empty if no date can be worked out' },
     start_time: { type: 'STRING', description: 'HH:MM 24-hour; empty if no time' },
     end_time: { type: 'STRING', description: 'HH:MM 24-hour; empty if no end time' },
@@ -112,7 +112,7 @@ ${row.text}
 
 Rules:
 - assignee_number: the team member the task is for. Match nicknames, first names, short forms and small spelling mistakes. Use 0 if nobody matches or two people match equally.
-- description: the useful details from the row. Keep it readable: keep the row's line breaks, and put each numbered or bulleted point on its own line (use \\n between lines). Don't repeat the title, assignee or date.
+- description: the useful details from the row. Keep it readable: keep the row's line breaks, and put each numbered or bulleted point on its own line. Write symbols like ₹ as they are, not as \\u codes. Don't repeat the title, assignee or date.
 - title: short and clear (e.g. "Prepare TVS weekly report"). Don't put the person's name or the date in the title.
 - due_date: resolve words like "today", "tomorrow", "Friday", "next Monday", "by 5th" to a real date on or after today. If no date is given at all, use today's date and lower confidence.
 - start_time / end_time: only if a time is given. "by 5 pm" means end_time 17:00 with no start_time. "at 3 pm" means start_time 15:00. "3-4 pm" gives both.
@@ -143,7 +143,9 @@ const subHour = (t: string) => {
 
 /** Put numbered points ("1. … 2. …") on their own lines if the AI ran them together. */
 export function tidyDescription(text: string): string {
-  const t = text.replace(/\r\n/g, '\n').trim()
+  const t = text
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))   // "\u20b9" -> ₹
+    .replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim()
   if (t.includes('\n') || (t.match(/(^|\s)\d{1,2}[.)]\s/g) ?? []).length < 2) return t
   return t.replace(/\s+(?=\d{1,2}[.)]\s)/g, '\n')
 }

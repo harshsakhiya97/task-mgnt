@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
       if (d.ok && d.task) {
         const { data: task, error } = await db.from('tasks').insert({
           ...d.task,
-          description: [d.task.description, `From Perisclaw (sheet row ${row.rowNumber}):\n${row.text}`].filter(Boolean).join('\n\n'),
+          description: d.task.description || null,
           assigned_by: settings.assigner_id,
           task_type: 'adhoc',
         }).select('id').single()

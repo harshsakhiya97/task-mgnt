@@ -290,7 +290,9 @@ function AiSummary({ p, users }: { p: Parsed; users: { id: string; full_name: st
 /** Finish a row the AI wasn't sure about: fix the fields and create the task, or ignore the row. */
 /** Numbered points ("1. … 2. …") on their own lines, for AI text that ran them together. */
 const tidy = (text: string) => {
-  const t = text.replace(/\r\n/g, '\n').trim()
+  const t = text
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))   // "\u20b9" -> ₹
+    .replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim()
   if (t.includes('\n') || (t.match(/(^|\s)\d{1,2}[.)]\s/g) ?? []).length < 2) return t
   return t.replace(/\s+(?=\d{1,2}[.)]\s)/g, '\n')
 }
@@ -348,7 +350,7 @@ function ReviewDrawer({ entry, users, assignerId, gemini, onClose, onDone }: {
     setBusy(true)
     const { data: task, error } = await supabase.from('tasks').insert({
       title: title.trim(),
-      description: [description.trim(), `From Perisclaw (sheet row ${entry.row_number ?? '?'}):\n${entry.raw_text}`].filter(Boolean).join('\n\n'),
+      description: description.trim() || null,
       assigned_by: assignerId, assigned_to: assignedTo, due_date: dueDate,
       start_time: toDbTime(from), end_time: toDbTime(to), priority, task_type: 'adhoc',
     }).select('id').single()
