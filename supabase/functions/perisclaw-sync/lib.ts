@@ -87,7 +87,7 @@ export const GEMINI_SCHEMA = {
     assignee_number: { type: 'INTEGER', description: 'number of the person from the team list; 0 if none or unsure' },
     assignee_text: { type: 'STRING', description: 'the assignee exactly as written in the row' },
     title: { type: 'STRING', description: 'short task title, max 80 characters, imperative' },
-    description: { type: 'STRING', description: 'other useful details from the row; empty if none' },
+    description: { type: 'STRING', description: 'other useful details from the row, keeping line breaks (\\n) and one list item per line; empty if none' },
     due_date: { type: 'STRING', description: 'YYYY-MM-DD; empty if no date can be worked out' },
     start_time: { type: 'STRING', description: 'HH:MM 24-hour; empty if no time' },
     end_time: { type: 'STRING', description: 'HH:MM 24-hour; empty if no end time' },
@@ -112,6 +112,7 @@ ${row.text}
 
 Rules:
 - assignee_number: the team member the task is for. Match nicknames, first names, short forms and small spelling mistakes. Use 0 if nobody matches or two people match equally.
+- description: the useful details from the row. Keep it readable: keep the row's line breaks, and put each numbered or bulleted point on its own line (use \\n between lines). Don't repeat the title, assignee or date.
 - title: short and clear (e.g. "Prepare TVS weekly report"). Don't put the person's name or the date in the title.
 - due_date: resolve words like "today", "tomorrow", "Friday", "next Monday", "by 5th" to a real date on or after today. If no date is given at all, use today's date and lower confidence.
 - start_time / end_time: only if a time is given. "by 5 pm" means end_time 17:00 with no start_time. "at 3 pm" means start_time 15:00. "3-4 pm" gives both.
@@ -140,6 +141,13 @@ const subHour = (t: string) => {
   return h < 1 ? '00:00' : `${String(h - 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+/** Put numbered points ("1. … 2. …") on their own lines if the AI ran them together. */
+export function tidyDescription(text: string): string {
+  const t = text.replace(/\r\n/g, '\n').trim()
+  if (t.includes('\n') || (t.match(/(^|\s)\d{1,2}[.)]\s/g) ?? []).length < 2) return t
+  return t.replace(/\s+(?=\d{1,2}[.)]\s)/g, '\n')
+}
+
 /** Decide whether the AI's answer is safe to turn into a task automatically. */
 export function decide(ai: AiResult, people: Person[], today: string): Decision {
   const problems: string[] = []
@@ -159,7 +167,7 @@ export function decide(ai: AiResult, people: Person[], today: string): Decision 
   if (!(ai.confidence >= 0.75)) problems.push(`AI wasn't sure (${Math.round((ai.confidence || 0) * 100)}%)${ai.note ? `: ${ai.note}` : ''}`)
   const priority = (['low', 'medium', 'high', 'urgent'] as const).includes(ai.priority) ? ai.priority : 'medium'
 
-  const description = (ai.description ?? '').trim()
+  const description = tidyDescription(ai.description ?? '')
   return {
     ok: problems.length === 0,
     reason: problems.join('; '),

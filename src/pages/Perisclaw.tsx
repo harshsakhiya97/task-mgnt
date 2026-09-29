@@ -270,8 +270,8 @@ export function Perisclaw() {
         <TaskView taskId={viewingTask} onClose={() => setViewingTask(null)} onEdit={setEditingTask} onChanged={() => load(true)} />
       )}
       {editingTask && <TaskForm task={editingTask} users={users} onClose={() => setEditingTask(null)} onSaved={() => { setEditingTask(null); load() }} />}
-      {reviewing && <ReviewDrawer entry={reviewing} users={users} assignerId={profile?.id ?? ''}
-        onClose={() => setReviewing(null)} onDone={() => { setReviewing(null); load() }} />}
+      {reviewing && <ReviewDrawer entry={reviewing} users={users} assignerId={profile?.id ?? ''} gemini={gemini}
+        onClose={() => { setReviewing(null); load(true) }} onDone={() => { setReviewing(null); load() }} />}
     </>
   )
 }
@@ -288,20 +288,57 @@ function AiSummary({ p, users }: { p: Parsed; users: { id: string; full_name: st
 }
 
 /** Finish a row the AI wasn't sure about: fix the fields and create the task, or ignore the row. */
-function ReviewDrawer({ entry, users, assignerId, onClose, onDone }: {
-  entry: Entry; users: { id: string; full_name: string }[]; assignerId: string; onClose: () => void; onDone: () => void
+/** Numbered points ("1. … 2. …") on their own lines, for AI text that ran them together. */
+const tidy = (text: string) => {
+  const t = text.replace(/\r\n/g, '\n').trim()
+  if (t.includes('\n') || (t.match(/(^|\s)\d{1,2}[.)]\s/g) ?? []).length < 2) return t
+  return t.replace(/\s+(?=\d{1,2}[.)]\s)/g, '\n')
+}
+
+function ReviewDrawer({ entry, users, assignerId, gemini, onClose, onDone }: {
+  entry: Entry; users: { id: string; full_name: string }[]; assignerId: string; gemini: boolean | null
+  onClose: () => void; onDone: () => void
 }) {
-  const p = entry.parsed ?? {}
-  const sug = p.suggested
-  const [assignedTo, setAssignedTo] = useState(sug?.assigned_to ?? '')
-  const [title, setTitle] = useState(sug?.title ?? p.title ?? '')
-  const [description, setDescription] = useState(sug?.description ?? p.description ?? '')
-  const [dueDate, setDueDate] = useState(sug?.due_date && sug.due_date >= todayStr() ? sug.due_date : todayStr())
-  const [from, setFrom] = useState(sug?.start_time?.slice(0, 5) ?? '')
-  const [to, setTo] = useState(sug?.end_time?.slice(0, 5) ?? '')
-  const [priority, setPriority] = useState<TaskPriority>(sug?.priority ?? p.priority ?? 'medium')
+  const [parsed, setParsed] = useState<Parsed | null>(entry.parsed)
+  const [reason, setReason] = useState(entry.reason)
+  const [assignedTo, setAssignedTo] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [dueDate, setDueDate] = useState(todayStr())
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [priority, setPriority] = useState<TaskPriority>('medium')
   const [busy, setBusy] = useState(false)
+  const [aiBusy, setAiBusy] = useState<'' | 'parse' | 'clear'>('')
   const [error, setError] = useState('')
+
+  /** Put what the AI understood into the form (or empty it). */
+  const fill = useCallback((p: Parsed | null) => {
+    const sug = p?.suggested
+    setAssignedTo(sug?.assigned_to ?? '')
+    setTitle(sug?.title ?? p?.title ?? '')
+    setDescription(tidy(sug?.description ?? p?.description ?? ''))
+    setDueDate(sug?.due_date && sug.due_date >= todayStr() ? sug.due_date : todayStr())
+    setFrom(sug?.start_time?.slice(0, 5) ?? '')
+    setTo(sug?.end_time?.slice(0, 5) ?? '')
+    setPriority(sug?.priority ?? p?.priority ?? 'medium')
+  }, [])
+  useEffect(() => { fill(entry.parsed) }, [entry.parsed, fill])
+
+  const runAi = async (action: 'parse' | 'clear') => {
+    setError(''); setAiBusy(action)
+    const { data, error } = await supabase.functions.invoke('perisclaw-sync', { body: { action, entry_id: entry.id } })
+    setAiBusy('')
+    if (error || data?.error) {
+      let text = data?.error as string | undefined
+      if (!text && error && 'context' in error) text = (await (error as { context: Response }).context.json().catch(() => ({})))?.error
+      return setError(text || error?.message || 'Something went wrong')
+    }
+    const p = (data?.parsed ?? null) as Parsed | null
+    setParsed(p); fill(p)
+    if (action === 'parse') setReason(data?.reason || null)
+  }
+  const p = parsed ?? {}
 
   const create = async () => {
     setError('')
@@ -333,7 +370,24 @@ function ReviewDrawer({ entry, users, assignerId, onClose, onDone }: {
     <Drawer title="Add row as task" onClose={onClose} onSubmit={create} submitLabel="Add as Task" busy={busy}>
       <div className="form-section">From the sheet (row {entry.row_number ?? '?'})</div>
       <div className="wa-bubble pc-source">{entry.raw_text}</div>
-      {entry.reason && entry.status !== 'skipped_existing' && <div className="alert info">Why it needs review: {entry.reason}</div>}
+      <div className="pc-ai-bar">
+        <span className="pc-ai-bar-text">
+          <Sparkles size={15} />
+          {aiBusy === 'parse' ? 'AI is reading the row…'
+            : parsed ? <>Filled by AI{typeof parsed.confidence === 'number' ? ` · ${Math.round(parsed.confidence * 100)}% sure` : ''}</>
+            : 'Not filled by AI'}
+        </span>
+        <span className="pc-ai-bar-btns">
+          {gemini && <button type="button" className="small-btn secondary" disabled={!!aiBusy || busy} onClick={() => runAi('parse')}>
+            <RefreshCw size={13} className={aiBusy === 'parse' ? 'spin' : undefined} /> {parsed ? 'Regenerate' : 'Fill with AI'}
+          </button>}
+          {parsed && <button type="button" className="small-btn secondary" disabled={!!aiBusy || busy} onClick={() => runAi('clear')}>
+            <X size={13} /> Clear AI
+          </button>}
+        </span>
+      </div>
+      {parsed && reason && entry.status !== 'skipped_existing' && <div className="alert info">Why it needs review: {reason}</div>}
+      {parsed?.note && <div className="pc-ai-note">AI note: {parsed.note}</div>}
       <div className="form-section">Task</div>
       <div className="form-grid">
         <Field label="Assign To" required hint={p.assignee_text ? `Sheet says: "${p.assignee_text}"` : undefined}>
@@ -349,7 +403,7 @@ function ReviewDrawer({ entry, users, assignerId, onClose, onDone }: {
         </Field>
       </div>
       <Field label="Title" required><input required value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-      <Field label="Description"><textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+      <Field label="Description"><textarea rows={8} className="pc-desc" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
       <div className="form-grid">
         <Field label="Due Date" required><input type="date" required min={todayStr()} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
       </div>

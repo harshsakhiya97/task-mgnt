@@ -6,7 +6,8 @@
 // and by the "Sync now" button. It takes no input and only acts on the configured
 // sheet, so an extra call does no harm (verify_jwt off for the cron call).
 //   POST {}                  -> check the sheet now
-//   POST {"action":"status"} -> { gemini: true/false } (is the key set?)
+//   POST {"action":"status"} -> { gemini: true/false, robot } (is the key set? robot email)
+//   POST {"action":"parse"|"clear", entry_id} -> admin only, see below
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   GEMINI_API_KEY   free key from https://aistudio.google.com → Get API key
@@ -51,19 +52,25 @@ Deno.serve(async (req) => {
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
 
-  // "Add as task" on a row Gemini hasn't read yet (e.g. an old row): read just that row, don't create anything.
-  if (input?.action === 'parse') {
+  // Admin-only row actions from the Perisclaw page (the caller's login is checked):
+  //   {action:'parse', entry_id} -> (re)read one row with Gemini and save what it understood; creates nothing
+  //   {action:'clear', entry_id} -> forget what Gemini understood for that row
+  if (input?.action === 'parse' || input?.action === 'clear') {
     const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
     const { data: u } = await db.auth.getUser(token)
     const { data: me } = u?.user
       ? await db.from('profiles').select('is_active, role_info:roles(is_admin)').eq('id', u.user.id).maybeSingle()
       : { data: null }
-    const isAdmin = !!me && (me as unknown as { is_active: boolean; role_info: { is_admin: boolean } | null }).is_active
-      && !!(me as unknown as { role_info: { is_admin: boolean } | null }).role_info?.is_admin
-    if (!isAdmin) return reply({ error: 'Only admins can do this' }, 403)
-    if (!geminiKey) return reply({ error: 'Add the GEMINI_API_KEY secret first' }, 400)
+    const who = me as unknown as { is_active: boolean; role_info: { is_admin: boolean } | null } | null
+    if (!who?.is_active || !who.role_info?.is_admin) return reply({ error: 'Only admins can do this' }, 403)
     const { data: entry } = await db.from('perisclaw_entries').select('id, row_number, raw, raw_text, status').eq('id', String(input.entry_id ?? '')).maybeSingle()
     if (!entry) return reply({ error: 'Row not found' }, 404)
+    if (entry.status === 'created' || entry.status === 'processing') return reply({ error: 'This row is already a task' }, 400)
+    if (input.action === 'clear') {
+      await db.from('perisclaw_entries').update({ parsed: null }).eq('id', entry.id)
+      return reply({ parsed: null })
+    }
+    if (!geminiKey) return reply({ error: 'Add the GEMINI_API_KEY secret first' }, 400)
     const { data: ppl } = await db.from('profiles').select('id, full_name, team:teams(name), role_info:roles(name)').eq('is_active', true).order('full_name')
     const people: Person[] = ((ppl ?? []) as unknown as { id: string; full_name: string; team: { name: string } | null; role_info: { name: string } | null }[])
       .map((p) => ({ id: p.id, full_name: p.full_name, team: p.team?.name ?? null, role: p.role_info?.name ?? null }))
