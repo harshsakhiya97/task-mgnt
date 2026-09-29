@@ -62,7 +62,7 @@ export function Perisclaw() {
   const [rowBusy, setRowBusy] = useState('')
   const [admins, setAdmins] = useState<{ id: string; full_name: string }[]>([])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (background = false) => {
     const [st, en, ad] = await Promise.all([
       supabase.from('perisclaw_settings').select('*').eq('id', 1).single(),
       supabase.from('perisclaw_entries')
@@ -72,12 +72,20 @@ export function Perisclaw() {
     ])
     if (st.data) {
       const d = st.data as Settings
-      setS(d); setUrl(d.sheet_url ?? ''); setAssigner(d.assigner_id ?? '')
+      setS(d)
+      if (!background) { setUrl(d.sheet_url ?? ''); setAssigner(d.assigner_id ?? '') }   // don't overwrite what the admin is typing
     }
-    setEntries((en.data as unknown as Entry[]) ?? [])
-    setAdmins((ad.data as unknown as { id: string; full_name: string }[]) ?? [])
+    if (en.data || !background) setEntries((en.data as unknown as Entry[]) ?? [])
+    if (ad.data || !background) setAdmins((ad.data as unknown as { id: string; full_name: string }[]) ?? [])
   }, [])
   useEffect(() => { load() }, [load])
+  // Sync runs on the server every 2 minutes: keep "Last checked" and the rows list fresh.
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === 'visible') load(true) }
+    const t = window.setInterval(tick, 30_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { window.clearInterval(t); document.removeEventListener('visibilitychange', tick) }
+  }, [load])
   useEffect(() => {
     supabase.functions.invoke('perisclaw-sync', { body: { action: 'status' } }).then(({ data }) => { setGemini(!!data?.gemini); setRobot(data?.robot ?? null) })
   }, [])
@@ -259,7 +267,7 @@ export function Perisclaw() {
       </div>
 
       {viewingTask && !editingTask && (
-        <TaskView taskId={viewingTask} onClose={() => setViewingTask(null)} onEdit={setEditingTask} onChanged={load} />
+        <TaskView taskId={viewingTask} onClose={() => setViewingTask(null)} onEdit={setEditingTask} onChanged={() => load(true)} />
       )}
       {editingTask && <TaskForm task={editingTask} users={users} onClose={() => setEditingTask(null)} onSaved={() => { setEditingTask(null); load() }} />}
       {reviewing && <ReviewDrawer entry={reviewing} users={users} assignerId={profile?.id ?? ''}
