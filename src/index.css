@@ -597,3 +597,7 @@ button.small-btn { padding: 5px 12px; font-size: 13px; }
 .pc-robot { margin: 8px 0 4px; }
 .pc-robot-email { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .pc-robot-email code { font-size: 12px; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; word-break: break-all; flex: 1; }
+.pc-action { white-space: nowrap; }
+.pc-action-btns { display: flex; gap: 6px; }
+.pc-action-btns button { display: inline-flex; align-items: center; gap: 4px; }
+button.link.task-no { padding: 0; background: none; font-weight: 600; }

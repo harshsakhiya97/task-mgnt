@@ -50,6 +50,34 @@ Deno.serve(async (req) => {
   if (input?.action === 'status') return reply({ gemini: !!geminiKey, robot: sa?.client_email ?? null })
 
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
+
+  // "Add as task" on a row Gemini hasn't read yet (e.g. an old row): read just that row, don't create anything.
+  if (input?.action === 'parse') {
+    const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const { data: u } = await db.auth.getUser(token)
+    const { data: me } = u?.user
+      ? await db.from('profiles').select('is_active, role_info:roles(is_admin)').eq('id', u.user.id).maybeSingle()
+      : { data: null }
+    const isAdmin = !!me && (me as unknown as { is_active: boolean; role_info: { is_admin: boolean } | null }).is_active
+      && !!(me as unknown as { role_info: { is_admin: boolean } | null }).role_info?.is_admin
+    if (!isAdmin) return reply({ error: 'Only admins can do this' }, 403)
+    if (!geminiKey) return reply({ error: 'Add the GEMINI_API_KEY secret first' }, 400)
+    const { data: entry } = await db.from('perisclaw_entries').select('id, row_number, raw, raw_text, status').eq('id', String(input.entry_id ?? '')).maybeSingle()
+    if (!entry) return reply({ error: 'Row not found' }, 404)
+    const { data: ppl } = await db.from('profiles').select('id, full_name, team:teams(name), role_info:roles(name)').eq('is_active', true).order('full_name')
+    const people: Person[] = ((ppl ?? []) as unknown as { id: string; full_name: string; team: { name: string } | null; role_info: { name: string } | null }[])
+      .map((p) => ({ id: p.id, full_name: p.full_name, team: p.team?.name ?? null, role: p.role_info?.name ?? null }))
+    const now = nowInIndia()
+    try {
+      const ai = await askGemini(buildPrompt({ rowNumber: entry.row_number ?? 0, data: entry.raw, text: entry.raw_text }, people, now), geminiKey)
+      const d = decide(ai, people, now.date)
+      const parsed = { ...ai, suggested: d.task ?? null }
+      await db.from('perisclaw_entries').update({ parsed }).eq('id', entry.id)
+      return reply({ parsed, reason: d.reason })
+    } catch (e) {
+      return reply({ error: e instanceof Error ? e.message : String(e) }, 502)
+    }
+  }
   const { data: settings, error: sErr } = await db.from('perisclaw_settings').select('*').eq('id', 1).single()
   if (sErr || !settings) return reply({ error: sErr?.message ?? 'No settings' }, 500)
 
@@ -91,7 +119,7 @@ Deno.serve(async (req) => {
         reason: 'Already in the sheet when it was connected',
       })), { onConflict: 'row_hash', ignoreDuplicates: true })
     }
-    return finish({ baseline_done: true, last_error: null, last_result: `Connected. ${keyed.length} existing row(s) skipped; new rows will become tasks.` })
+    return finish({ baseline_done: true, last_error: null, last_result: `Connected. ${keyed.length} row(s) already in the sheet were not added (use "Add as task" below if needed); new rows become tasks.` })
   }
 
   // 3. New rows only (claim them so a parallel run can't take the same ones).

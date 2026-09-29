@@ -29,18 +29,22 @@ Admin on WhatsApp → Perisclaw → new row in Google Sheet
    - choose which admin the tasks are created as
    - click **Save & switch on**
 
-   Rows already in the sheet are skipped by default, so old rows don't become tasks.
+   Rows already in the sheet are not turned into tasks automatically. They are listed as **Not added (old row)**, and you can still add any of them with **Add as task** in the Action column.
 
 Without a robot account, the app can still read a sheet shared as "Anyone with the link → Viewer".
 
 ## How rows are handled
-- **Task created:** Gemini found exactly one matching team member, a task, and a due date today or later, and it's at least 75 % sure. The task is created as the chosen admin, the assignee gets the usual WhatsApp message, and the original row is kept in the task description.
-- **Needs review:** anything unclear:
+- **Added as task:** Gemini found exactly one matching team member, a task, and a due date today or later, and it's at least 75 % sure. The task is created as the chosen admin, the assignee gets the usual WhatsApp message, and the original row is kept in the task description.
+- **Waiting for you:** anything unclear:
   - unknown or ambiguous person
   - no date, or a date in the past
   - low confidence, or not a task at all
 
-  Click the row, fix the fields, then **Create Task**, or **Ignore this row**.
+  Old rows from before the sheet was connected also wait here.
+- **Action column** (last column of the rows table):
+  - **Add as task** opens the task form, pre-filled with what the AI understood. For an old row, the AI reads it first. Check the fields, then click **Add as Task**.
+  - **Skip** marks the row as Skipped. A skipped row can still be added later.
+  - Once a row is added, the status shows **Added as task** and the Action column shows its task number (e.g. **TM-125**). Click the number to open the task details.
 - **Times:**
   - "at 3 pm" → 3–4 pm
   - "3–4 pm" → 3–4 pm

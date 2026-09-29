@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Bot, CheckCircle2, CircleSlash, ExternalLink, FileSpreadsheet, RefreshCw, Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { AlertTriangle, Bot, CheckCircle2, CircleSlash, ExternalLink, FileSpreadsheet, Plus, RefreshCw, Sparkles, X } from 'lucide-react'
 import { Drawer } from '../components/Drawer'
 import { Field } from '../components/Fields'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
+import { TaskForm } from '../components/TaskForm'
+import { TaskView } from '../components/TaskView'
 import { TimeRangeInput, timePairError, toDbTime } from '../components/TimeRangeInput'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
@@ -28,13 +29,14 @@ interface Entry {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  processing: 'Reading…', created: 'Task created', needs_review: 'Needs review', ignored: 'Ignored',
-  skipped_existing: 'Old row (skipped)', error: 'Error',
+  processing: 'Reading…', created: 'Added as task', needs_review: 'Needs review', ignored: 'Skipped',
+  skipped_existing: 'Not added (old row)', error: 'Error',
 }
 const STATUS_TONE: Record<string, string> = {
   created: 'active', needs_review: 'manager', ignored: 'paused', skipped_existing: 'paused', error: 'inactive', processing: 'st-in_progress',
 }
-type Filter = '' | 'created' | 'needs_review' | 'error' | 'other'
+type Filter = '' | 'created' | 'pending' | 'ignored' | 'error'
+const canAct = (st: string) => ['needs_review', 'error', 'ignored', 'skipped_existing'].includes(st)
 
 const when = (iso: string | null) => iso ? new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—'
 
@@ -45,7 +47,6 @@ export function Perisclaw() {
   const [s, setS] = useState<Settings | null>(null)
   const [url, setUrl] = useState('')
   const [assigner, setAssigner] = useState('')
-  const [importExisting, setImportExisting] = useState(false)
   const [gemini, setGemini] = useState<boolean | null>(null)
   const [robot, setRobot] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -56,6 +57,9 @@ export function Perisclaw() {
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [reviewing, setReviewing] = useState<Entry | null>(null)
+  const [viewingTask, setViewingTask] = useState<string | null>(null)
+  const [editingTask, setEditingTask] = useState<import('../lib/tasks').Task | null>(null)
+  const [rowBusy, setRowBusy] = useState('')
   const [admins, setAdmins] = useState<{ id: string; full_name: string }[]>([])
 
   const load = useCallback(async () => {
@@ -68,7 +72,7 @@ export function Perisclaw() {
     ])
     if (st.data) {
       const d = st.data as Settings
-      setS(d); setUrl(d.sheet_url ?? ''); setAssigner(d.assigner_id ?? ''); setImportExisting(d.import_existing)
+      setS(d); setUrl(d.sheet_url ?? ''); setAssigner(d.assigner_id ?? '')
     }
     setEntries((en.data as unknown as Entry[]) ?? [])
     setAdmins((ad.data as unknown as { id: string; full_name: string }[]) ?? [])
@@ -82,7 +86,7 @@ export function Perisclaw() {
   const save = async (enabled: boolean) => {
     setBusy('save'); setMsg(null)
     const { error } = await supabase.from('perisclaw_settings')
-      .update({ sheet_url: url.trim() || null, assigner_id: assigner || null, import_existing: importExisting, enabled }).eq('id', 1)
+      .update({ sheet_url: url.trim() || null, assigner_id: assigner || null, enabled }).eq('id', 1)
     setBusy('')
     if (error) return setMsg({ ok: false, text: error.message })
     setMsg({ ok: true, text: enabled ? 'Saved and switched on. Checking the sheet now…' : 'Saved. Sync is switched off.' })
@@ -98,18 +102,37 @@ export function Perisclaw() {
     await load()
   }
 
+  // Row actions
+  const skipRow = async (e: Entry) => {
+    setRowBusy(e.id)
+    const { error } = await supabase.from('perisclaw_entries').update({ status: 'ignored', reason: 'Skipped by admin' }).eq('id', e.id)
+    setRowBusy('')
+    if (error) setMsg({ ok: false, text: error.message }); else load()
+  }
+  const addRow = async (e: Entry) => {
+    // Rows Gemini hasn't read yet (old rows) are read first, so the form opens pre-filled.
+    if (!e.parsed && gemini) {
+      setRowBusy(e.id)
+      const { data } = await supabase.functions.invoke('perisclaw-sync', { body: { action: 'parse', entry_id: e.id } })
+      setRowBusy('')
+      if (data?.parsed) return setReviewing({ ...e, parsed: data.parsed, reason: data.reason || e.reason })
+    }
+    setReviewing(e)
+  }
+
   const counts = useMemo(() => ({
-    all: entries.filter((e) => e.status !== 'skipped_existing').length,
+    all: entries.length,
     created: entries.filter((e) => e.status === 'created').length,
-    review: entries.filter((e) => e.status === 'needs_review').length,
+    pending: entries.filter((e) => ['needs_review', 'skipped_existing'].includes(e.status)).length,
+    ignored: entries.filter((e) => e.status === 'ignored').length,
     error: entries.filter((e) => e.status === 'error').length,
   }), [entries])
 
   const visible = entries.filter((e) =>
-    filter === '' ? true : filter === 'other' ? ['ignored', 'skipped_existing', 'processing'].includes(e.status) : e.status === filter)
+    filter === '' ? true : filter === 'pending' ? ['needs_review', 'skipped_existing'].includes(e.status) : e.status === filter)
   useEffect(() => { setPage(1) }, [filter, pageSize])
   const pageRows = visible.slice((page - 1) * pageSize, page * pageSize)
-  const changed = !!s && ((s.sheet_url ?? '') !== url.trim() || (s.assigner_id ?? '') !== assigner || s.import_existing !== importExisting)
+  const changed = !!s && ((s.sheet_url ?? '') !== url.trim() || (s.assigner_id ?? '') !== assigner)
 
   return (
     <>
@@ -134,12 +157,6 @@ export function Perisclaw() {
                 <select value={assigner} onChange={(e) => setAssigner(e.target.value)}>
                   <option value="" disabled>Select admin</option>
                   {admins.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
-                </select>
-              </Field>
-              <Field label="Rows already in the sheet" hint="Applies when a new sheet link is saved.">
-                <select value={importExisting ? 'import' : 'skip'} onChange={(e) => setImportExisting(e.target.value === 'import')}>
-                  <option value="skip">Skip them — only new rows</option>
-                  <option value="import">Import them as tasks too</option>
                 </select>
               </Field>
             </div>
@@ -179,9 +196,10 @@ export function Perisclaw() {
       </div>
 
       <div className="stats tab-stats">
-        <StatCard icon={FileSpreadsheet} tone="navy" value={counts.all} label="Rows Read" onClick={() => setFilter('')} active={filter === ''} />
-        <StatCard icon={CheckCircle2} tone="green" value={counts.created} label="Tasks Created" onClick={() => setFilter('created')} active={filter === 'created'} />
-        <StatCard icon={Sparkles} tone="yellow" value={counts.review} label="Needs Review" onClick={() => setFilter('needs_review')} active={filter === 'needs_review'} />
+        <StatCard icon={FileSpreadsheet} tone="navy" value={counts.all} label="All Rows" onClick={() => setFilter('')} active={filter === ''} />
+        <StatCard icon={CheckCircle2} tone="green" value={counts.created} label="Added as Task" onClick={() => setFilter('created')} active={filter === 'created'} />
+        <StatCard icon={Sparkles} tone="yellow" value={counts.pending} label="Waiting for You" onClick={() => setFilter('pending')} active={filter === 'pending'} />
+        <StatCard icon={CircleSlash} tone="purple" value={counts.ignored} label="Skipped" onClick={() => setFilter('ignored')} active={filter === 'ignored'} />
         <StatCard icon={AlertTriangle} tone="red" value={counts.error} label="Errors" onClick={() => setFilter('error')} active={filter === 'error'} />
       </div>
 
@@ -192,10 +210,10 @@ export function Perisclaw() {
           <span className="spacer" />
           <select className="pill-select" value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
             <option value="">All rows</option>
-            <option value="created">Task created</option>
-            <option value="needs_review">Needs review</option>
+            <option value="created">Added as task</option>
+            <option value="pending">Waiting for you</option>
+            <option value="ignored">Skipped</option>
             <option value="error">Errors</option>
-            <option value="other">Ignored / old rows</option>
           </select>
         </div>
         <div className="table-scroll">
@@ -203,22 +221,33 @@ export function Perisclaw() {
             <div className="empty"><FileSpreadsheet size={40} /><b>No rows yet</b>{s?.enabled ? 'New rows in the sheet show up here within 2 minutes.' : 'Paste the sheet link above and switch it on.'}</div>
           ) : (
             <table>
-              <thead><tr><th>Read at</th><th>Row</th><th>Sheet text</th><th>AI understood</th><th>Status</th><th>Task</th></tr></thead>
+              <thead><tr><th>Read at</th><th>Row</th><th>Sheet text</th><th>AI understood</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 {pageRows.map((e) => (
-                  <tr key={e.id} className={e.status === 'needs_review' || e.status === 'error' ? 'clickable' : ''}
-                    onClick={() => (e.status === 'needs_review' || e.status === 'error') && setReviewing(e)}>
+                  <tr key={e.id}>
                     <td>{when(e.created_at)}</td>
                     <td>{e.row_number ?? '—'}</td>
                     <td><div className="pc-raw" title={e.raw_text}>{e.raw_text}</div></td>
                     <td className="small">{e.parsed ? <AiSummary p={e.parsed} users={users} /> : <span className="muted">—</span>}</td>
                     <td>
                       <span className={`badge ${STATUS_TONE[e.status] ?? ''}`}>{STATUS_LABELS[e.status] ?? e.status}</span>
-                      {e.reason && e.status !== 'skipped_existing' && <div className="muted small pc-reason">{e.reason}</div>}
+                      {e.reason && !['skipped_existing', 'created'].includes(e.status) && <div className="muted small pc-reason">{e.reason}</div>}
                     </td>
-                    <td>
-                      {e.task ? <Link to={`/tasks?task=${e.task_id}`} onClick={(ev) => ev.stopPropagation()} className="task-no">{taskCode(e.task.task_no)}</Link>
-                        : (e.status === 'needs_review' || e.status === 'error') ? <button className="secondary small-btn">Review</button> : '—'}
+                    <td className="pc-action">
+                      {e.status === 'created' && e.task_id ? (
+                        <button className="link task-no" onClick={() => setViewingTask(e.task_id)} title="Open task">
+                          {e.task ? taskCode(e.task.task_no) : 'Open task'}
+                        </button>
+                      ) : canAct(e.status) ? (
+                        <div className="pc-action-btns">
+                          <button className="small-btn" disabled={rowBusy === e.id} onClick={() => addRow(e)}>
+                            <Plus size={14} /> {rowBusy === e.id ? 'Reading…' : 'Add as task'}
+                          </button>
+                          {e.status !== 'ignored' && (
+                            <button className="secondary small-btn" disabled={rowBusy === e.id} onClick={() => skipRow(e)}><X size={14} /> Skip</button>
+                          )}
+                        </div>
+                      ) : <span className="muted">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -229,6 +258,10 @@ export function Perisclaw() {
         <Pagination page={page} pageSize={pageSize} total={visible.length} onPage={setPage} onPageSize={setPageSize} />
       </div>
 
+      {viewingTask && !editingTask && (
+        <TaskView taskId={viewingTask} onClose={() => setViewingTask(null)} onEdit={setEditingTask} onChanged={load} />
+      )}
+      {editingTask && <TaskForm task={editingTask} users={users} onClose={() => setEditingTask(null)} onSaved={() => { setEditingTask(null); load() }} />}
       {reviewing && <ReviewDrawer entry={reviewing} users={users} assignerId={profile?.id ?? ''}
         onClose={() => setReviewing(null)} onDone={() => { setReviewing(null); load() }} />}
     </>
@@ -283,16 +316,16 @@ function ReviewDrawer({ entry, users, assignerId, onClose, onDone }: {
 
   const ignore = async () => {
     setBusy(true)
-    const { error } = await supabase.from('perisclaw_entries').update({ status: 'ignored', reason: 'Ignored by admin' }).eq('id', entry.id)
+    const { error } = await supabase.from('perisclaw_entries').update({ status: 'ignored', reason: 'Skipped by admin' }).eq('id', entry.id)
     setBusy(false)
     if (error) setError(error.message); else onDone()
   }
 
   return (
-    <Drawer title="Review sheet row" onClose={onClose} onSubmit={create} submitLabel="Create Task" busy={busy}>
+    <Drawer title="Add row as task" onClose={onClose} onSubmit={create} submitLabel="Add as Task" busy={busy}>
       <div className="form-section">From the sheet (row {entry.row_number ?? '?'})</div>
       <div className="wa-bubble pc-source">{entry.raw_text}</div>
-      {entry.reason && <div className="alert info">Why it needs review: {entry.reason}</div>}
+      {entry.reason && entry.status !== 'skipped_existing' && <div className="alert info">Why it needs review: {entry.reason}</div>}
       <div className="form-section">Task</div>
       <div className="form-grid">
         <Field label="Assign To" required hint={p.assignee_text ? `Sheet says: "${p.assignee_text}"` : undefined}>
@@ -314,7 +347,7 @@ function ReviewDrawer({ entry, users, assignerId, onClose, onDone }: {
       </div>
       <TimeRangeInput from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} label="Time (optional)" />
       {error && <div className="alert error">{error}</div>}
-      <button type="button" className="danger-outline" onClick={ignore} disabled={busy} style={{ marginTop: 12 }}>Ignore this row</button>
+      {entry.status !== 'ignored' && <button type="button" className="danger-outline" onClick={ignore} disabled={busy} style={{ marginTop: 12 }}>Skip this row</button>}
     </Drawer>
   )
 }
