@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Activity, BarChart3, Bell, MessageCircle, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, UserRound, Users } from 'lucide-react'
+import { Activity, BarChart3, Bell, Bot, MessageCircle, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, UserRound, Users } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { APP_VERSION, VERSION_LABEL, VERSION_SHORT } from '../lib/version'
@@ -32,6 +32,7 @@ const SECTIONS: { title: string; items: NavDef[] }[] = [
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
       { to: '/whatsapp-logs', label: 'WhatsApp Logs', icon: MessageCircle, roles: ['admin'] },
+      { to: '/perisclaw', label: 'Perisclaw', icon: Bot, roles: ['admin'] },
       { to: '/users', label: 'Users & Roles', icon: Users, roles: ['admin'] },
       { to: '/health', label: 'System Check', icon: Activity, roles: ['admin'] },
     ],
@@ -47,6 +48,7 @@ const TITLES: Record<string, [string, string]> = {
   '/calendar': ['Calendar', 'Overview'],
   '/reports': ['Reports', 'Overview'],
   '/whatsapp-logs': ['WhatsApp Logs', 'Overview'],
+  '/perisclaw': ['Perisclaw', 'Tasks from Google Sheet'],
   '/users': ['Users & Roles', 'Overview'],
   '/health': ['System Check', 'Overview'],
   '/profile': ['Settings', 'My Profile'],

@@ -1,0 +1,138 @@
+// Supabase Edge Function: reads new rows from the Perisclaw Google Sheet, asks Gemini
+// to pick out assignee / task / date-time / priority, and creates the tasks.
+// Unclear rows are saved as "needs_review" for an admin to finish on the Perisclaw page.
+//
+// Called every 2 minutes by pg_cron (private.perisclaw_kick) while it's switched on,
+// and by the "Sync now" button. It takes no input and only acts on the configured
+// sheet, so an extra call does no harm (verify_jwt off for the cron call).
+//   POST {}                  -> check the sheet now
+//   POST {"action":"status"} -> { gemini: true/false } (is the key set?)
+//
+// Secrets (Supabase → Edge Functions → Secrets):
+//   GEMINI_API_KEY   free key from https://aistudio.google.com → Get API key
+//   GEMINI_MODEL     optional, default gemini-2.5-flash
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sha256, sheetRows, type AiResult, type Person } from './lib.ts'
+
+const MAX_ROWS_PER_RUN = 8          // stays well inside Gemini's free-tier rate limit
+
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+const reply = (body: unknown, status = 200) => Response.json(body, { status, headers: cors })
+
+async function askGemini(prompt: string, key: string): Promise<AiResult> {
+  const model = Deno.env.get('GEMINI_MODEL') || 'gemini-2.5-flash'
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: GEMINI_SCHEMA },
+    }),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${body?.error?.message ?? 'request failed'}`)
+  const text = body?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
+  try { return JSON.parse(text) as AiResult } catch { throw new Error('Gemini returned something that is not JSON') }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  const input = await req.json().catch(() => ({}))
+  const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
+  if (input?.action === 'status') return reply({ gemini: !!geminiKey })
+
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } })
+  const { data: settings, error: sErr } = await db.from('perisclaw_settings').select('*').eq('id', 1).single()
+  if (sErr || !settings) return reply({ error: sErr?.message ?? 'No settings' }, 500)
+
+  const finish = async (patch: Record<string, unknown>) => {
+    await db.from('perisclaw_settings').update({ last_checked_at: new Date().toISOString(), ...patch }).eq('id', 1)
+    return reply(patch)
+  }
+
+  if (!settings.enabled || !settings.sheet_id) return reply({ skipped: 'Perisclaw sync is switched off' })
+  if (!settings.assigner_id) return finish({ last_error: 'Choose which admin the tasks are created as' })
+
+  // 1. Read the sheet (must be shared as "anyone with the link can view").
+  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(settings.sheet_id)}/export?format=csv&gid=${encodeURIComponent(settings.sheet_gid ?? '0')}`
+  let csv = ''
+  try {
+    const res = await fetch(url, { redirect: 'follow' })
+    const type = res.headers.get('content-type') ?? ''
+    csv = await res.text()
+    if (!res.ok || type.includes('text/html')) {
+      return finish({ last_error: `Can't read the sheet (${res.status}). In Google Sheets: Share → General access → "Anyone with the link" → Viewer.` })
+    }
+  } catch (e) {
+    return finish({ last_error: `Can't reach Google Sheets: ${e instanceof Error ? e.message : e}` })
+  }
+
+  const rows = sheetRows(csv)
+  const keyed = await Promise.all(rows.map(async (r) => ({ row: r, hash: await sha256(rowKey(r)) })))
+
+  // 2. First read of a newly connected sheet: remember what's already there (unless importing).
+  if (!settings.baseline_done && !settings.import_existing) {
+    if (keyed.length) {
+      await db.from('perisclaw_entries').upsert(keyed.map(({ row, hash }) => ({
+        row_hash: hash, row_number: row.rowNumber, raw: row.data, raw_text: row.text,
+        status: 'skipped_existing', processed_at: new Date().toISOString(),
+        reason: 'Already in the sheet when it was connected',
+      })), { onConflict: 'row_hash', ignoreDuplicates: true })
+    }
+    return finish({ baseline_done: true, last_error: null, last_result: `Connected. ${keyed.length} existing row(s) skipped; new rows will become tasks.` })
+  }
+
+  // 3. New rows only (claim them so a parallel run can't take the same ones).
+  const { data: known } = await db.from('perisclaw_entries').select('row_hash').in('row_hash', keyed.map((k) => k.hash))
+  const seen = new Set((known ?? []).map((k) => k.row_hash))
+  const fresh = keyed.filter((k) => !seen.has(k.hash))
+  if (!fresh.length) return finish({ baseline_done: true, last_error: null, last_result: `No new rows (${keyed.length} in the sheet).` })
+  if (!geminiKey) return finish({ last_error: `${fresh.length} new row(s) waiting: add the GEMINI_API_KEY secret in Supabase → Edge Functions → Secrets.` })
+
+  const batch = fresh.slice(0, MAX_ROWS_PER_RUN)
+  const { data: claimed } = await db.from('perisclaw_entries').upsert(batch.map(({ row, hash }) => ({
+    row_hash: hash, row_number: row.rowNumber, raw: row.data, raw_text: row.text, status: 'processing',
+  })), { onConflict: 'row_hash', ignoreDuplicates: true }).select('id, row_hash')
+  const idByHash = new Map((claimed ?? []).map((c) => [c.row_hash, c.id]))
+
+  // 4. Who can get tasks.
+  const { data: ppl } = await db.from('profiles').select('id, full_name, team:teams(name), role_info:roles(name)').eq('is_active', true).order('full_name')
+  const people: Person[] = ((ppl ?? []) as unknown as { id: string; full_name: string; team: { name: string } | null; role_info: { name: string } | null }[])
+    .map((p) => ({ id: p.id, full_name: p.full_name, team: p.team?.name ?? null, role: p.role_info?.name ?? null }))
+  const now = nowInIndia()
+
+  let created = 0, review = 0, errors = 0
+  for (const { row, hash } of batch) {
+    const entryId = idByHash.get(hash)
+    if (!entryId) continue                                   // another run took it
+    try {
+      const ai = await askGemini(buildPrompt(row, people, now), geminiKey)
+      const d = decide(ai, people, now.date)
+      if (d.ok && d.task) {
+        const { data: task, error } = await db.from('tasks').insert({
+          ...d.task,
+          description: [d.task.description, `From Perisclaw (sheet row ${row.rowNumber}):\n${row.text}`].filter(Boolean).join('\n\n'),
+          assigned_by: settings.assigner_id,
+          task_type: 'adhoc',
+        }).select('id').single()
+        if (error) throw new Error(error.message)
+        await db.from('perisclaw_entries').update({ status: 'created', parsed: ai, task_id: task.id, processed_at: new Date().toISOString() }).eq('id', entryId)
+        created++
+      } else {
+        await db.from('perisclaw_entries').update({ status: 'needs_review', parsed: { ...ai, suggested: d.task ?? null }, reason: d.reason, processed_at: new Date().toISOString() }).eq('id', entryId)
+        review++
+      }
+    } catch (e) {
+      await db.from('perisclaw_entries').update({ status: 'error', reason: e instanceof Error ? e.message : String(e), processed_at: new Date().toISOString() }).eq('id', entryId)
+      errors++
+    }
+  }
+
+  const left = fresh.length - batch.length
+  const parts = [`${batch.length} new row(s): ${created} task(s) created`, review ? `${review} need review` : '', errors ? `${errors} error(s)` : '', left ? `${left} more next run` : '']
+  return finish({ baseline_done: true, last_error: errors && !created && !review ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
+})

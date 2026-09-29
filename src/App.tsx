@@ -13,6 +13,7 @@ import { Setup } from './pages/Setup'
 import { Tasks } from './pages/Tasks'
 import { Reports } from './pages/Reports'
 import { Users } from './pages/Users'
+import { Perisclaw } from './pages/Perisclaw'
 import { WhatsAppLogs } from './pages/WhatsAppLogs'
 
 // The calendar library is large, so it's only downloaded when the Calendar page is opened.
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/reports" element={<RequireAuth roles={['admin']}><Reports /></RequireAuth>} />
+        <Route path="/perisclaw" element={<RequireAuth roles={['admin']}><Perisclaw /></RequireAuth>} />
         <Route path="/whatsapp-logs" element={<RequireAuth roles={['admin']}><WhatsAppLogs /></RequireAuth>} />
         <Route path="/users" element={<RequireAuth roles={['admin']}><Users /></RequireAuth>} />
         <Route path="/teams" element={<Navigate to="/users?tab=teams" replace />} />

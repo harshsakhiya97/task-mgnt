@@ -3,6 +3,14 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, rebuild, then commit and tag (`git tag v1.1`).
 
+## Version 1.2 — in progress (branch `v1.2-perisclaw`)
+
+- **Perisclaw** (admin, new sidebar item):
+  - Paste the link of the Google Sheet that Perisclaw writes tasks to. New rows are read every 2 minutes, or with **Sync now**.
+  - Gemini (AI) picks out the assignee, task, date/time and priority, and the task is created.
+  - Unclear rows wait in **Needs review**, where you fix and create them or ignore them.
+  - Setup guide: `docs/perisclaw.md`.
+
 ## Version 1.1 — 26 Sep 2026
 
 - **Reports** (admin, new sidebar item): pick a date range (Today / This Week / This Month / Last Month / Custom) and a team. Shows per-person Assigned, Completed, On time, Late, Expired and Pending, plus Completion % and On-time %, with totals. **Export Excel** downloads a Summary sheet and a Tasks sheet.
