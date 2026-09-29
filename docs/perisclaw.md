@@ -44,6 +44,7 @@ Without a robot account, the app can still read a sheet shared as "Anyone with t
 - **Action column** (last column of the rows table):
   - **Add as task** opens the task form, pre-filled with what the AI understood. For an old row, the AI reads it first. Check the fields, then click **Add as Task**.
   - **Skip** marks the row as Skipped. A skipped row can still be added later.
+  - Deleting a task that came from a row puts that row back to **Skipped**, so it can be added again if needed.
   - Once a row is added, the status shows **Added as task** and the Action column shows its task number (e.g. **TM-125**). Click the number to open the task details.
 - **Times:**
   - "at 3 pm" → 3–4 pm
