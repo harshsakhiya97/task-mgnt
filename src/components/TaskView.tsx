@@ -16,6 +16,7 @@ import { applyTimeEveryDay } from '../lib/recurringScope'
 import { fromDbTime, timePairError, toDbTime } from './TimeRangeInput'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
+import { AssigneeName } from './AssigneeName'
 
 type Tab = 'details' | 'comments' | 'files' | 'activity'
 
@@ -89,7 +90,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
         <div className="drawer-head">
           <h3>{task ? <span className="task-no">{taskCode(task.task_no)}</span> : 'Loading…'}</h3>
           <div className="head-actions">
-            {mayReassign && <button onClick={() => setReassigning(true)}><Forward size={15} /> Reassign</button>}
+            {mayReassign && <button onClick={() => setReassigning(true)}><Forward size={15} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
             {canEdit && task && <button className="secondary" onClick={() => onEdit(task)}><Pencil size={15} /> Edit</button>}
             {canEdit && <button className="danger-outline" onClick={() => setConfirmDelete(true)}><Trash2 size={15} /> Delete</button>}
             <button className="icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
@@ -151,7 +152,7 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
           {task.assigner?.full_name ?? '—'}
           {task.created_by !== task.assigned_by && task.creator && <small className="muted"> · created by {task.creator.full_name}</small>}
         </Cell>
-        <Cell label="Assigned To" span={3}>{task.assignee?.full_name ?? '—'}</Cell>
+        <Cell label="Assigned To" span={3}><AssigneeName task={task} /></Cell>
 
         <Cell label="Created Date" span={3}>
           {formatDate(task.created_at)} <small className="muted">({timeAgo(task.created_at)})</small>

@@ -58,7 +58,7 @@ export interface Task {
   description: string | null
   created_by: string             // original creator (never changes)
   assigned_by: string            // who handed it to the current assignee
-  assigned_to: string            // current assignee
+  assigned_to: string | null     // current assignee (null = not assigned yet, e.g. a Perisclaw task for a new person)
   participants: string[]         // everyone who created / passed on / held it
   assigned_at: string            // when the current assignee received it
   reassigned: boolean            // current assignee got it via a handover

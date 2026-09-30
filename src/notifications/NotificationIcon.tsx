@@ -1,4 +1,4 @@
-import { ArrowRightLeft, CheckCircle2, ClipboardPlus, MessageSquare, Paperclip, PencilLine } from 'lucide-react'
+import { ArrowRightLeft, CheckCircle2, ClipboardPlus, MessageSquare, Paperclip, PencilLine, UserX } from 'lucide-react'
 
 const MAP = {
   assigned: { Icon: ClipboardPlus, tone: 'tone-blue' },
@@ -7,6 +7,7 @@ const MAP = {
   comment: { Icon: MessageSquare, tone: 'tone-purple' },
   attachment: { Icon: Paperclip, tone: 'tone-teal' },
   updated: { Icon: PencilLine, tone: 'tone-yellow' },
+  unassigned: { Icon: UserX, tone: 'tone-orange' },
 } as const
 
 export function NotificationIcon({ type }: { type: string }) {

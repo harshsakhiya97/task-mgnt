@@ -124,10 +124,11 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
 export interface Decision {
-  ok: boolean
-  reason: string
-  task?: {
-    assigned_to: string; title: string; description: string; due_date: string
+  ok: boolean              // the AI was sure about everything (person, date, task)
+  reason: string           // what was missing or guessed, for the admin; empty when ok
+  unassigned: boolean      // nobody in the team matched: the task is created without an assignee
+  task: {
+    assigned_to: string | null; title: string; description: string; due_date: string
     start_time: string | null; end_time: string | null; priority: AiResult['priority']
   }
 }
@@ -150,33 +151,53 @@ export function tidyDescription(text: string): string {
   return t.replace(/\s+(?=\d{1,2}[.)]\s)/g, '\n')
 }
 
-/** Decide whether the AI's answer is safe to turn into a task automatically. */
-export function decide(ai: AiResult, people: Person[], today: string): Decision {
-  const problems: string[] = []
-  if (!ai.is_task) problems.push("doesn't look like a task")
+/** Best guess at a title from the raw row: the "Title / Task / Idea" column first, never a bare date. */
+export function titleFromRow(rowText: string): string {
+  const cells = rowText.split('\n').map((l) => {
+    const m = l.match(/^([^:]{1,40}):\s*(.*)$/)
+    return m ? { key: m[1], value: m[2].trim() } : { key: '', value: l.trim() }
+  }).filter((c) => c.value && !/^[\d\s\/.:-]+$/.test(c.value))          // skip empty cells and dates/numbers
+  const pick = cells.find((c) => /title|task|idea|work|todo|to do/i.test(c.key) && !/type/i.test(c.key)) ?? cells[0]
+  return pick ? pick.value.slice(0, 120) : ''
+}
+
+/**
+ * Turn the AI's answer into a task. Perisclaw rows always become tasks (the admin can edit them later):
+ * - nobody matched          -> no assignee (admins are alerted to create the user and assign it)
+ * - no date / a past date   -> due today
+ * - no title                -> the start of the sheet row
+ * `reason` lists whatever was guessed, so the admin can check.
+ */
+export function decide(ai: AiResult, people: Person[], today: string, rowText = ''): Decision {
+  const notes: string[] = []
+  if (!ai.is_task) notes.push("AI wasn't sure this is a task")
   const person = ai.assignee_number >= 1 && ai.assignee_number <= people.length ? people[ai.assignee_number - 1] : null
-  if (!person) problems.push(ai.assignee_text ? `couldn't match "${ai.assignee_text}" to a team member` : 'no assignee found')
-  const title = (ai.title ?? '').trim().slice(0, 200)
-  if (!title) problems.push('no task text')
-  const due = (ai.due_date ?? '').trim()
-  if (!DATE.test(due) || isNaN(Date.parse(due))) problems.push('no clear due date')
-  else if (due < today) problems.push(`due date ${due} is in the past`)
+  const who = (ai.assignee_text ?? '').trim()
+  if (!person) notes.push(who ? `"${who}" is not a user yet, so the task is unassigned` : 'no person named, so the task is unassigned')
+  let title = (ai.title ?? '').trim().slice(0, 200)
+  if (!title) {
+    title = titleFromRow(rowText) || 'Task from Perisclaw'
+    notes.push('no clear task text, so the title is taken from the row')
+  }
+  let due = (ai.due_date ?? '').trim()
+  if (!DATE.test(due) || isNaN(Date.parse(due))) { notes.push('no date given, so it is due today'); due = today }
+  else if (due < today) { notes.push(`date ${due} had passed, so it is due today`); due = today }
   let start = TIME.test(ai.start_time ?? '') ? ai.start_time : null
   let end = TIME.test(ai.end_time ?? '') ? ai.end_time : null
   if (start && !end) end = addHour(start)
   if (end && !start) start = subHour(end)                   // "by 5 pm": last hour before the deadline, expires at 5 pm
   if (start && end && end <= start) end = addHour(start)
-  if (!(ai.confidence >= 0.75)) problems.push(`AI wasn't sure (${Math.round((ai.confidence || 0) * 100)}%)${ai.note ? `: ${ai.note}` : ''}`)
+  if (!(ai.confidence >= 0.75) && person) notes.push(`AI was ${Math.round((ai.confidence || 0) * 100)}% sure${ai.note ? `: ${ai.note}` : ''}`)
   const priority = (['low', 'medium', 'high', 'urgent'] as const).includes(ai.priority) ? ai.priority : 'medium'
 
-  const description = tidyDescription(ai.description ?? '')
   return {
-    ok: problems.length === 0,
-    reason: problems.join('; '),
-    task: person && title ? {
-      assigned_to: person.id, title, description, due_date: due,
+    ok: notes.length === 0,
+    reason: notes.join('; '),
+    unassigned: !person,
+    task: {
+      assigned_to: person?.id ?? null, title, description: tidyDescription(ai.description ?? ''), due_date: due,
       start_time: start, end_time: end, priority,
-    } : undefined,
+    },
   }
 }
 

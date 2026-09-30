@@ -1,10 +1,10 @@
 # WhatsApp templates for WATI
 
-Create these three templates in **WATI → Broadcast → Templates → New Template**.
+Create these four templates in **WATI → Broadcast → Templates → New Template**.
 
 - **Category:** Utility
 - **Language:** English
-- **Template name:** use exactly the name shown. The app sends to these names. If a name must differ, set the Edge Function secret `WATI_TEMPLATE_TASK_ASSIGNED` (or `..._TASK_COMMENT`, `..._DAILY_TASK_REPORT`) to your name.
+- **Template name:** use exactly the name shown. The app sends to these names. If a name must differ, set the Edge Function secret `WATI_TEMPLATE_TASK_ASSIGNED` (or `..._TASK_COMMENT`, `..._DAILY_TASK_REPORT`, `..._TASK_UNASSIGNED`) to your name.
 - **Variables:** type them exactly as written, in double curly braces, e.g. `{{name}}`. WATI keeps named variables, and the app fills them by name.
 
 WhatsApp doesn't allow a template to start or end with a variable, so each one ends with a sign-off line.
@@ -66,6 +66,22 @@ Open the full report with details for every person: {{link}}
 – Task Mgnt, Pride Educare
 ```
 Samples: name = Viral Sakhiya · date = 26-Sep-2026 · total = 18 · done = 14 · expired = 3 · pending = 1 · overdue = 5 · link = https://pride.viralsakhiya.com/reports
+
+## 4. `task_unassigned`
+Goes to every active admin when a Perisclaw row becomes a task but the person named in it isn't a user of the app. The task is added with no assignee; create the user, then open the task and click **Assign**.
+
+```
+Hi {{name}},
+
+A task from Perisclaw has been added to the task list, but the person "{{person}}" was not found among the Task Mgnt users, so the task is not assigned to anyone yet.
+
+Task: {{task}}
+
+Kindly create the user and assign this task to them: {{link}}
+
+– Task Mgnt, Pride Educare
+```
+Samples: name = Viral Sakhiya · person = Rahul Raja · task = TM-160 – Coordinate post-webinar automation · link = https://pride.viralsakhiya.com/tasks?task=abc
 
 ---
 

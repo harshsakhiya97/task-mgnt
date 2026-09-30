@@ -7,12 +7,12 @@
 //   WATI_API_URL   optional — defaults to Pride's WATI endpoint below (WATI → API Docs)
 //   WATI_TOKEN     the access token from WATI → API Docs ("Bearer …" is fine too)
 // Optional, if your WATI template names differ from the defaults:
-//   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT
+//   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT, WATI_TEMPLATE_TASK_UNASSIGNED
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 interface Outbox {
   id: string
-  kind: 'task_assigned' | 'task_comment' | 'daily_task_report'
+  kind: 'task_assigned' | 'task_comment' | 'daily_task_report' | 'task_unassigned'
   phone: string | null
   template: string
   params: Record<string, unknown>

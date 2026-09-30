@@ -7,6 +7,7 @@ export const WA_KIND_LABELS: Record<string, string> = {
   task_assigned: 'Task assigned',
   task_comment: 'New comment',
   daily_task_report: 'Day-end report',
+  task_unassigned: 'User not found',
 }
 
 const TEMPLATES: Record<string, string> = {
@@ -39,6 +40,15 @@ Still open for today: {{pending}}
 Older tasks that are still not done: {{overdue}}
 
 Open the full report with details for every person: {{link}}
+
+– Task Mgnt, Pride Educare`,
+  task_unassigned: `Hi {{name}},
+
+A task from Perisclaw has been added to the task list, but the person "{{person}}" was not found among the Task Mgnt users, so the task is not assigned to anyone yet.
+
+Task: {{task}}
+
+Kindly create the user and assign this task to them: {{link}}
 
 – Task Mgnt, Pride Educare`,
 }

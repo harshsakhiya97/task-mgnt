@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Bot, CheckCircle2, CircleSlash, ExternalLink, FileSpreadsheet, Plus, RefreshCw, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, Bot, UserX, CheckCircle2, CircleSlash, ExternalLink, FileSpreadsheet, Plus, RefreshCw, Sparkles, X } from 'lucide-react'
 import { Drawer } from '../components/Drawer'
 import { Field } from '../components/Fields'
 import { Pagination } from '../components/Pagination'
@@ -20,12 +20,12 @@ interface Settings {
 interface Parsed {
   is_task?: boolean; assignee_text?: string; title?: string; description?: string; due_date?: string
   start_time?: string; end_time?: string; priority?: TaskPriority; confidence?: number; note?: string
-  suggested?: { assigned_to: string; title: string; description: string; due_date: string; start_time: string | null; end_time: string | null; priority: TaskPriority } | null
+  suggested?: { assigned_to: string | null; title: string; description: string; due_date: string; start_time: string | null; end_time: string | null; priority: TaskPriority } | null
 }
 interface Entry {
   id: string; row_number: number | null; raw_text: string; status: string; parsed: Parsed | null
   reason: string | null; task_id: string | null; created_at: string; processed_at: string | null
-  task: { task_no: number; title: string; assignee: { full_name: string } | null } | null
+  task: { task_no: number; title: string; assigned_to: string | null; assignee: { full_name: string } | null } | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -35,7 +35,9 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_TONE: Record<string, string> = {
   created: 'active', needs_review: 'manager', ignored: 'paused', skipped_existing: 'paused', error: 'inactive', processing: 'st-in_progress',
 }
-type Filter = '' | 'created' | 'pending' | 'ignored' | 'error'
+type Filter = '' | 'created' | 'unassigned' | 'pending' | 'ignored' | 'error'
+/** Added as a task, but nobody has it yet (the person isn't a user). */
+const isUnassigned = (e: Entry) => e.status === 'created' && !!e.task && !e.task.assigned_to
 const canAct = (st: string) => ['needs_review', 'error', 'ignored', 'skipped_existing'].includes(st)
 
 const when = (iso: string | null) => iso ? new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—'
@@ -66,7 +68,7 @@ export function Perisclaw() {
     const [st, en, ad] = await Promise.all([
       supabase.from('perisclaw_settings').select('*').eq('id', 1).single(),
       supabase.from('perisclaw_entries')
-        .select('id, row_number, raw_text, status, parsed, reason, task_id, created_at, processed_at, task:tasks(task_no, title, assignee:profiles!tasks_assigned_to_fkey(full_name))')
+        .select('id, row_number, raw_text, status, parsed, reason, task_id, created_at, processed_at, task:tasks(task_no, title, assigned_to, assignee:profiles!tasks_assigned_to_fkey(full_name))')
         .order('created_at', { ascending: false }).limit(1000),
       supabase.from('profiles').select('id, full_name, role_info:roles!inner(is_admin)').eq('is_active', true).eq('role_info.is_admin', true).order('full_name'),
     ])
@@ -131,13 +133,14 @@ export function Perisclaw() {
   const counts = useMemo(() => ({
     all: entries.length,
     created: entries.filter((e) => e.status === 'created').length,
+    unassigned: entries.filter(isUnassigned).length,
     pending: entries.filter((e) => ['needs_review', 'skipped_existing'].includes(e.status)).length,
     ignored: entries.filter((e) => e.status === 'ignored').length,
     error: entries.filter((e) => e.status === 'error').length,
   }), [entries])
 
   const visible = entries.filter((e) =>
-    filter === '' ? true : filter === 'pending' ? ['needs_review', 'skipped_existing'].includes(e.status) : e.status === filter)
+    filter === '' ? true : filter === 'unassigned' ? isUnassigned(e) : filter === 'pending' ? ['needs_review', 'skipped_existing'].includes(e.status) : e.status === filter)
   useEffect(() => { setPage(1) }, [filter, pageSize])
   const pageRows = visible.slice((page - 1) * pageSize, page * pageSize)
   const changed = !!s && ((s.sheet_url ?? '') !== url.trim() || (s.assigner_id ?? '') !== assigner)
@@ -147,7 +150,7 @@ export function Perisclaw() {
       <div className="page-head">
         <div>
           <h2>Perisclaw</h2>
-          <p>Tasks you give Perisclaw on WhatsApp land in a Google Sheet. The app reads new rows every 2 minutes, lets Gemini (AI) pick out who, what and when, and creates the tasks. Rows it isn't sure about wait here for you.</p>
+          <p>Tasks you give Perisclaw on WhatsApp land in a Google Sheet. The app reads new rows every 2 minutes, lets Gemini (AI) pick out who, what and when, and adds every row as a task. If the person isn't a user yet, the task is added unassigned and admins get a WhatsApp message to create the user and assign it.</p>
         </div>
         <div className="head-actions">
           <button className="secondary" onClick={syncNow} disabled={!s?.enabled || busy !== ''}><RefreshCw size={16} /> {busy === 'sync' ? 'Checking…' : 'Sync now'}</button>
@@ -206,6 +209,7 @@ export function Perisclaw() {
       <div className="stats tab-stats">
         <StatCard icon={FileSpreadsheet} tone="navy" value={counts.all} label="All Rows" onClick={() => setFilter('')} active={filter === ''} />
         <StatCard icon={CheckCircle2} tone="green" value={counts.created} label="Added as Task" onClick={() => setFilter('created')} active={filter === 'created'} />
+        <StatCard icon={UserX} tone="orange" value={counts.unassigned} label="Unassigned" onClick={() => setFilter('unassigned')} active={filter === 'unassigned'} />
         <StatCard icon={Sparkles} tone="yellow" value={counts.pending} label="Waiting for You" onClick={() => setFilter('pending')} active={filter === 'pending'} />
         <StatCard icon={CircleSlash} tone="purple" value={counts.ignored} label="Skipped" onClick={() => setFilter('ignored')} active={filter === 'ignored'} />
         <StatCard icon={AlertTriangle} tone="red" value={counts.error} label="Errors" onClick={() => setFilter('error')} active={filter === 'error'} />
@@ -219,6 +223,7 @@ export function Perisclaw() {
           <select className="pill-select" value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
             <option value="">All rows</option>
             <option value="created">Added as task</option>
+            <option value="unassigned">Unassigned (user not found)</option>
             <option value="pending">Waiting for you</option>
             <option value="ignored">Skipped</option>
             <option value="error">Errors</option>
@@ -239,14 +244,15 @@ export function Perisclaw() {
                     <td className="small">{e.parsed ? <AiSummary p={e.parsed} users={users} /> : <span className="muted">—</span>}</td>
                     <td>
                       <span className={`badge ${STATUS_TONE[e.status] ?? ''}`}>{STATUS_LABELS[e.status] ?? e.status}</span>
-                      {e.reason && !['skipped_existing', 'created'].includes(e.status) && <div className="muted small pc-reason">{e.reason}</div>}
+                      {e.reason && e.status !== 'skipped_existing' && <div className="muted small pc-reason">{e.status === 'created' ? `Note: ${e.reason}` : e.reason}</div>}
                     </td>
                     <td className="pc-action">
-                      {e.status === 'created' && e.task_id ? (
+                      {e.status === 'created' && e.task_id ? (<>
                         <button className="link task-no" onClick={() => setViewingTask(e.task_id)} title="Open task">
                           {e.task ? taskCode(e.task.task_no) : 'Open task'}
                         </button>
-                      ) : canAct(e.status) ? (
+                        {isUnassigned(e) && <div><span className="badge unassigned" title="The person isn't a user yet. Create the user, then open the task and click Assign.">Unassigned</span></div>}
+                      </>) : canAct(e.status) ? (
                         <div className="pc-action-btns">
                           <button className="small-btn" disabled={rowBusy === e.id} onClick={() => addRow(e)}>
                             <Plus size={14} /> {rowBusy === e.id ? 'Reading…' : 'Add as task'}
@@ -277,7 +283,8 @@ export function Perisclaw() {
 }
 
 function AiSummary({ p, users }: { p: Parsed; users: { id: string; full_name: string }[] }) {
-  const who = p.suggested ? users.find((u) => u.id === p.suggested!.assigned_to)?.full_name : null
+  const who = p.suggested?.assigned_to ? users.find((u) => u.id === p.suggested!.assigned_to)?.full_name
+    : p.suggested ? `${p.assignee_text || 'No one'} (not a user)` : null
   const time = p.suggested?.start_time ? ` ${p.suggested.start_time.slice(0, 5)}–${(p.suggested.end_time ?? '').slice(0, 5)}` : ''
   return (
     <div className="pc-ai">
@@ -287,7 +294,6 @@ function AiSummary({ p, users }: { p: Parsed; users: { id: string; full_name: st
   )
 }
 
-/** Finish a row the AI wasn't sure about: fix the fields and create the task, or ignore the row. */
 /** Numbered points ("1. … 2. …") on their own lines, for AI text that ran them together. */
 const tidy = (text: string) => {
   const t = text

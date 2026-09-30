@@ -24,7 +24,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const [type, setType] = useState<TaskType>(task?.task_type ?? 'adhoc')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
-  const [assignedTo, setAssignedTo] = useState(task?.assigned_to ?? initial?.assignTo ?? profile?.id ?? '')
+  // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
+  const [assignedTo, setAssignedTo] = useState(task ? task.assigned_to ?? '' : initial?.assignTo ?? profile?.id ?? '')
+  const wasUnassigned = !!task && !task.assigned_to
   const [dueDate, setDueDate] = useState(task ? task.due_date ?? '' : initial?.dueDate ?? todayStr())
   const [from, setFrom] = useState(task ? fromDbTime(task.start_time) : initial?.from ?? '')
   const [to, setTo] = useState(task ? fromDbTime(task.end_time) : initial?.to ?? '')
@@ -56,7 +58,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
         return onSaved({ recurring: true })
       }
       const fields = {
-        title: title.trim(), description: description.trim() || null, assigned_to: assignedTo,
+        title: title.trim(), description: description.trim() || null, assigned_to: assignedTo || null,
         due_date: dueDate || null, priority, start_time: toDbTime(from), end_time: toDbTime(to),
       }
       let id = task?.id
@@ -103,8 +105,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       </Field>
       <div className="form-section">Assignment</div>
       <div className="form-grid">
-        <Field label="Assign To" required>
-          <select required value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
+        <Field label="Assign To" required={!wasUnassigned}>
+          <select required={!wasUnassigned} value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
+            {wasUnassigned && <option value="">Unassigned (pick a person)</option>}
             {options.map((u) => <option key={u.id} value={u.id}>{u.full_name}{u.id === profile?.id ? ' (me)' : ''}</option>)}
           </select>
         </Field>

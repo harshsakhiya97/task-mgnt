@@ -2,6 +2,7 @@ import { Eye, Trash2 } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { formatDate, formatTimeRange, isNewFor, isOverdue, taskCode, timeAgo, type Task, type TaskStatus } from '../lib/tasks'
 import { DueTagBadge, PriorityBadge, StatusSelect, TypeChip } from './TaskBits'
+import { AssigneeName } from './AssigneeName'
 
 export type PersonColumn = 'assignee' | 'assigner' | 'both'
 
@@ -41,7 +42,7 @@ export function TaskTable({ tasks, offset = 0, person, onOpen, onStatus, onDelet
                 <div className="reassigned-tag">↪ Reassigned by {t.assigner.full_name} · {timeAgo(t.assigned_at)}</div>
               )}
             </td>
-            {person !== 'assigner' && <td>{t.assignee?.full_name ?? '—'}</td>}
+            {person !== 'assigner' && <td><AssigneeName task={t} /></td>}
             {person !== 'assignee' && <td>{t.assigner?.full_name ?? '—'}</td>}
             <td>
               <div className="due-cell">

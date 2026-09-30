@@ -1,6 +1,6 @@
 // Supabase Edge Function: reads new rows from the Perisclaw Google Sheet, asks Gemini
 // to pick out assignee / task / date-time / priority, and creates the tasks.
-// Unclear rows are saved as "needs_review" for an admin to finish on the Perisclaw page.
+// Every row becomes a task. If the person isn't a user, the task is unassigned and admins get a WhatsApp alert.
 //
 // Called every 2 minutes by pg_cron (private.perisclaw_kick) while it's switched on,
 // and by the "Sync now" button. It takes no input and only acts on the configured
@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
     const now = nowInIndia()
     try {
       const ai = await askGemini(buildPrompt({ rowNumber: entry.row_number ?? 0, data: entry.raw, text: entry.raw_text }, people, now), geminiKey)
-      const d = decide(ai, people, now.date)
-      const parsed = { ...ai, suggested: d.task ?? null }
+      const d = decide(ai, people, now.date, entry.raw_text)
+      const parsed = { ...ai, suggested: d.task }
       await db.from('perisclaw_entries').update({ parsed }).eq('id', entry.id)
       return reply({ parsed, reason: d.reason })
     } catch (e) {
@@ -194,26 +194,23 @@ Deno.serve(async (req) => {
     .map((p) => ({ id: p.id, full_name: p.full_name, team: p.team?.name ?? null, role: p.role_info?.name ?? null }))
   const now = nowInIndia()
 
-  let created = 0, review = 0, errors = 0, retrying = 0
+  let created = 0, unassigned = 0, errors = 0, retrying = 0
   for (const { entryId, row, tries } of work) {
     const attempts = tries + 1
     try {
       const ai = await askGemini(buildPrompt(row, people, now), geminiKey)
-      const d = decide(ai, people, now.date)
-      if (d.ok && d.task) {
-        const { data: task, error } = await db.from('tasks').insert({
-          ...d.task,
-          description: d.task.description || null,
-          assigned_by: settings.assigner_id,
-          task_type: 'adhoc',
-        }).select('id').single()
-        if (error) throw new Error(error.message)
-        await db.from('perisclaw_entries').update({ status: 'created', parsed: ai, task_id: task.id, reason: null, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
-        created++
-      } else {
-        await db.from('perisclaw_entries').update({ status: 'needs_review', parsed: { ...ai, suggested: d.task ?? null }, reason: d.reason, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
-        review++
-      }
+      const d = decide(ai, people, now.date, row.text)
+      // Every row becomes a task; the admin can edit it later. No assignee → admins get a WhatsApp alert (DB trigger).
+      const { data: task, error } = await db.from('tasks').insert({
+        ...d.task,
+        description: d.task.description || null,
+        assigned_by: settings.assigner_id,
+        task_type: 'adhoc',
+      }).select('id').single()
+      if (error) throw new Error(error.message)
+      await db.from('perisclaw_entries').update({ status: 'created', parsed: { ...ai, suggested: d.task }, task_id: task.id, reason: d.reason || null, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
+      created++
+      if (d.unassigned) unassigned++
     } catch (e) {
       let reason = e instanceof Error ? e.message : String(e)
       if (e instanceof GeminiBusy) {
@@ -226,7 +223,7 @@ Deno.serve(async (req) => {
   }
 
   const left = fresh.length - batch.length
-  const parts = [`${work.length} row(s) read: ${created} task(s) created`, review ? `${review} need review` : '',
+  const parts = [`${work.length} row(s) read: ${created} task(s) created`, unassigned ? `${unassigned} unassigned (user not found; admins alerted)` : '',
     errors - retrying ? `${errors - retrying} error(s)` : '', retrying ? `${retrying} will retry (Gemini busy)` : '', left ? `${left} more next run` : '']
-  return finish({ baseline_done: true, last_error: errors > retrying && !created && !review ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
+  return finish({ baseline_done: true, last_error: errors > retrying && !created ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
 })

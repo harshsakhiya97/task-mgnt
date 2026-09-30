@@ -6,7 +6,8 @@ Give a task to Perisclaw on WhatsApp. Perisclaw adds a row to a Google Sheet, an
 Admin on WhatsApp → Perisclaw → new row in Google Sheet
       → Task Mgnt reads new rows every 2 minutes
       → Gemini (AI) picks out: who · what · date/time · priority
-      → clear rows become tasks · unclear rows wait in "Needs review"
+      → every row becomes a task (the admin can edit it later)
+      → person not a user yet? → task added Unassigned + WhatsApp to admins
 ```
 
 ## Setup (one time)
@@ -34,13 +35,15 @@ Admin on WhatsApp → Perisclaw → new row in Google Sheet
 Without a robot account, the app can still read a sheet shared as "Anyone with the link → Viewer".
 
 ## How rows are handled
-- **Added as task:** Gemini found exactly one matching team member, a task, and a due date today or later, and it's at least 75 % sure. The task is created as the chosen admin, the assignee gets the usual WhatsApp message. The task gets only the AI's title and description; the original row stays on the Perisclaw page.
-- **Waiting for you:** anything unclear:
-  - unknown or ambiguous person
-  - no date, or a date in the past
-  - low confidence, or not a task at all
+- **Every new row becomes a task straight away,** created as the chosen admin, and the admin can edit it later:
+  - person found → assigned to them; they get the usual WhatsApp message
+  - **person not a user yet** (or no person named) → the task is added **Unassigned**, and every admin gets the `task_unassigned` WhatsApp message and a bell notification: *"task added in task list but user not found, kindly create user & assign this task to them"*. Create the user (Users page), then open the task and click **Assign**.
+  - no date, or a date that has passed → due today
+  - no clear task text → the title is taken from the row
 
-  Old rows from before the sheet was connected also wait here.
+  Anything the AI guessed is shown as a **Note** under the row's status. The task gets only the AI's title and description; the original row stays on the Perisclaw page.
+- **Unassigned** card / filter: rows whose task still has nobody. Unassigned tasks also show an orange **Unassigned** badge in the task lists.
+- **Waiting for you:** old rows from before the sheet was connected. Add them with **Add as task** if needed. Rows the AI could not read (even after the automatic retries) are under **Errors**.
 - **Action column** (last column of the rows table):
   - **Add as task** opens the task form, pre-filled with what the AI understood. For an old row, the AI reads it first. Check the fields, then click **Add as Task**.
   - **Skip** marks the row as Skipped. A skipped row can still be added later.

@@ -5,6 +5,7 @@ import { taskCode, type Task } from '../lib/tasks'
 import type { Profile } from '../lib/types'
 import { Drawer } from './Drawer'
 import { Field } from './Fields'
+import { AssigneeName } from './AssigneeName'
 
 /** Pass a task on to someone else, with an optional handover note (saved as a comment). */
 export function ReassignForm({ task, users, onClose, onSaved }: {
@@ -30,13 +31,13 @@ export function ReassignForm({ task, users, onClose, onSaved }: {
   }
 
   return (
-    <Drawer title={`Reassign ${taskCode(task.task_no)}`} onClose={onClose} onSubmit={submit} submitLabel="Reassign" busy={busy}>
+    <Drawer title={`${task.assigned_to ? 'Reassign' : 'Assign'} ${taskCode(task.task_no)}`} onClose={onClose} onSubmit={submit} submitLabel={task.assigned_to ? 'Reassign' : 'Assign'} busy={busy}>
       <dl className="detail-grid">
         <dt>Task</dt><dd>{task.title}</dd>
-        <dt>Currently With</dt><dd>{task.assignee?.full_name ?? '—'}</dd>
+        <dt>Currently With</dt><dd><AssigneeName task={task} /></dd>
         <dt>Created By</dt><dd>{task.creator?.full_name ?? '—'}</dd>
       </dl>
-      <Field label="Reassign To" required>
+      <Field label={task.assigned_to ? 'Reassign To' : 'Assign To'} required>
         <select required autoFocus value={to} onChange={(e) => setTo(e.target.value)}>
           <option value="">Select person</option>
           {options.map((u) => <option key={u.id} value={u.id}>{u.full_name}{u.id === profile?.id ? ' (me)' : ''}</option>)}
