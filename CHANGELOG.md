@@ -12,6 +12,7 @@ To release a new version: bump it there, add a section below, add the user-facin
   - Sent on **WhatsApp** (new template `task_reminder`) and as a bell notification; **not sent if the task is already Done**. Recurring tasks don't have reminders.
   - Who can set what: anyone who can see a task can remind themselves; the assigner, the creator or an admin can also remind the assignee.
 - **Notifications page:** two tabs, **Notifications** (task updates) and **Reminders**, each with its own unread count, All/Unread filter and "Mark all as read" (the bell still shows everything).
+- If a task's date, time, status or assignee changes, reminders that were skipped (e.g. "added too close to the deadline") are checked again against the new deadline. Skipped reminders show the reason next to "Not sent".
 - **Automatic reminders by priority** (Settings → **Reminders**, admins): default **Urgent** → assignee 2 hrs + assigner 1 hr before; **High** → assignee 2 hrs before; Medium/Low → none. Added to every new one-time task (also from Perisclaw); changing a task's priority swaps its automatic reminders.
 - Database: tables `task_reminders`, `reminder_rules`; job `task-reminders` every minute (`private.send_due_reminders`). whatsapp-sender v9 (checks the new template too).
 

@@ -681,3 +681,4 @@ a.app-version:hover { color: var(--primary); }
 .rem-note { display: flex; gap: 6px; align-items: flex-start; margin: 6px 0 0; line-height: 1.45; }
 .rem-note svg { flex: none; margin-top: 2px; }
 .rem-settings-foot { margin: 0; padding: 12px 18px 16px; }
+.rem-skip { white-space: normal; display: inline-block; max-width: 220px; text-align: right; line-height: 1.35; }

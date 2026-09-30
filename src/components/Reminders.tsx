@@ -138,7 +138,7 @@ export function TaskReminders({ task, onError }: { task: Task; onError: (m: stri
               </span>
               <span className="rem-state small">
                 {r.sent_at ? <span className="ok-text">Sent</span>
-                  : r.skipped ? <span className="muted" title={r.skipped}>Not sent</span>
+                  : r.skipped ? <span className="muted rem-skip" title={r.skipped}>Not sent: {r.skipped.charAt(0).toLowerCase() + r.skipped.slice(1)}</span>
                   : <span className="muted">Pending</span>}
               </span>
               {canRemove(r) && !r.sent_at && (
