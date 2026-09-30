@@ -19,6 +19,9 @@ import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sha256, sheetRo
 import { readServiceAccount, readSheetValues } from './google.ts'
 
 const MAX_ROWS_PER_RUN = 8          // stays well inside Gemini's free-tier rate limit
+const MAX_TRIES = 5                 // a row Gemini was too busy for is tried again on later runs, up to this many times
+const BACKUP_MODEL = 'gemini-2.5-flash-lite'
+const BUSY_PREFIX = 'Gemini is busy'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -27,8 +30,11 @@ const cors = {
 }
 const reply = (body: unknown, status = 200) => Response.json(body, { status, headers: cors })
 
-async function askGemini(prompt: string, key: string): Promise<AiResult> {
-  const model = Deno.env.get('GEMINI_MODEL') || 'gemini-2.5-flash'
+/** Gemini said "busy / too many requests / server error": worth trying again later. */
+class GeminiBusy extends Error { constructor(public status: number) { super(`${BUSY_PREFIX} right now (${status})`) } }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+async function callGemini(model: string, prompt: string, key: string): Promise<AiResult> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -38,9 +44,25 @@ async function askGemini(prompt: string, key: string): Promise<AiResult> {
     }),
   })
   const body = await res.json().catch(() => ({}))
+  if ([429, 500, 502, 503, 504].includes(res.status)) throw new GeminiBusy(res.status)
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${body?.error?.message ?? 'request failed'}`)
   const text = body?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
   try { return JSON.parse(text) as AiResult } catch { throw new Error('Gemini returned something that is not JSON') }
+}
+
+/** Main model, once more after a short wait if it's busy, then the lighter backup model. */
+async function askGemini(prompt: string, key: string): Promise<AiResult> {
+  const main = Deno.env.get('GEMINI_MODEL') || 'gemini-2.5-flash'
+  const plan = main === BACKUP_MODEL ? [main, main] : [main, main, BACKUP_MODEL]
+  let last: unknown
+  for (let i = 0; i < plan.length; i++) {
+    try { return await callGemini(plan[i], prompt, key) } catch (e) {
+      last = e
+      if (!(e instanceof GeminiBusy)) throw e
+      if (i < plan.length - 1) await sleep(2000)
+    }
+  }
+  throw last
 }
 
 Deno.serve(async (req) => {
@@ -82,7 +104,8 @@ Deno.serve(async (req) => {
       await db.from('perisclaw_entries').update({ parsed }).eq('id', entry.id)
       return reply({ parsed, reason: d.reason })
     } catch (e) {
-      return reply({ error: e instanceof Error ? e.message : String(e) }, 502)
+      const msg = e instanceof GeminiBusy ? `${e.message}. Please try again in a minute.` : e instanceof Error ? e.message : String(e)
+      return reply({ error: msg }, 502)
     }
   }
   const { data: settings, error: sErr } = await db.from('perisclaw_settings').select('*').eq('id', 1).single()
@@ -133,14 +156,37 @@ Deno.serve(async (req) => {
   const { data: known } = await db.from('perisclaw_entries').select('row_hash').in('row_hash', keyed.map((k) => k.hash))
   const seen = new Set((known ?? []).map((k) => k.row_hash))
   const fresh = keyed.filter((k) => !seen.has(k.hash))
-  if (!fresh.length) return finish({ baseline_done: true, last_error: null, last_result: `No new rows (${keyed.length} in the sheet).` })
-  if (!geminiKey) return finish({ last_error: `${fresh.length} new row(s) waiting: add the GEMINI_API_KEY secret in Supabase → Edge Functions → Secrets.` })
+  if (fresh.length && !geminiKey) return finish({ last_error: `${fresh.length} new row(s) waiting: add the GEMINI_API_KEY secret in Supabase → Edge Functions → Secrets.` })
 
   const batch = fresh.slice(0, MAX_ROWS_PER_RUN)
-  const { data: claimed } = await db.from('perisclaw_entries').upsert(batch.map(({ row, hash }) => ({
-    row_hash: hash, row_number: row.rowNumber, raw: row.data, raw_text: row.text, status: 'processing',
-  })), { onConflict: 'row_hash', ignoreDuplicates: true }).select('id, row_hash')
+  const { data: claimed } = batch.length
+    ? await db.from('perisclaw_entries').upsert(batch.map(({ row, hash }) => ({
+        row_hash: hash, row_number: row.rowNumber, raw: row.data, raw_text: row.text, status: 'processing',
+      })), { onConflict: 'row_hash', ignoreDuplicates: true }).select('id, row_hash')
+    : { data: [] as { id: string; row_hash: string }[] }
   const idByHash = new Map((claimed ?? []).map((c) => [c.row_hash, c.id]))
+  const work: { entryId: string; row: SheetRow; tries: number }[] = batch
+    .filter(({ hash }) => idByHash.has(hash))                // another run may have taken some
+    .map(({ row, hash }) => ({ entryId: idByHash.get(hash)!, row, tries: 0 }))
+
+  // Rows Gemini was too busy for on an earlier run: try them again (at most MAX_TRIES times each).
+  const room = MAX_ROWS_PER_RUN - batch.length
+  if (room > 0 && geminiKey) {
+    const { data: again } = await db.from('perisclaw_entries')
+      .select('id, row_number, raw, raw_text, attempts')
+      .eq('status', 'error').lt('attempts', MAX_TRIES).like('reason', `${BUSY_PREFIX}%`)
+      .lt('processed_at', new Date(Date.now() - 90_000).toISOString())
+      .order('created_at').limit(room)
+    const ids = (again ?? []).map((r) => r.id)
+    const { data: took } = ids.length
+      ? await db.from('perisclaw_entries').update({ status: 'processing' }).in('id', ids).eq('status', 'error').select('id')
+      : { data: [] as { id: string }[] }
+    const tookIds = new Set((took ?? []).map((t) => t.id))
+    for (const r of again ?? []) {
+      if (tookIds.has(r.id)) work.push({ entryId: r.id, row: { rowNumber: r.row_number ?? 0, data: r.raw, text: r.raw_text }, tries: r.attempts ?? 0 })
+    }
+  }
+  if (!work.length) return finish({ baseline_done: true, last_error: null, last_result: `No new rows (${keyed.length} in the sheet).` })
 
   // 4. Who can get tasks.
   const { data: ppl } = await db.from('profiles').select('id, full_name, team:teams(name), role_info:roles(name)').eq('is_active', true).order('full_name')
@@ -148,10 +194,9 @@ Deno.serve(async (req) => {
     .map((p) => ({ id: p.id, full_name: p.full_name, team: p.team?.name ?? null, role: p.role_info?.name ?? null }))
   const now = nowInIndia()
 
-  let created = 0, review = 0, errors = 0
-  for (const { row, hash } of batch) {
-    const entryId = idByHash.get(hash)
-    if (!entryId) continue                                   // another run took it
+  let created = 0, review = 0, errors = 0, retrying = 0
+  for (const { entryId, row, tries } of work) {
+    const attempts = tries + 1
     try {
       const ai = await askGemini(buildPrompt(row, people, now), geminiKey)
       const d = decide(ai, people, now.date)
@@ -163,19 +208,25 @@ Deno.serve(async (req) => {
           task_type: 'adhoc',
         }).select('id').single()
         if (error) throw new Error(error.message)
-        await db.from('perisclaw_entries').update({ status: 'created', parsed: ai, task_id: task.id, processed_at: new Date().toISOString() }).eq('id', entryId)
+        await db.from('perisclaw_entries').update({ status: 'created', parsed: ai, task_id: task.id, reason: null, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
         created++
       } else {
-        await db.from('perisclaw_entries').update({ status: 'needs_review', parsed: { ...ai, suggested: d.task ?? null }, reason: d.reason, processed_at: new Date().toISOString() }).eq('id', entryId)
+        await db.from('perisclaw_entries').update({ status: 'needs_review', parsed: { ...ai, suggested: d.task ?? null }, reason: d.reason, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
         review++
       }
     } catch (e) {
-      await db.from('perisclaw_entries').update({ status: 'error', reason: e instanceof Error ? e.message : String(e), processed_at: new Date().toISOString() }).eq('id', entryId)
+      let reason = e instanceof Error ? e.message : String(e)
+      if (e instanceof GeminiBusy) {
+        if (attempts < MAX_TRIES) { reason = `${e.message}. Trying again automatically in 2 minutes (try ${attempts} of ${MAX_TRIES}).`; retrying++ }
+        else reason = `${e.message}. Tried ${MAX_TRIES} times; use "Add as task" to try again.`
+      }
+      await db.from('perisclaw_entries').update({ status: 'error', reason, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
       errors++
     }
   }
 
   const left = fresh.length - batch.length
-  const parts = [`${batch.length} new row(s): ${created} task(s) created`, review ? `${review} need review` : '', errors ? `${errors} error(s)` : '', left ? `${left} more next run` : '']
-  return finish({ baseline_done: true, last_error: errors && !created && !review ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
+  const parts = [`${work.length} row(s) read: ${created} task(s) created`, review ? `${review} need review` : '',
+    errors - retrying ? `${errors - retrying} error(s)` : '', retrying ? `${retrying} will retry (Gemini busy)` : '', left ? `${left} more next run` : '']
+  return finish({ baseline_done: true, last_error: errors > retrying && !created && !review ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
 })
