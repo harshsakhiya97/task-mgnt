@@ -1,15 +1,27 @@
 # Changelog
 
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
-To release a new version: bump it there, add a section below, rebuild, then commit and tag (`git tag v1.1`).
+To release a new version: bump it there, add a section below, rebuild, then commit and tag (`git tag v1.2`).
 
-## Version 1.2 — in progress (branch `v1.2-perisclaw`)
+## Version 1.2 — 30 Sep 2026
 
-- **Perisclaw** (admin, new sidebar item):
-  - Paste the link of the Google Sheet that Perisclaw writes tasks to. New rows are read every 2 minutes, or with **Sync now**.
-  - Gemini (AI) picks out the assignee, task, date/time and priority, and the task is created.
-  - Unclear rows wait in **Needs review**, where you fix and create them or ignore them.
+- **Perisclaw → tasks** (Settings → Perisclaw): give Perisclaw a task on WhatsApp; it adds a row to a Google Sheet and the app turns it into a task.
+  - The sheet stays private: the app reads it as a Google "robot" (service account) that the sheet is shared with as Viewer.
+  - New rows are read every 2 minutes (or **Sync now**). Gemini (AI) picks out the person, task, date/time and priority; descriptions keep their line breaks.
+  - Every row becomes a task straight away; the admin can edit it later. No date or a past date → due today.
+  - **Person not a user yet → the task is added Unassigned**, and every admin gets the new WhatsApp message `task_unassigned` plus a bell notification to create the user and assign it.
+  - Rows table with count cards (All, Added as Task, Unassigned, Waiting for You, Skipped, Errors) and an **Action** column: **Add as task** (AI pre-fills the form; Regenerate / Clear AI), **Skip**, and the task number (e.g. TM-156) that opens the task.
+  - Rows that were already in the sheet when it was connected are not added automatically.
+  - Gemini busy (error 503/429): automatic retries, a lighter backup model, and up to 5 tries on later runs.
+  - Deleting a task that came from a row marks the row as Skipped.
   - Setup guide: `docs/perisclaw.md`.
+- **Unassigned tasks:** orange **Unassigned** badge in task lists, **Assign** button, and editing keeps the task unassigned until someone is picked. Only the system or an admin can leave a task unassigned.
+- **Settings** (admin, one sidebar item) with tabs:
+  - **Perisclaw:** Sheet Rows / Configuration.
+  - **WhatsApp:** WhatsApp Logs / Template Messages (each template with its text, an example, sample values, WATI approval status and copy buttons) / Configuration.
+- **WATI connection from the app:** save the WATI access token and API URL in Settings → WhatsApp → Configuration (stored encrypted in Supabase Vault, never shown again), with **Check connection**. No Supabase access needed.
+- **Tasks list:** newest tasks first (unopened "New" tasks stay on top in Assigned to Me).
+- **Removed:** the System Check page and the test `hello` function.
 
 ## Version 1.1 — 26 Sep 2026
 
