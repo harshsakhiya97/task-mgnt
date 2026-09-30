@@ -77,7 +77,7 @@ A task from Perisclaw has been added to the task list, but the person "{{person}
 
 Task: {{task}}
 
-Kindly create the user and assign this task to them: {{link}}
+Please create the user to assign the task: {{link}}
 
 – Task Mgnt, Pride Educare
 ```
