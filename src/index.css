@@ -625,3 +625,11 @@ textarea.pc-desc { white-space: pre-wrap; line-height: 1.5; min-height: 150px; r
 .sub-tabs button { display: inline-flex; align-items: center; gap: 6px; }
 .sub-tab-badge { font-size: 11px; background: var(--primary-soft); color: var(--primary); border-radius: 10px; padding: 1px 7px; font-weight: 600; }
 .sub-tabs-alert { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.wa-tpl-table td { vertical-align: top; }
+.wa-tpl-name { min-width: 220px; max-width: 280px; white-space: normal; }
+.wa-tpl-name code { font-size: 13px; font-weight: 600; color: var(--primary); }
+.wa-tpl-label { font-weight: 600; margin: 4px 0 2px; }
+.wa-tpl-status { margin-top: 8px; }
+.wa-tpl-text { white-space: pre-wrap; font-size: 13px; line-height: 1.5; min-width: 280px; max-width: 460px; }
+div.wa-tpl-text:not(.wa-bubble) { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.wa-tpl-alert { margin: 0 18px 12px; }

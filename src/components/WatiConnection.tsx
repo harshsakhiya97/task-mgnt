@@ -2,17 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2, KeyRound, PlugZap, Trash2 } from 'lucide-react'
 import { Field } from './Fields'
 import { supabase } from '../lib/supabase'
-import { WA_KIND_LABELS } from '../lib/whatsappTemplates'
 
 const DEFAULT_URL = 'https://live-mt-server.wati.io/10103863'
 
 interface Saved { token_saved: boolean; token_hint: string | null; token_saved_at: string | null; api_url: string | null }
-interface Check {
+export interface WatiCheck {
   configured?: boolean; ok?: boolean; error?: string; source?: 'app' | 'supabase-secret' | null; api_url?: string
   templates?: { kind: string; name: string; status: string }[]
 }
 
-async function fnError(error: unknown, data: { error?: string } | null) {
+export async function fnError(error: unknown, data: { error?: string } | null) {
   if (data?.error) return data.error
   if (error && typeof error === 'object' && 'context' in error) {
     const body = await (error as { context: Response }).context.json().catch(() => ({}))
@@ -21,7 +20,14 @@ async function fnError(error: unknown, data: { error?: string } | null) {
   return error instanceof Error ? error.message : 'Something went wrong'
 }
 
-const tone = (status: string) => status === 'APPROVED' ? 'active' : status === 'PENDING' || status === 'IN_APPEAL' ? 'manager' : 'inactive'
+export const templateTone = (status: string) => status === 'APPROVED' ? 'active' : status === 'PENDING' || status === 'IN_APPEAL' ? 'manager' : 'inactive'
+
+/** Ask the sender to test the saved token against WATI (also returns each template's approval status). */
+export async function checkWati(): Promise<WatiCheck> {
+  const { data, error } = await supabase.functions.invoke('whatsapp-sender', { body: { action: 'check' } })
+  if (error && !data) return { ok: false, error: await fnError(error, data) }
+  return data as WatiCheck
+}
 
 /**
  * Admin: connect WhatsApp (WATI) from inside the app — no Supabase needed.
@@ -29,7 +35,7 @@ const tone = (status: string) => status === 'APPROVED' ? 'active' : status === '
  */
 export function WatiConnection() {
   const [saved, setSaved] = useState<Saved | null>(null)
-  const [check, setCheck] = useState<Check | null>(null)
+  const [check, setCheck] = useState<WatiCheck | null>(null)
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
@@ -38,10 +44,8 @@ export function WatiConnection() {
 
   const runCheck = useCallback(async () => {
     setBusy('check')
-    const { data, error } = await supabase.functions.invoke('whatsapp-sender', { body: { action: 'check' } })
+    setCheck(await checkWati())
     setBusy('')
-    if (error && !data) return setCheck({ ok: false, error: await fnError(error, data) })
-    setCheck(data as Check)
   }, [])
 
   const loadSaved = useCallback(async () => {
@@ -67,7 +71,6 @@ export function WatiConnection() {
   }
 
   const connected = check?.configured && check.ok
-  const approved = check?.templates?.filter((t) => t.status === 'APPROVED').length ?? 0
 
   return (
     <div className="panel wati-panel">
@@ -94,17 +97,6 @@ export function WatiConnection() {
       </div>
 
       {check && !check.ok && check.error && <div className="alert error">{check.error}</div>}
-      {check?.templates && (
-        <div className="wati-templates">
-          <span className="muted small">Templates ({approved}/{check.templates.length} approved):</span>
-          {check.templates.map((t) => (
-            <span key={t.kind} className={`badge ${tone(t.status)}`} title={`${WA_KIND_LABELS[t.kind] ?? t.kind} — WATI template "${t.name}": ${t.status}`}>
-              {t.name} · {t.status === 'MISSING' ? 'not created' : t.status.toLowerCase()}
-            </span>
-          ))}
-        </div>
-      )}
-
       {open && (
         <div className="wati-form">
           <div className="form-grid">

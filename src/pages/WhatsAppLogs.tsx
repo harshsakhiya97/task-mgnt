@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, SlidersHorizontal, Clock3, MessageCircle, RefreshCw, RotateCcw, Search, UserX, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileText, SlidersHorizontal, Clock3, MessageCircle, RefreshCw, RotateCcw, Search, UserX, XCircle } from 'lucide-react'
 import { Drawer } from '../components/Drawer'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
 import { SubTabs, useSubView } from '../components/SubTabs'
+import { WaTemplates } from '../components/WaTemplates'
 import { WatiConnection } from '../components/WatiConnection'
 import { supabase } from '../lib/supabase'
 import { addDays, todayStr } from '../lib/tasks'
@@ -36,7 +37,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: '2-di
 
 /** Admin: every WhatsApp message the app sent (or tried to), with filters and resend. */
 export function WhatsAppLogs() {
-  const [view, setView] = useSubView(['list', 'config'] as const, 'list')
+  const [view, setView] = useSubView(['list', 'templates', 'config'] as const, 'list')
   const [from, setFrom] = useState(() => addDays(todayStr(), -6))
   const [to, setTo] = useState(todayStr)
   const [rows, setRows] = useState<WaLog[]>([])
@@ -90,19 +91,25 @@ export function WhatsAppLogs() {
     <>
       <div className="page-head">
         <div>
-          <h2>WhatsApp Logs</h2>
-          <p>Every WhatsApp message the app sent or tried to send through WATI: who it went to, when, and what happened. Click a row to see the message.</p>
+          <h2>WhatsApp</h2>
+          <p>{view === 'templates' ? 'The WhatsApp messages the app sends through WATI, with an example of each and whether WATI has approved it.'
+            : view === 'config' ? 'Connect the app to your WATI account. The access token is stored encrypted and never shown again.'
+            : 'Every WhatsApp message the app sent or tried to send through WATI: who it went to, when, and what happened. Click a row to see the message.'}</p>
         </div>
-        <div className="head-actions">
-          <button className="secondary" onClick={load}><RefreshCw size={16} /> Refresh</button>
-        </div>
+        {view === 'list' && (
+          <div className="head-actions">
+            <button className="secondary" onClick={load}><RefreshCw size={16} /> Refresh</button>
+          </div>
+        )}
       </div>
 
       <SubTabs value={view} onChange={setView} options={[
-        { value: 'list', label: 'Messages', icon: MessageCircle, badge: counts.total },
+        { value: 'list', label: 'WhatsApp Logs', icon: MessageCircle, badge: counts.total },
+        { value: 'templates', label: 'Template Messages', icon: FileText, badge: 4 },
         { value: 'config', label: 'Configuration', icon: SlidersHorizontal },
       ]} />
 
+      {view === 'templates' && <WaTemplates />}
       {view === 'config' && <WatiConnection />}
 
       {view === 'list' && <>

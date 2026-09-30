@@ -6,7 +6,7 @@ import { WhatsAppLogs } from './WhatsAppLogs'
 export type SettingsTab = 'perisclaw' | 'whatsapp' | 'system'
 export const SETTINGS_TABS: Record<SettingsTab, string> = {
   perisclaw: 'Perisclaw',
-  whatsapp: 'WhatsApp Logs',
+  whatsapp: 'WhatsApp',
   system: 'System Check',
 }
 export const settingsTab = (t: string | null): SettingsTab => (t === 'whatsapp' || t === 'system' ? t : 'perisclaw')
