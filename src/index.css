@@ -643,3 +643,28 @@ div.wa-tpl-text:not(.wa-bubble) { background: var(--panel); border: 1px solid va
 .wa-tpl-sample code { font-size: 12px; color: var(--primary); }
 .wa-tpl-sample span { word-break: break-word; }
 .wa-tpl-sample .copy-btn { padding: 2px 7px; font-size: 11px; }
+/* What's New */
+a.app-version { display: block; position: relative; text-decoration: none; }
+a.app-version:hover { color: var(--primary); }
+.update-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #e5484d; margin-left: 6px; vertical-align: middle; box-shadow: 0 0 0 2px #fff; }
+.wn-filter { margin: 0; }
+.wn-timeline { display: grid; gap: 0; max-width: 900px; }
+.wn-release { display: grid; grid-template-columns: 22px 1fr; gap: 14px; }
+.wn-rail { position: relative; display: flex; justify-content: center; }
+.wn-rail::before { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.wn-release:first-child .wn-rail::before { top: 24px; }
+.wn-release:last-child .wn-rail::before { bottom: calc(100% - 30px); }
+.wn-dot { position: relative; margin-top: 22px; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+.wn-card { padding: 18px 20px; margin-bottom: 18px; }
+.wn-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.wn-version { font-weight: 700; color: var(--primary); }
+.wn-card h3 { margin: 6px 0 4px; font-size: 17px; }
+.wn-card > p { margin: 0 0 10px; font-size: 14px; }
+.wn-group { margin-top: 10px; }
+.wn-type { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.wn-new { background: #e6f0ff; color: #2f6fed; }
+.wn-improved { background: var(--ok-soft); color: var(--ok); }
+.wn-fixed { background: var(--warn-soft); color: var(--warn); }
+.wn-removed { background: #eef0f3; color: var(--muted); }
+.wn-group ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 5px; font-size: 14px; line-height: 1.5; }
+.wn-admin { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; background: #fde9ea; color: #b42330; border-radius: 10px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }

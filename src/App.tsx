@@ -13,6 +13,7 @@ import { Tasks } from './pages/Tasks'
 import { Reports } from './pages/Reports'
 import { Users } from './pages/Users'
 import { Settings } from './pages/Settings'
+import { WhatsNew } from './pages/WhatsNew'
 
 // The calendar library is large, so it's only downloaded when the Calendar page is opened.
 const Calendar = lazy(() => import('./pages/Calendar').then((m) => ({ default: m.Calendar })))
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/calendar" element={<Suspense fallback={<div className="center">Loading calendar…</div>}><Calendar /></Suspense>} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/whats-new" element={<WhatsNew />} />
         <Route path="/reports" element={<RequireAuth roles={['admin']}><Reports /></RequireAuth>} />
         <Route path="/settings" element={<RequireAuth roles={['admin']}><Settings /></RequireAuth>} />
         {/* old addresses → Settings tabs */}

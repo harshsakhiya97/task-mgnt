@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Sparkles, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
 import { SETTINGS_TABS, settingsTab } from '../pages/Settings'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
-import { APP_VERSION, VERSION_LABEL, VERSION_SHORT } from '../lib/version'
+import { APP_VERSION, hasUnseenUpdate, VERSION_LABEL, VERSION_SHORT } from '../lib/version'
 import { initials } from '../lib/initials'
 import type { Role } from '../lib/types'
 import { Brand } from './Brand'
@@ -48,6 +48,7 @@ const TITLES: Record<string, [string, string]> = {
   '/reports': ['Reports', 'Overview'],
   '/users': ['Users & Roles', 'Overview'],
   '/profile': ['My Profile', 'Account'],
+  '/whats-new': ["What's New", 'Version history'],
 }
 
 function readCollapsed() {
@@ -62,7 +63,8 @@ export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
 
-  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+  const [unseen, setUnseen] = useState(hasUnseenUpdate)
+  useEffect(() => { setMobileOpen(false); setUnseen(hasUnseenUpdate()) }, [location.pathname])
   // Keep the app's web address (used in WhatsApp links) in sync with where admins open it.
   // The database ignores local/dev addresses, so this is safe on localhost.
   useEffect(() => {
@@ -76,7 +78,7 @@ export function Layout() {
   const [title, sub] = location.pathname === '/settings'
     ? ['Settings', SETTINGS_TABS[settingsTab(new URLSearchParams(location.search).get('tab'))]]
     : TITLES[location.pathname] ?? ['Task Mgnt', '']
-  const Icon = SECTIONS.flatMap((s) => s.items).find((i) => i.to === location.pathname)?.icon ?? LayoutGrid
+  const Icon = SECTIONS.flatMap((s) => s.items).find((i) => i.to === location.pathname)?.icon ?? (location.pathname === '/whats-new' ? Sparkles : LayoutGrid)
 
   return (
     <div className={`app ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
@@ -111,9 +113,10 @@ export function Layout() {
             <LogOut size={20} />
           </button>
         </div>
-        <div className="app-version" title={`Task Mgnt ${APP_VERSION}`}>
-          <span className="long">{VERSION_LABEL}</span><span className="short">{VERSION_SHORT}</span>
-        </div>
+        <Link to="/whats-new" className="app-version" title={`Task Mgnt ${APP_VERSION} · What's new`}>
+          <span className="long">{VERSION_LABEL} · What's new</span><span className="short">{VERSION_SHORT}</span>
+          {unseen && <span className="update-dot" aria-label="Updated since you last looked" />}
+        </Link>
       </aside>
 
       <div className="main">
