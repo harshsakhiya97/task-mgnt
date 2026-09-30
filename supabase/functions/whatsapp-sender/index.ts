@@ -27,7 +27,7 @@ const DEFAULT_WATI_API_URL = 'https://live-mt-server.wati.io/10103863'
 const KINDS: Outbox['kind'][] = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned']
 const INTERNAL_PARAMS = new Set(['more_count'])
 
-// Allows the "WhatsApp sender" test on the System Check page to call this from the browser.
+// Allows "Check connection" (Settings → WhatsApp → Configuration) to call this from the browser.
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

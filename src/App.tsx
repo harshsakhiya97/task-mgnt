@@ -36,7 +36,7 @@ export default function App() {
         {/* old addresses → Settings tabs */}
         <Route path="/perisclaw" element={<Navigate to="/settings" replace />} />
         <Route path="/whatsapp-logs" element={<Navigate to="/settings?tab=whatsapp" replace />} />
-        <Route path="/health" element={<Navigate to="/settings?tab=system" replace />} />
+        <Route path="/health" element={<Navigate to="/settings" replace />} />
         <Route path="/users" element={<RequireAuth roles={['admin']}><Users /></RequireAuth>} />
         <Route path="/teams" element={<Navigate to="/users?tab=teams" replace />} />
       </Route>

@@ -17,7 +17,6 @@ React (Vite + TypeScript) frontend on cPanel, Supabase for database, login and s
 - Roles: Admin, Manager, Team member
 - Admin pages: **Users** (add, edit, change role/team, set password, deactivate/reactivate) and **Teams**
 - Every user can see the user list (so anyone can assign to anyone later); only admins can change roles, teams or status
-- Admin-only **System check** page at `/health`
 
 ## Supabase setup (one time)
 

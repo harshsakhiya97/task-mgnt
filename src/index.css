@@ -246,7 +246,6 @@ td.actions { text-align: right; }
 .kv dd { margin: 0; }
 .narrow-form { max-width: 460px; }
 
-/* Health */
 pre { white-space: pre-wrap; word-break: break-word; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin: 12px 0 0; }
 pre.ok { background: var(--ok-soft); color: var(--ok); }
 pre.fail { background: var(--danger-soft); color: var(--danger); }
