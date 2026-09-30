@@ -156,7 +156,7 @@ export function Perisclaw() {
           <p>Tasks you give Perisclaw on WhatsApp land in a Google Sheet. The app reads new rows every 2 minutes, lets Gemini (AI) pick out who, what and when, and adds every row as a task. If the person isn't a user yet, the task is added unassigned and admins get a WhatsApp message to create the user and assign it.</p>
         </div>
         <div className="head-actions">
-          <button className="secondary" onClick={syncNow} disabled={!s?.enabled || busy !== ''}><RefreshCw size={16} /> {busy === 'sync' ? 'Checking…' : 'Sync now'}</button>
+          <button className="secondary" onClick={syncNow} disabled={!s?.enabled || busy !== ''}><RefreshCw size={16} className={busy === 'sync' ? 'spin' : undefined} /> {busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>
         </div>
       </div>
 

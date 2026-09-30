@@ -50,6 +50,7 @@ export function WhatsAppLogs() {
   const [pageSize, setPageSize] = useState(25)
   const [open, setOpen] = useState<WaLog | null>(null)
 
+  const [syncing, setSyncing] = useState(false)
   const load = useCallback(async () => {
     setLoading(true)
     // Dates are the viewer's local days (IST).
@@ -64,6 +65,13 @@ export function WhatsAppLogs() {
     setLoading(false)
   }, [from, to])
   useEffect(() => { load() }, [load])
+  // Send anything still waiting (the sender also runs every minute), then reload.
+  const syncNow = async () => {
+    setSyncing(true)
+    await supabase.functions.invoke('whatsapp-sender', { body: {} }).catch(() => null)
+    await load()
+    setSyncing(false)
+  }
 
   const counts = useMemo(() => {
     const c = { total: rows.length, sent: 0, waiting: 0, failed: 0, skipped: 0, expired: 0 }
@@ -98,7 +106,9 @@ export function WhatsAppLogs() {
         </div>
         {view === 'list' && (
           <div className="head-actions">
-            <button className="secondary" onClick={load}><RefreshCw size={16} /> Refresh</button>
+            <button className="secondary" onClick={syncNow} disabled={syncing} title="Send any waiting messages now and reload the list">
+              <RefreshCw size={16} className={syncing ? 'spin' : undefined} /> {syncing ? 'Syncing…' : 'Sync now'}
+            </button>
           </div>
         )}
       </div>

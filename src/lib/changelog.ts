@@ -18,6 +18,7 @@ export const RELEASES: Release[] = [
     changes: [
       { type: 'new', text: 'This "What\'s New" page. Open it any time by clicking the version number at the bottom of the sidebar.' },
       { type: 'new', text: 'A small dot on the version number tells you when the app has been updated since you last looked.' },
+      { type: 'improved', admin: true, text: 'Perisclaw and WhatsApp both have a "Sync now" button. On WhatsApp it sends any waiting messages straight away and reloads the list.' },
     ],
   },
   {
