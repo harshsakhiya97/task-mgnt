@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Clock3, MessageCircle, RefreshCw, RotateCc
 import { Drawer } from '../components/Drawer'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
+import { WatiConnection } from '../components/WatiConnection'
 import { supabase } from '../lib/supabase'
 import { addDays, todayStr } from '../lib/tasks'
 import { renderWhatsApp, WA_KIND_LABELS } from '../lib/whatsappTemplates'
@@ -94,6 +95,8 @@ export function WhatsAppLogs() {
           <button className="secondary" onClick={load}><RefreshCw size={16} /> Refresh</button>
         </div>
       </div>
+
+      <WatiConnection />
 
       {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
 

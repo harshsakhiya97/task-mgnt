@@ -1,5 +1,13 @@
 # WhatsApp templates for WATI
 
+## Connect WATI (one time, no Supabase needed)
+1. In WATI open **API Docs**. Copy the **API Endpoint** (e.g. `https://live-mt-server.wati.io/123456`) and the **Access Token**.
+2. In the app go to **Settings → WhatsApp Logs → WATI connection → Add token**. Paste both and click **Save**.
+3. Click **Check connection**. It shows **Connected** and whether each template below is approved (or "not created").
+
+The token is stored encrypted and is never shown again; only its last 4 characters are displayed. To change it, click **Change token** and paste the new one. If no token is saved in the app, the app falls back to the `WATI_TOKEN` Edge Function secret in Supabase.
+
+
 Create these four templates in **WATI → Broadcast → Templates → New Template**.
 
 - **Category:** Utility
