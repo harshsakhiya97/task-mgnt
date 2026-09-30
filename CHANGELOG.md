@@ -8,6 +8,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 - **What's New page** (everyone): click the version number in the sidebar footer to see every version with its date, summary and New / Improved / Fixed / Removed points in plain language. Admin-only features are listed for everyone with an "Admin" tag; admins can switch to "What team members see".
 - A small red dot on the version number when the app has been updated since this browser last opened What's New.
 - The version label now shows the patch number when it isn't 0 (e.g. "Version 1.2.1").
+- Sidebar: **Notifications** item removed; the bell (top right) and its "View all notifications" link remain.
 - **Sync now** on both Settings tabs: Perisclaw reads the sheet; WhatsApp sends waiting messages now and reloads the log (was "Refresh").
 
 ## Version 1.2 — 30 Sep 2026

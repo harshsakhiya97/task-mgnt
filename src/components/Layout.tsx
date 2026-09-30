@@ -10,7 +10,6 @@ import type { Role } from '../lib/types'
 import { Brand } from './Brand'
 import { LogoutDialog } from './LogoutDialog'
 import { NotificationBell } from '../notifications/NotificationBell'
-import { useNotifications } from '../notifications/NotificationsProvider'
 
 interface NavDef { to: string; label: string; icon: LucideIcon; roles?: Role[] }
 const SECTIONS: { title: string; items: NavDef[] }[] = [
@@ -18,7 +17,6 @@ const SECTIONS: { title: string; items: NavDef[] }[] = [
     title: 'General',
     items: [
       { to: '/', label: 'Dashboard', icon: LayoutGrid },
-      { to: '/notifications', label: 'Notifications', icon: Bell },
     ],
   },
   {
@@ -57,7 +55,6 @@ function readCollapsed() {
 
 export function Layout() {
   const { profile } = useAuth()
-  const { unread } = useNotifications()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -78,7 +75,7 @@ export function Layout() {
   const [title, sub] = location.pathname === '/settings'
     ? ['Settings', SETTINGS_TABS[settingsTab(new URLSearchParams(location.search).get('tab'))]]
     : TITLES[location.pathname] ?? ['Task Mgnt', '']
-  const Icon = SECTIONS.flatMap((s) => s.items).find((i) => i.to === location.pathname)?.icon ?? (location.pathname === '/whats-new' ? Sparkles : LayoutGrid)
+  const Icon = SECTIONS.flatMap((s) => s.items).find((i) => i.to === location.pathname)?.icon ?? (location.pathname === '/whats-new' ? Sparkles : location.pathname === '/notifications' ? Bell : LayoutGrid)
 
   return (
     <div className={`app ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
@@ -99,7 +96,6 @@ export function Layout() {
                 {items.map(({ to, label, icon: ItemIcon }) => (
                   <NavLink key={to} to={to} end className="nav-item" title={label}>
                     <ItemIcon size={20} /><span>{label}</span>
-                    {to === '/notifications' && unread > 0 && <span className="nav-count">{unread > 99 ? '99+' : unread}</span>}
                   </NavLink>
                 ))}
               </div>
