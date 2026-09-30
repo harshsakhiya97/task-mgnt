@@ -210,3 +210,25 @@ export function nowInIndia(d = new Date()) {
     time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(d),
   }
 }
+
+/** Lower-case words (letters/digits, 2+ chars) for rough text comparison. */
+const words = (s: string) => new Set((s.toLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? []))
+/** Share of words the two texts have in common (0..1, Jaccard). */
+export function similarity(a: string, b: string): number {
+  const A = words(a), B = words(b)
+  if (!A.size || !B.size) return 0
+  let common = 0
+  A.forEach((w) => { if (B.has(w)) common++ })
+  return common / (A.size + B.size - common)
+}
+
+/**
+ * Is `next` (a changed version of a sheet row) still the same task as `prev`?
+ * Perisclaw sometimes edits a row later (adds a point, fixes a word) and sometimes reuses a row for a
+ * completely different task. Same task = the title column is (nearly) the same, or most of the text is.
+ */
+export function sameTaskRow(prevText: string, nextText: string): boolean {
+  const t1 = titleFromRow(prevText), t2 = titleFromRow(nextText)
+  if (t1 && t2 && (t1.toLowerCase() === t2.toLowerCase() || similarity(t1, t2) >= 0.6)) return true
+  return similarity(prevText, nextText) >= 0.6
+}

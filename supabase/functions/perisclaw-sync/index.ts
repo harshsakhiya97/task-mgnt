@@ -16,7 +16,7 @@
 //   GOOGLE_SERVICE_ACCOUNT_JSON  the robot account's JSON key; the sheet is shared with its email as Viewer.
 //                    Without it the sheet must be shared as "anyone with the link can view".
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sha256, sheetRows, valuesToRows, type AiResult, type Person, type SheetRow } from './lib.ts'
+import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sameTaskRow, sha256, sheetRows, valuesToRows, type AiResult, type Decision, type Person, type SheetRow } from './lib.ts'
 import { readServiceAccount, readSheetValues } from './google.ts'
 
 const MAX_ROWS_PER_RUN = 8          // stays well inside Gemini's free-tier rate limit
@@ -215,12 +215,63 @@ Deno.serve(async (req) => {
     .map((p) => ({ id: p.id, full_name: p.full_name, team: p.team?.name ?? null, role: p.role_info?.name ?? null }))
   const now = nowInIndia()
 
-  let created = 0, unassigned = 0, errors = 0, retrying = 0
+  /**
+   * If this sheet row number already produced a task and the new content is still the same task
+   * (sameTaskRow), bring that task up to date instead of creating a new one. Only fields nobody has
+   * changed by hand (still equal to what the AI set last time) are updated; if the description was
+   * edited by someone, the new details are added as a comment instead.
+   */
+  const updateEditedTask = async (row: SheetRow, entryId: string, d: Decision) => {
+    const { data: prevs } = await db.from('perisclaw_entries').select('raw_text, parsed, task_id')
+      .eq('row_number', row.rowNumber).eq('status', 'created').not('task_id', 'is', null).neq('id', entryId)
+      .order('processed_at', { ascending: false }).limit(1)
+    const prev = prevs?.[0]
+    if (!prev || !sameTaskRow(prev.raw_text, row.text)) return null
+    const { data: t } = await db.from('tasks').select('id, task_no, description, due_date, priority, start_time, end_time').eq('id', prev.task_id).maybeSingle()
+    if (!t) return null
+    const old = (prev.parsed as { suggested?: Decision['task'] } | null)?.suggested ?? null
+    const hhmm = (x: string | null | undefined) => (x ?? '').slice(0, 5)
+    const patch: Record<string, unknown> = {}
+    const changed: string[] = []
+    const cur = (t.description ?? '').trim(), was = (old?.description ?? '').trim(), next = (d.task.description ?? '').trim()
+    let comment = ''
+    if (next && next !== cur) {
+      if (cur === was || !cur) { patch.description = next; changed.push('description') }
+      else comment = `Perisclaw updated this task in the sheet (row ${row.rowNumber}). Latest details:\n\n${next}`
+    }
+    if (old && t.due_date === old.due_date && d.task.due_date !== t.due_date) { patch.due_date = d.task.due_date; changed.push('due date') }
+    if (old && t.priority === old.priority && d.task.priority !== t.priority) { patch.priority = d.task.priority; changed.push('priority') }
+    if (old && hhmm(t.start_time) === hhmm(old.start_time) && hhmm(t.end_time) === hhmm(old.end_time)
+        && (hhmm(d.task.start_time) !== hhmm(t.start_time) || hhmm(d.task.end_time) !== hhmm(t.end_time))) {
+      patch.start_time = d.task.start_time; patch.end_time = d.task.end_time; changed.push('time')
+    }
+    if (changed.length) {
+      const { error } = await db.from('tasks').update(patch).eq('id', t.id)
+      if (error) throw new Error(error.message)
+    }
+    if (comment) await db.from('task_comments').insert({ task_id: t.id, author_id: settings.assigner_id, body: comment })
+    const code = `TM-${t.task_no}`
+    const note = changed.length
+      ? `Row edited in the sheet: ${code} updated (${changed.join(', ')})${comment ? '; new details added as a comment' : ''}`
+      : comment ? `Row edited in the sheet: ${code} was already changed by hand, so the new details were added as a comment`
+      : `Row edited in the sheet: ${code} already up to date`
+    return { taskId: t.id as string, note }
+  }
+
+  let created = 0, unassigned = 0, updated = 0, errors = 0, retrying = 0
   for (const { entryId, row, tries } of work) {
     const attempts = tries + 1
     try {
       const ai = await askGemini(buildPrompt(row, people, now), geminiKey)
       const d = decide(ai, people, now.date, row.text)
+
+      // Perisclaw edited a row that is already a task (e.g. added a point 20 minutes later)? Update that task.
+      const edit = await updateEditedTask(row, entryId, d)
+      if (edit) {
+        await db.from('perisclaw_entries').update({ status: 'created', parsed: { ...ai, suggested: d.task }, task_id: edit.taskId, reason: edit.note, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
+        updated++
+        continue
+      }
       // Every row becomes a task; the admin can edit it later. No assignee → admins get a WhatsApp alert (DB trigger).
       const { data: task, error } = await db.from('tasks').insert({
         ...d.task,
@@ -243,7 +294,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const parts = [`${work.length} row(s) read: ${created} task(s) created`, unassigned ? `${unassigned} unassigned (user not found; admins alerted)` : '',
+  const parts = [`${work.length} row(s) read: ${created} task(s) created`, updated ? `${updated} edited row(s) updated their existing task` : '', unassigned ? `${unassigned} unassigned (user not found; admins alerted)` : '',
     errors - retrying ? `${errors - retrying} error(s)` : '', retrying ? `${retrying} will retry (Gemini busy)` : '', waitNote]
-  return finish({ baseline_done: true, last_error: errors > retrying && !created ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
+  return finish({ baseline_done: true, last_error: errors > retrying && !created && !updated ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
 })

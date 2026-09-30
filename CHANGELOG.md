@@ -3,9 +3,14 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
-## Version 1.2.2 — in progress (branch `v1.2.2-perisclaw-wait`)
+## Version 1.2.2 — 30 Sep 2026
 
-- **Perisclaw:** a new sheet row now waits 2 minutes before it becomes a task (status "Waiting 2 min"). If Perisclaw edits the row during the wait, only the edited version is added, so quick corrections no longer create duplicate tasks.
+- **Perisclaw — no more duplicate tasks when Perisclaw edits a row:**
+  - A new sheet row waits 2 minutes before it becomes a task (status "Waiting 2 min"). If Perisclaw corrects the row during the wait, only the corrected version is added.
+  - If Perisclaw edits a row later (e.g. adds a point 20 minutes after), the app recognises it's the same task (same title, or mostly the same text) and **updates the existing task** instead of creating a new one. Only fields nobody has changed by hand are updated (description, due date, priority, time); if someone already edited the description, the new details are added as a comment on the task.
+  - If a row is reused for a completely different task, a new task is created as before.
+  - An edited row doesn't send the "user not found" WhatsApp message again.
+- perisclaw-sync v12; migrations `20260930130000_perisclaw_wait`, `20260930140000_perisclaw_edit_no_realert`.
 
 ## Version 1.2.1 — 30 Sep 2026
 

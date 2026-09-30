@@ -11,6 +11,17 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.2.2',
+    date: '2026-09-30',
+    title: 'No duplicate tasks when Perisclaw edits a row',
+    summary: 'Perisclaw sometimes corrects a task in the sheet after writing it. The app now updates the task it already made instead of adding a second one.',
+    changes: [
+      { type: 'improved', admin: true, text: 'A new Perisclaw row waits 2 minutes before it becomes a task, so a quick correction by Perisclaw is picked up first.' },
+      { type: 'improved', text: 'When Perisclaw edits a task later, the existing task is updated (description, date, priority). If someone already changed the task by hand, the new details are added as a comment instead.' },
+      { type: 'fixed', admin: true, text: 'Edited Perisclaw rows no longer create duplicate tasks or send the "user not found" message twice.' },
+    ],
+  },
+  {
     version: '1.2.1',
     date: '2026-09-30',
     title: "What's New page",
