@@ -21,6 +21,7 @@ export const RELEASES: Release[] = [
       { type: 'new', text: 'Add reminders while creating a task, or later in the task\'s details, where you can also see which were sent.' },
       { type: 'new', text: 'Urgent and high priority tasks get automatic reminders before their deadline.' },
       { type: 'new', admin: true, text: 'Settings → Reminders: choose the automatic reminders for each priority.' },
+      { type: 'improved', text: 'The Notifications page has two tabs: Notifications (task updates) and Reminders, each with its own unread count and "Mark all as read".' },
       { type: 'improved', text: 'If a task has no time, its deadline for reminders is 7:00 pm on the due date. Recurring (daily routine) tasks don\'t get reminders.' },
     ],
   },
