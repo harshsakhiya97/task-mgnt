@@ -31,9 +31,14 @@ const SECTIONS: { title: string; items: NavDef[] }[] = [
     title: 'Administration',
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
-      { to: '/whatsapp-logs', label: 'WhatsApp Logs', icon: MessageCircle, roles: ['admin'] },
-      { to: '/perisclaw', label: 'Perisclaw', icon: Bot, roles: ['admin'] },
       { to: '/users', label: 'Users & Roles', icon: Users, roles: ['admin'] },
+    ],
+  },
+  {
+    title: 'System Settings',
+    items: [
+      { to: '/perisclaw', label: 'Perisclaw', icon: Bot, roles: ['admin'] },
+      { to: '/whatsapp-logs', label: 'WhatsApp Logs', icon: MessageCircle, roles: ['admin'] },
       { to: '/health', label: 'System Check', icon: Activity, roles: ['admin'] },
     ],
   },
