@@ -169,7 +169,7 @@ export function Perisclaw() {
       <div className="panel pc-settings">
         <div className="pc-grid">
           <div>
-            <Field label="Google Sheet link" required hint={robot ? `Share the sheet with the robot account below as Viewer. The app reads the tab that is open in the link.` : 'Add the robot account (see right), then share the sheet with it as Viewer. The app reads the tab that is open in the link.'}>
+            <Field label="Google Sheet link" required hint={robot ? `Share the sheet with the robot account below as Editor, so the app can write each row's task number (TM-…) into a "Task No" column. The app reads the tab that is open in the link.` : 'Add the robot account (see right), then share the sheet with it as Editor. The app reads the tab that is open in the link.'}>
               <input placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0" value={url} onChange={(e) => setUrl(e.target.value)} />
             </Field>
             <div className="form-grid">
@@ -199,7 +199,7 @@ export function Perisclaw() {
               <b className={robot ? 'ok-text' : 'overdue-text'}>{robot ? 'Added' : 'Not added'}</b></div>
             {robot && (
               <div className="pc-robot">
-                <small className="muted">Share the sheet with this email as <b>Viewer</b>:</small>
+                <small className="muted">Share the sheet with this email as <b>Editor</b> (Viewer can only read; Editor also lets the app write task numbers):</small>
                 <div className="pc-robot-email">
                   <code>{robot}</code>
                   <button type="button" className="secondary small-btn" onClick={() => { navigator.clipboard?.writeText(robot); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy'}</button>

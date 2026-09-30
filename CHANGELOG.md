@@ -3,6 +3,12 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.2.3 — 30 Sep 2026
+
+- **Perisclaw — task numbers in the Google Sheet:** once a row becomes a task, the app writes its number (e.g. `TM-165`) into a **Task No** column (added automatically if missing). When a row with a task number is edited later, that exact task is updated (if it's still the same task); rows without one become new tasks. Rows that already had tasks get their numbers on the next sync. The Task No column is ignored when comparing rows, so writing it doesn't count as an edit.
+- Needs the robot account to be an **Editor** of the sheet (was Viewer). Until then everything else keeps working and the Perisclaw page shows a note.
+- perisclaw-sync v13 (Sheets scope now read + write).
+
 ## Version 1.2.2 — 30 Sep 2026
 
 - **Perisclaw — no more duplicate tasks when Perisclaw edits a row:**

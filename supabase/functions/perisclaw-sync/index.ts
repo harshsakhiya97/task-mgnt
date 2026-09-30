@@ -2,6 +2,8 @@
 // to pick out assignee / task / date-time / priority, and creates the tasks.
 // Every row becomes a task (after a 2-minute wait, so Perisclaw's quick edits don't make duplicates).
 // If the person isn't a user, the task is unassigned and admins get a WhatsApp alert.
+// With the robot as Editor, each row gets its task number (TM-…) in a "Task No" column; an edited row
+// with a task number updates that task instead of making a new one.
 //
 // Called every 2 minutes by pg_cron (private.perisclaw_kick) while it's switched on,
 // and by the "Sync now" button. It takes no input and only acts on the configured
@@ -16,8 +18,8 @@
 //   GOOGLE_SERVICE_ACCOUNT_JSON  the robot account's JSON key; the sheet is shared with its email as Viewer.
 //                    Without it the sheet must be shared as "anyone with the link can view".
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sameTaskRow, sha256, sheetRows, valuesToRows, type AiResult, type Decision, type Person, type SheetRow } from './lib.ts'
-import { readServiceAccount, readSheetValues } from './google.ts'
+import { buildPrompt, decide, GEMINI_SCHEMA, nowInIndia, rowKey, sameTaskRow, sha256, sheetRows, TASK_NO_HEADER, taskNoColumn, valuesToRows, type AiResult, type Decision, type Person, type SheetRow } from './lib.ts'
+import { columnLetter, readServiceAccount, readSheetValues, writeCells } from './google.ts'
 
 const MAX_ROWS_PER_RUN = 8          // stays well inside Gemini's free-tier rate limit
 const MAX_TRIES = 5                 // a row Gemini was too busy for is tried again on later runs, up to this many times
@@ -126,9 +128,12 @@ Deno.serve(async (req) => {
 
   // 1. Read the sheet: as the robot account if its key is set, otherwise via the public link.
   let rows: SheetRow[] = []
+  let sheetTab = '', sheetValues: string[][] = []
   try {
     if (sa) {
-      rows = valuesToRows(await readSheetValues(sa, settings.sheet_id, settings.sheet_gid ?? '0'))
+      const read = await readSheetValues(sa, settings.sheet_id, settings.sheet_gid ?? '0')
+      sheetTab = read.tab; sheetValues = read.values
+      rows = valuesToRows(read.values)
     } else {
       const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(settings.sheet_id)}/export?format=csv&gid=${encodeURIComponent(settings.sheet_gid ?? '0')}`
       const res = await fetch(url, { redirect: 'follow' })
@@ -144,6 +149,41 @@ Deno.serve(async (req) => {
   }
 
   const keyed = await Promise.all(rows.map(async (r) => ({ row: r, hash: await sha256(rowKey(r)) })))
+  const rowByHash = new Map(keyed.map((k) => [k.hash, k.row]))
+
+  // Task numbers already written in the sheet ("Task No" column) → our task ids.
+  const sheetNos = [...new Set(rows.map((r) => r.taskNo).filter((n): n is number => !!n))]
+  const { data: linkedTasks } = sheetNos.length
+    ? await db.from('tasks').select('id, task_no').in('task_no', sheetNos)
+    : { data: [] as { id: string; task_no: number }[] }
+  const taskIdByNo = new Map((linkedTasks ?? []).map((t) => [t.task_no as number, t.id as string]))
+
+  /**
+   * Keep the sheet's "Task No" column in step: every row that became (or updated) a task gets its
+   * TM number. Adds the column header if it's missing. Needs the robot to be an Editor; if it's only
+   * a Viewer this returns a warning and everything else keeps working.
+   */
+  const syncTaskNumbers = async (): Promise<string | null> => {
+    if (!sa || !sheetTab || !keyed.length) return null
+    const { data: linked } = await db.from('perisclaw_entries').select('row_hash, processed_at, task:tasks(task_no)')
+      .in('row_hash', keyed.map((k) => k.hash)).eq('status', 'created').not('task_id', 'is', null)
+    const col = taskNoColumn(sheetValues)
+    const cells: { cell: string; value: string }[] = []
+    for (const l of (linked ?? []) as unknown as { row_hash: string; task: { task_no: number } | null }[]) {
+      const row = rowByHash.get(l.row_hash)
+      if (!row || !l.task || row.taskNo === l.task.task_no) continue
+      cells.push({ cell: `${columnLetter(col.index)}${row.rowNumber}`, value: `TM-${l.task.task_no}` })
+    }
+    if (!cells.length) return null
+    if (!col.exists) cells.unshift({ cell: `${columnLetter(col.index)}1`, value: TASK_NO_HEADER })
+    try { await writeCells(sa, settings.sheet_id, sheetTab, cells); return null }
+    catch (e) { return e instanceof Error ? e.message : String(e) }
+  }
+  /** finish() for every run that read the sheet: write task numbers first, and show a warning if that failed. */
+  const done = async (patch: Record<string, unknown>) => {
+    const warn = await syncTaskNumbers()
+    return finish(warn ? { ...patch, last_error: [patch.last_error, warn].filter(Boolean).join(' ') } : patch)
+  }
 
   // 2. First read of a newly connected sheet: remember what's already there (unless importing).
   if (!settings.baseline_done && !settings.import_existing) {
@@ -173,7 +213,7 @@ Deno.serve(async (req) => {
   const { data: waitingAll } = await db.from('perisclaw_entries').select('id, row_hash').eq('status', 'waiting')
   const replaced = (waitingAll ?? []).filter((w) => !inSheet.has(w.row_hash)).map((w) => w.id)
   if (replaced.length) await db.from('perisclaw_entries').delete().in('id', replaced).eq('status', 'waiting')
-  if (!geminiKey && (waitingAll ?? []).length) return finish({ last_error: `${(waitingAll ?? []).length} new row(s) waiting: add the GEMINI_API_KEY secret in Supabase → Edge Functions → Secrets.` })
+  if (!geminiKey && (waitingAll ?? []).length) return done({ last_error: `${(waitingAll ?? []).length} new row(s) waiting: add the GEMINI_API_KEY secret in Supabase → Edge Functions → Secrets.` })
 
   // Rows that have stayed unchanged for the whole wait are ready (claim them so a parallel run can't take the same ones).
   const { data: ready } = await db.from('perisclaw_entries').select('id, row_hash, row_number, raw, raw_text')
@@ -184,16 +224,16 @@ Deno.serve(async (req) => {
     ? await db.from('perisclaw_entries').update({ status: 'processing', reason: null }).in('id', readyIds).eq('status', 'waiting').select('id')
     : { data: [] as { id: string }[] }
   const claimedIds = new Set((claimed ?? []).map((c) => c.id))
-  const work: { entryId: string; row: SheetRow; tries: number }[] = (ready ?? [])
+  const work: { entryId: string; hash: string; row: SheetRow; tries: number }[] = (ready ?? [])
     .filter((r) => claimedIds.has(r.id))
-    .map((r) => ({ entryId: r.id, row: { rowNumber: r.row_number ?? 0, data: r.raw, text: r.raw_text }, tries: 0 }))
+    .map((r) => ({ entryId: r.id, hash: r.row_hash, row: { rowNumber: rowByHash.get(r.row_hash)?.rowNumber ?? r.row_number ?? 0, data: r.raw, text: r.raw_text }, tries: 0 }))
   const stillWaiting = (waitingAll ?? []).length - replaced.length - work.length   // waitingAll already includes the rows just added
 
   // Rows Gemini was too busy for on an earlier run: try them again (at most MAX_TRIES times each).
   const room = MAX_ROWS_PER_RUN - work.length
   if (room > 0 && geminiKey) {
     const { data: again } = await db.from('perisclaw_entries')
-      .select('id, row_number, raw, raw_text, attempts')
+      .select('id, row_hash, row_number, raw, raw_text, attempts')
       .eq('status', 'error').lt('attempts', MAX_TRIES).like('reason', `${BUSY_PREFIX}%`)
       .lt('processed_at', new Date(Date.now() - 90_000).toISOString())
       .order('created_at').limit(room)
@@ -203,11 +243,11 @@ Deno.serve(async (req) => {
       : { data: [] as { id: string }[] }
     const tookIds = new Set((took ?? []).map((t) => t.id))
     for (const r of again ?? []) {
-      if (tookIds.has(r.id)) work.push({ entryId: r.id, row: { rowNumber: r.row_number ?? 0, data: r.raw, text: r.raw_text }, tries: r.attempts ?? 0 })
+      if (tookIds.has(r.id)) work.push({ entryId: r.id, hash: r.row_hash, row: { rowNumber: rowByHash.get(r.row_hash)?.rowNumber ?? r.row_number ?? 0, data: r.raw, text: r.raw_text }, tries: r.attempts ?? 0 })
     }
   }
   const waitNote = stillWaiting > 0 ? `${stillWaiting} new row(s) waiting 2 min before being added (in case Perisclaw edits them)` : ''
-  if (!work.length) return finish({ baseline_done: true, last_error: null, last_result: waitNote ? `${waitNote}.` : `No new rows (${keyed.length} in the sheet).` })
+  if (!work.length) return done({ baseline_done: true, last_error: null, last_result: waitNote ? `${waitNote}.` : `No new rows (${keyed.length} in the sheet).` })
 
   // 4. Who can get tasks.
   const { data: ppl } = await db.from('profiles').select('id, full_name, team:teams(name), role_info:roles(name)').eq('is_active', true).order('full_name')
@@ -221,15 +261,18 @@ Deno.serve(async (req) => {
    * changed by hand (still equal to what the AI set last time) are updated; if the description was
    * edited by someone, the new details are added as a comment instead.
    */
-  const updateEditedTask = async (row: SheetRow, entryId: string, d: Decision) => {
-    const { data: prevs } = await db.from('perisclaw_entries').select('raw_text, parsed, task_id')
-      .eq('row_number', row.rowNumber).eq('status', 'created').not('task_id', 'is', null).neq('id', entryId)
-      .order('processed_at', { ascending: false }).limit(1)
+  const updateEditedTask = async (row: SheetRow, entryId: string, d: Decision, linkedTaskId?: string) => {
+    // The row's "Task No" says which task it is; otherwise look for a task made from the same row number.
+    const base = db.from('perisclaw_entries').select('raw_text, parsed, task_id').eq('status', 'created').neq('id', entryId)
+    const { data: prevs } = linkedTaskId
+      ? await base.eq('task_id', linkedTaskId).order('processed_at', { ascending: false }).limit(1)
+      : await base.eq('row_number', row.rowNumber).not('task_id', 'is', null).order('processed_at', { ascending: false }).limit(1)
     const prev = prevs?.[0]
-    if (!prev || !sameTaskRow(prev.raw_text, row.text)) return null
-    const { data: t } = await db.from('tasks').select('id, task_no, description, due_date, priority, start_time, end_time').eq('id', prev.task_id).maybeSingle()
+    if (prev && !sameTaskRow(prev.raw_text, row.text)) return null      // the row now holds a different task
+    if (!prev && !linkedTaskId) return null
+    const { data: t } = await db.from('tasks').select('id, task_no, description, due_date, priority, start_time, end_time').eq('id', linkedTaskId ?? prev!.task_id).maybeSingle()
     if (!t) return null
-    const old = (prev.parsed as { suggested?: Decision['task'] } | null)?.suggested ?? null
+    const old = (prev?.parsed as { suggested?: Decision['task'] } | null)?.suggested ?? null
     const hhmm = (x: string | null | undefined) => (x ?? '').slice(0, 5)
     const patch: Record<string, unknown> = {}
     const changed: string[] = []
@@ -259,14 +302,15 @@ Deno.serve(async (req) => {
   }
 
   let created = 0, unassigned = 0, updated = 0, errors = 0, retrying = 0
-  for (const { entryId, row, tries } of work) {
+  for (const { entryId, hash, row, tries } of work) {
     const attempts = tries + 1
     try {
       const ai = await askGemini(buildPrompt(row, people, now), geminiKey)
       const d = decide(ai, people, now.date, row.text)
 
       // Perisclaw edited a row that is already a task (e.g. added a point 20 minutes later)? Update that task.
-      const edit = await updateEditedTask(row, entryId, d)
+      const sheetNo = rowByHash.get(hash)?.taskNo
+      const edit = await updateEditedTask(row, entryId, d, sheetNo ? taskIdByNo.get(sheetNo) : undefined)
       if (edit) {
         await db.from('perisclaw_entries').update({ status: 'created', parsed: { ...ai, suggested: d.task }, task_id: edit.taskId, reason: edit.note, attempts, processed_at: new Date().toISOString() }).eq('id', entryId)
         updated++
@@ -296,5 +340,5 @@ Deno.serve(async (req) => {
 
   const parts = [`${work.length} row(s) read: ${created} task(s) created`, updated ? `${updated} edited row(s) updated their existing task` : '', unassigned ? `${unassigned} unassigned (user not found; admins alerted)` : '',
     errors - retrying ? `${errors - retrying} error(s)` : '', retrying ? `${retrying} will retry (Gemini busy)` : '', waitNote]
-  return finish({ baseline_done: true, last_error: errors > retrying && !created && !updated ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
+  return done({ baseline_done: true, last_error: errors > retrying && !created && !updated ? 'Gemini could not read the rows — see the list below' : null, last_result: parts.filter(Boolean).join(', ') + '.' })
 })

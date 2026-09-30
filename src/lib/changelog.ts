@@ -11,6 +11,16 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.2.3',
+    date: '2026-09-30',
+    title: 'Task numbers in the Perisclaw sheet',
+    summary: 'Every row Perisclaw adds to the Google Sheet now shows the Task Mgnt task number it became, so edits always go to the right task.',
+    changes: [
+      { type: 'new', admin: true, text: 'The app writes each task\'s number (e.g. TM-165) into a "Task No" column in the Perisclaw sheet.' },
+      { type: 'improved', admin: true, text: 'When Perisclaw edits a row that has a task number, that exact task is updated. Rows without a number become new tasks.' },
+    ],
+  },
+  {
     version: '1.2.2',
     date: '2026-09-30',
     title: 'No duplicate tasks when Perisclaw edits a row',

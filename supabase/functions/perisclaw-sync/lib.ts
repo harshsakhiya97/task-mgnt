@@ -22,7 +22,7 @@ export function parseCsv(text: string): string[][] {
   return rows
 }
 
-export interface SheetRow { rowNumber: number; data: Record<string, string>; text: string }
+export interface SheetRow { rowNumber: number; data: Record<string, string>; text: string; taskNo?: number | null }
 
 /** First row = headers. Empty rows are dropped. Row numbers match the sheet (header = row 1). */
 export function sheetRows(csv: string): SheetRow[] {
@@ -40,19 +40,40 @@ export function sheetRows(csv: string): SheetRow[] {
   return out
 }
 
-/** Sheets API values (2-D array, first row = headers) → same row objects as sheetRows(). */
+/** The column the app writes its task number into. Matched loosely ("Task No", "task no.", "Task Number"…). */
+export const TASK_NO_HEADER = 'Task No'
+export const isTaskNoHeader = (h: string) => /^\s*task\s*(no\.?|number|#|id)\s*$/i.test(h ?? '')
+/** "TM-163", "tm 163", "163" → 163. */
+export const parseTaskNo = (v: string | undefined | null) => { const m = String(v ?? '').match(/^\s*(?:tm\s*-?\s*)?(\d{1,7})\s*$/i); return m ? Number(m[1]) : null }
+
+/**
+ * Sheets API values (2-D array, first row = headers) → same row objects as sheetRows().
+ * The "Task No" column (written by the app) is kept out of the row's content, so writing a task
+ * number doesn't make the row look edited; it's returned separately as `taskNo`.
+ */
 export function valuesToRows(values: string[][]): SheetRow[] {
   if (!values?.length) return []
   const headers = values[0].map((h, i) => String(h ?? '').trim() || `Column ${i + 1}`)
+  const taskCol = headers.findIndex(isTaskNoHeader)
   const out: SheetRow[] = []
   values.slice(1).forEach((cells, idx) => {
     const data: Record<string, string> = {}
-    headers.forEach((h, i) => { const v = String(cells?.[i] ?? '').trim(); if (v) data[h] = v })
+    headers.forEach((h, i) => { if (i === taskCol) return; const v = String(cells?.[i] ?? '').trim(); if (v) data[h] = v })
     if (!Object.keys(data).length) return
     const text = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join('\n')
-    out.push({ rowNumber: idx + 2, data, text })
+    out.push({ rowNumber: idx + 2, data, text, taskNo: taskCol >= 0 ? parseTaskNo(cells?.[taskCol]) : null })
   })
   return out
+}
+
+/** Where the Task No column is (0-based), or where it should be added (the first free column after the headers). */
+export function taskNoColumn(values: string[][]): { index: number; exists: boolean } {
+  const headers = (values?.[0] ?? []).map((h) => String(h ?? ''))
+  const i = headers.findIndex(isTaskNoHeader)
+  if (i >= 0) return { index: i, exists: true }
+  let last = headers.length - 1
+  while (last >= 0 && !headers[last].trim()) last--
+  return { index: last + 1, exists: false }
 }
 
 export async function sha256(text: string): Promise<string> {

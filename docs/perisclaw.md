@@ -18,7 +18,7 @@ Admin on WhatsApp → Perisclaw → new row in Google Sheet
 3. **Create the robot:** ☰ → **IAM & Admin → Service Accounts** → **Create service account**. Name it `task-mgnt-sheets` → **Create and continue**. Skip the roles → **Done**.
 4. **Get its key:** click the new account → **Keys** tab → **Add key → Create new key → JSON → Create**. A `.json` file downloads. Keep it private.
 5. **Give it to the app:** in Supabase → **Edge Functions → Secrets**, add `GOOGLE_SERVICE_ACCOUNT_JSON`. The value is the **entire content** of that .json file: open it in a text editor, select all, and paste.
-6. **Share the sheet with the robot:** the Perisclaw page shows the robot's email, which looks like `task-mgnt-sheets@….iam.gserviceaccount.com`. In the sheet, click **Share**, add that email as **Viewer**, and untick "Notify".
+6. **Share the sheet with the robot:** the Perisclaw page shows the robot's email, which looks like `task-mgnt-sheets@….iam.gserviceaccount.com`. In the sheet, click **Share**, add that email as **Editor**, and untick "Notify". Editor lets the app write each row's task number into a **Task No** column (Viewer still works, but without task numbers).
 
 ### B. Gemini (the AI)
 7. Get a free key at https://aistudio.google.com → **Get API key**. Add it in Supabase → Edge Functions → Secrets as `GEMINI_API_KEY`.
@@ -54,6 +54,7 @@ Without a robot account, the app can still read a sheet shared as "Anyone with t
   - "3–4 pm" → 3–4 pm
   - "by 5 pm" → 4–5 pm, so the task shows as Expired after 5 pm
   - no time → all day
+- **Task No column:** once a row becomes a task, the app writes its number (e.g. **TM-165**) into a **Task No** column in the sheet, and adds that column header if it's missing. When a row with a task number is edited later, that exact task is updated (if it's still the same task); a row without one becomes a new task. The Task No column is ignored when comparing rows, so writing the number doesn't count as an edit. Rows that already had tasks get their numbers on the next sync.
 - **2-minute wait:** a new row shows as **Waiting 2 min** and becomes a task on the next sync after that. Perisclaw often corrects a row right after writing it; if that happens during the wait, only the corrected row is added.
 - **Later edits:** if Perisclaw edits a row after it became a task (same title, or mostly the same text), the existing task is updated instead of adding a new one. Only fields nobody changed by hand are updated; if the description was edited by someone, the new details are added as a comment. A row reused for a completely different task becomes a new task.
 - **No duplicates:** the same row content is never processed twice, even if rows move around in the sheet.
