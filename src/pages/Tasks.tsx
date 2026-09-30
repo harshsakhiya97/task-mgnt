@@ -100,7 +100,10 @@ export function Tasks() {
       || (t.description ?? '').toLowerCase().includes(q)
   })
 
-  if (view === 'mine') visible.sort((x, y) => Number(isNewFor(y, profile?.id)) - Number(isNewFor(x, profile?.id)))
+  // Newest first (by when the task was added). In "Assigned to Me", unopened (New) tasks stay on top.
+  visible.sort((x, y) =>
+    (view === 'mine' ? Number(isNewFor(y, profile?.id)) - Number(isNewFor(x, profile?.id)) : 0)
+    || y.created_at.localeCompare(x.created_at) || y.task_no - x.task_no)
 
   useEffect(() => { setPage(1) }, [view, search, status, priority, due, person, type, pageSize])
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize))
