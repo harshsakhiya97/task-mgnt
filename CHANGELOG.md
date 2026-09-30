@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.2.2 — in progress (branch `v1.2.2-perisclaw-wait`)
+
+- **Perisclaw:** a new sheet row now waits 2 minutes before it becomes a task (status "Waiting 2 min"). If Perisclaw edits the row during the wait, only the edited version is added, so quick corrections no longer create duplicate tasks.
+
 ## Version 1.2.1 — 30 Sep 2026
 
 - **What's New page** (everyone): click the version number in the sidebar footer to see every version with its date, summary and New / Improved / Fixed / Removed points in plain language. Admin-only features are listed for everyone with an "Admin" tag; admins can switch to "What team members see".

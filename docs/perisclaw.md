@@ -54,6 +54,7 @@ Without a robot account, the app can still read a sheet shared as "Anyone with t
   - "3–4 pm" → 3–4 pm
   - "by 5 pm" → 4–5 pm, so the task shows as Expired after 5 pm
   - no time → all day
+- **2-minute wait:** a new row shows as **Waiting 2 min** and becomes a task on the next sync after that. Perisclaw often corrects a row right after writing it; if that happens during the wait, only the corrected row is added.
 - **No duplicates:** the same row content is never processed twice, even if rows move around in the sheet.
 - **Gemini busy (error 503 / 429):** Google's free AI is sometimes overloaded. The app waits a moment and tries again, then tries the lighter `gemini-2.5-flash-lite` model. If it's still busy, the row shows as an error and is tried again automatically on the next runs, up to 5 times. After that, use **Add as task** on the row.
 - **Rate limit:** up to 8 new rows are handled per run, to stay inside Gemini's free-tier limit. Extra rows wait for the next run, 2 minutes later.

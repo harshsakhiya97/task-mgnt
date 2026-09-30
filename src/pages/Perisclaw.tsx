@@ -30,11 +30,11 @@ interface Entry {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  processing: 'Reading…', created: 'Added as task', needs_review: 'Needs review', ignored: 'Skipped',
+  waiting: 'Waiting 2 min', processing: 'Reading…', created: 'Added as task', needs_review: 'Needs review', ignored: 'Skipped',
   skipped_existing: 'Not added (old row)', error: 'Error',
 }
 const STATUS_TONE: Record<string, string> = {
-  created: 'active', needs_review: 'manager', ignored: 'paused', skipped_existing: 'paused', error: 'inactive', processing: 'st-in_progress',
+  created: 'active', needs_review: 'manager', ignored: 'paused', skipped_existing: 'paused', error: 'inactive', processing: 'st-in_progress', waiting: 'st-in_progress',
 }
 type Filter = '' | 'created' | 'unassigned' | 'pending' | 'ignored' | 'error'
 /** Added as a task, but nobody has it yet (the person isn't a user). */
@@ -153,7 +153,7 @@ export function Perisclaw() {
       <div className="page-head">
         <div>
           <h2>Perisclaw</h2>
-          <p>Tasks you give Perisclaw on WhatsApp land in a Google Sheet. The app reads new rows every 2 minutes, lets Gemini (AI) pick out who, what and when, and adds every row as a task. If the person isn't a user yet, the task is added unassigned and admins get a WhatsApp message to create the user and assign it.</p>
+          <p>Tasks you give Perisclaw on WhatsApp land in a Google Sheet. The app reads the sheet every 2 minutes. A new row waits 2 minutes (Perisclaw often corrects a row right after writing it), then Gemini (AI) picks out who, what and when, and the row is added as a task. If the person isn't a user yet, the task is added unassigned and admins get a WhatsApp message to create the user and assign it.</p>
         </div>
         <div className="head-actions">
           <button className="secondary" onClick={syncNow} disabled={!s?.enabled || busy !== ''}><RefreshCw size={16} className={busy === 'sync' ? 'spin' : undefined} /> {busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>
@@ -261,7 +261,7 @@ export function Perisclaw() {
                     <td className="small">{e.parsed ? <AiSummary p={e.parsed} users={users} /> : <span className="muted">—</span>}</td>
                     <td>
                       <span className={`badge ${STATUS_TONE[e.status] ?? ''}`}>{STATUS_LABELS[e.status] ?? e.status}</span>
-                      {e.reason && e.status !== 'skipped_existing' && <div className="muted small pc-reason">{e.status === 'created' ? `Note: ${e.reason}` : e.reason}</div>}
+                      {e.reason && !['skipped_existing', 'waiting'].includes(e.status) && <div className="muted small pc-reason">{e.status === 'created' ? `Note: ${e.reason}` : e.reason}</div>}
                     </td>
                     <td className="pc-action">
                       {e.status === 'created' && e.task_id ? (<>
