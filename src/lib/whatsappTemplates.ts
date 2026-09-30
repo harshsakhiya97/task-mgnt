@@ -8,6 +8,7 @@ export const WA_KIND_LABELS: Record<string, string> = {
   task_comment: 'New comment',
   daily_task_report: 'Day-end report',
   task_unassigned: 'User not found',
+  task_reminder: 'Reminder',
 }
 
 export const WA_TEMPLATES: Record<string, string> = {
@@ -51,6 +52,17 @@ Task: {{task}}
 Please create the user to assign the task: {{link}}
 
 – Task Mgnt, Pride Educare`,
+  task_reminder: `Hi {{name}},
+
+This is a reminder about a task on Task Mgnt.
+
+Task: {{task}}
+Due: {{due}}
+Current status: {{status}}
+
+Open the task to update it: {{link}}
+
+– Task Mgnt, Pride Educare`,
 }
 
 /** The message as the person receives it. */
@@ -66,6 +78,7 @@ export const WA_WHEN: Record<string, string> = {
   task_comment: 'To the assigner when the assignee comments. Comments within 2 minutes are sent as one message.',
   daily_task_report: 'To every active admin at 9:15 pm, with the day\'s task counts.',
   task_unassigned: 'To every active admin when a Perisclaw task names a person who isn\'t a user yet.',
+  task_reminder: 'A task reminder: before the deadline or at a set time (automatic for urgent/high tasks, or set by hand). Not sent if the task is done.',
 }
 
 /** Example values (also the "sample values" WATI asks for when submitting a template). */
@@ -74,4 +87,5 @@ export const WA_SAMPLES: Record<string, Record<string, string>> = {
   task_comment: { name: 'Viral Sakhiya', commenter: 'Ravi', task: 'TM-125 – Prepare TVS weekly report', comment: 'Done with the draft, please review', link: 'https://pride.viralsakhiya.com/tasks?task=abc' },
   daily_task_report: { name: 'Viral Sakhiya', date: '26-Sep-2026', total: '18', done: '14', expired: '3', pending: '1', overdue: '5', link: 'https://pride.viralsakhiya.com/reports' },
   task_unassigned: { name: 'Viral Sakhiya', person: 'Rahul Raja', task: 'TM-160 – Coordinate post-webinar automation', link: 'https://pride.viralsakhiya.com/tasks?task=abc' },
+  task_reminder: { name: 'Ravi', task: 'TM-165 – Prepare TVS weekly report', due: '01-Oct-2026, 04:00 PM - 05:00 PM (in 2 hours)', status: 'In Progress', link: 'https://pride.viralsakhiya.com/tasks?task=abc' },
 }

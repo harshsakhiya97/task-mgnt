@@ -4,7 +4,7 @@ import { CopyButton } from './CopyButton'
 import { checkWati, templateTone, type WatiCheck } from './WatiConnection'
 import { renderWhatsApp, WA_KIND_LABELS, WA_SAMPLES, WA_TEMPLATES, WA_WHEN } from '../lib/whatsappTemplates'
 
-const KINDS = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned']
+const KINDS = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned', 'task_reminder']
 
 /** Settings → WhatsApp → Templates: every message template the app sends, with its WATI approval status. */
 export function WaTemplates() {

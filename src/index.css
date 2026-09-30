@@ -668,3 +668,16 @@ a.app-version:hover { color: var(--primary); }
 .wn-removed { background: #eef0f3; color: var(--muted); }
 .wn-group ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 5px; font-size: 14px; line-height: 1.5; }
 .wn-admin { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; background: #fde9ea; color: #b42330; border-radius: 10px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }
+/* Reminders */
+.rem-box { display: grid; gap: 8px; }
+.rem-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); font-size: 13.5px; }
+.rem-row > svg { color: var(--primary); flex: none; }
+.rem-row.done { opacity: .65; }
+.rem-what { flex: 1; min-width: 0; }
+.rem-state { white-space: nowrap; }
+.rem-adder { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rem-adder select, .rem-adder input { width: auto; flex: 1 1 160px; }
+.rem-adder button { display: inline-flex; align-items: center; gap: 4px; }
+.rem-note { display: flex; gap: 6px; align-items: flex-start; margin: 6px 0 0; line-height: 1.45; }
+.rem-note svg { flex: none; margin-top: 2px; }
+.rem-settings-foot { margin: 0; padding: 12px 18px 16px; }

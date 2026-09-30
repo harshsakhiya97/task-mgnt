@@ -3,19 +3,19 @@
 // It takes no input and only works through public.whatsapp_outbox, so calling it
 // early does no harm (deployed with verify_jwt off for the cron call).
 //
-// WATI connection: set by an admin in the app (Settings → WhatsApp Logs → WATI connection).
+// WATI connection: set by an admin in the app (Settings → WhatsApp → Configuration).
 // The token is kept encrypted in Supabase Vault and read here with whatsapp_get_config().
 // Fallback when nothing is saved in the app (Supabase → Edge Functions → Secrets):
 //   WATI_API_URL   optional — defaults to Pride's WATI endpoint below (WATI → API Docs)
 //   WATI_TOKEN     the access token from WATI → API Docs ("Bearer …" is fine too)
 //   POST {"action":"check"} (admin only) -> is the token working, and are the templates approved?
 // Optional, if your WATI template names differ from the defaults:
-//   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT, WATI_TEMPLATE_TASK_UNASSIGNED
+//   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT, WATI_TEMPLATE_TASK_UNASSIGNED, WATI_TEMPLATE_TASK_REMINDER
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 interface Outbox {
   id: string
-  kind: 'task_assigned' | 'task_comment' | 'daily_task_report' | 'task_unassigned'
+  kind: 'task_assigned' | 'task_comment' | 'daily_task_report' | 'task_unassigned' | 'task_reminder'
   phone: string | null
   template: string
   params: Record<string, unknown>
@@ -24,7 +24,7 @@ interface Outbox {
 // Pride's WATI API endpoint (not secret). A WATI_API_URL secret overrides it.
 const DEFAULT_WATI_API_URL = 'https://live-mt-server.wati.io/10103863'
 
-const KINDS: Outbox['kind'][] = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned']
+const KINDS: Outbox['kind'][] = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned', 'task_reminder']
 const INTERNAL_PARAMS = new Set(['more_count'])
 
 // Allows "Check connection" (Settings → WhatsApp → Configuration) to call this from the browser.
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
   }
 
   if (!token) {
-    return reply({ configured: false, message: 'Add the WATI access token in the app: Settings → WhatsApp Logs → WATI connection.' })
+    return reply({ configured: false, message: 'Add the WATI access token in the app: Settings → WhatsApp → Configuration.' })
   }
 
   const { data, error } = await db.rpc('whatsapp_claim_batch', { p_limit: 20 })

@@ -11,6 +11,20 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.3',
+    date: '2026-09-30',
+    title: 'Reminders',
+    summary: 'Get reminded about a task before its deadline, on WhatsApp and in the app. Urgent and high priority tasks get reminders automatically.',
+    changes: [
+      { type: 'new', text: 'Reminders on tasks: remind yourself (or, if you assigned the task, the assignee) 30 min to 1 day before the deadline, or at an exact time.' },
+      { type: 'new', text: 'Reminders come on WhatsApp and as a notification, with the task\'s current status. They\'re not sent if the task is already done.' },
+      { type: 'new', text: 'Add reminders while creating a task, or later in the task\'s details, where you can also see which were sent.' },
+      { type: 'new', text: 'Urgent and high priority tasks get automatic reminders before their deadline.' },
+      { type: 'new', admin: true, text: 'Settings → Reminders: choose the automatic reminders for each priority.' },
+      { type: 'improved', text: 'If a task has no time, its deadline for reminders is 7:00 pm on the due date. Recurring (daily routine) tasks don\'t get reminders.' },
+    ],
+  },
+  {
     version: '1.2.3',
     date: '2026-09-30',
     title: 'Task numbers in the Perisclaw sheet',

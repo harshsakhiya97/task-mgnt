@@ -8,6 +8,7 @@ import { Field } from './Fields'
 import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
 import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRangeInput'
+import { AutoReminderNote, DraftReminderList, saveDraftReminders, type DraftReminder } from './Reminders'
 
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
@@ -35,6 +36,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const [startDate, setStartDate] = useState(todayStr())
   const [endDate, setEndDate] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [reminders, setReminders] = useState<DraftReminder[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const creatingRecurring = !task && type === 'recurring'
@@ -71,6 +73,10 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
         id = data.id as string
       }
       for (const f of files) await uploadAttachment(id!, profile.id, f)
+      if (!task) {
+        const err = await saveDraftReminders(id!, profile.id, reminders)
+        if (err) throw new Error(`Task created, but a reminder couldn't be saved: ${err}`)
+      }
       onSaved({ taskId: id })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -139,6 +145,16 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
               <input type="date" min={startDate} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </Field>
           </div>
+        </>
+      )}
+      {!creatingRecurring && task?.task_type !== 'recurring' && (
+        <>
+          <div className="form-section">Reminders</div>
+          <AutoReminderNote priority={priority} />
+          {task
+            ? <p className="muted small">Add or remove this task's reminders in its details.</p>
+            : <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
+                assigneeIsMe={assignedTo === profile?.id} hasDue={!!dueDate} />}
         </>
       )}
       {!task && !creatingRecurring && (

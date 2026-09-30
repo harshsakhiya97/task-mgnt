@@ -115,7 +115,7 @@ export function WhatsAppLogs() {
 
       <SubTabs value={view} onChange={setView} options={[
         { value: 'list', label: 'WhatsApp Logs', icon: MessageCircle, badge: counts.total },
-        { value: 'templates', label: 'Template Messages', icon: FileText, badge: 4 },
+        { value: 'templates', label: 'Template Messages', icon: FileText, badge: 5 },
         { value: 'config', label: 'Configuration', icon: SlidersHorizontal },
       ]} />
 

@@ -17,6 +17,7 @@ import { fromDbTime, timePairError, toDbTime } from './TimeRangeInput'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
+import { TaskReminders } from './Reminders'
 
 type Tab = 'details' | 'comments' | 'files' | 'activity'
 
@@ -171,6 +172,7 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
       </div>
       <div className="form-section">Description</div>
       {task.description ? <div className="desc">{task.description}</div> : <p className="muted">No description.</p>}
+      <TaskReminders task={task} onError={onError} />
     </>
   )
 }

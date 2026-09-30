@@ -8,11 +8,11 @@
 The token is stored encrypted and is never shown again; only its last 4 characters are displayed. To change it, click **Change token** and paste the new one. If no token is saved in the app, the app falls back to the `WATI_TOKEN` Edge Function secret in Supabase.
 
 
-Create these four templates in **WATI → Broadcast → Templates → New Template**.
+Create these five templates in **WATI → Broadcast → Templates → New Template**.
 
 - **Category:** Utility
 - **Language:** English
-- **Template name:** use exactly the name shown. The app sends to these names. If a name must differ, set the Edge Function secret `WATI_TEMPLATE_TASK_ASSIGNED` (or `..._TASK_COMMENT`, `..._DAILY_TASK_REPORT`, `..._TASK_UNASSIGNED`) to your name.
+- **Template name:** use exactly the name shown. The app sends to these names. If a name must differ, set the Edge Function secret `WATI_TEMPLATE_TASK_ASSIGNED` (or `..._TASK_COMMENT`, `..._DAILY_TASK_REPORT`, `..._TASK_UNASSIGNED`, `..._TASK_REMINDER`) to your name.
 - **Variables:** type them exactly as written, in double curly braces, e.g. `{{name}}`. WATI keeps named variables, and the app fills them by name.
 
 WhatsApp doesn't allow a template to start or end with a variable, so each one ends with a sign-off line.
@@ -90,6 +90,24 @@ Please create the user to assign the task: {{link}}
 – Task Mgnt, Pride Educare
 ```
 Samples: name = Viral Sakhiya · person = Rahul Raja · task = TM-160 – Coordinate post-webinar automation · link = https://pride.viralsakhiya.com/tasks?task=abc
+
+## 5. `task_reminder`
+A task reminder: some time before the deadline (the task's end time, or 7:00 pm if it has no time) or at a set time. Urgent and high tasks get automatic reminders (Settings → Reminders); anyone can add their own in the task details. Not sent if the task is already done; recurring tasks have none.
+
+```
+Hi {{name}},
+
+This is a reminder about a task on Task Mgnt.
+
+Task: {{task}}
+Due: {{due}}
+Current status: {{status}}
+
+Open the task to update it: {{link}}
+
+– Task Mgnt, Pride Educare
+```
+Samples: name = Ravi · task = TM-165 – Prepare TVS weekly report · due = 01-Oct-2026, 04:00 PM - 05:00 PM (in 2 hours) · status = In Progress · link = https://pride.viralsakhiya.com/tasks?task=abc
 
 ---
 

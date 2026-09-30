@@ -3,6 +3,17 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.3 — 30 Sep 2026
+
+- **Reminders on tasks:**
+  - Remind **yourself** or **the assignee** 30 min, 1/2/3/4 hrs or 1 day **before the deadline**, or at an exact date & time. "Before the deadline" reminders move with the task if its date or time changes.
+  - Deadline = the task's end time, or **7:00 pm** if it has no time.
+  - Set them in **Add Task** (Reminders section) or later in the task's details (list with Sent / Pending / Not sent, add and remove).
+  - Sent on **WhatsApp** (new template `task_reminder`) and as a bell notification; **not sent if the task is already Done**. Recurring tasks don't have reminders.
+  - Who can set what: anyone who can see a task can remind themselves; the assigner, the creator or an admin can also remind the assignee.
+- **Automatic reminders by priority** (Settings → **Reminders**, admins): default **Urgent** → assignee 2 hrs + assigner 1 hr before; **High** → assignee 2 hrs before; Medium/Low → none. Added to every new one-time task (also from Perisclaw); changing a task's priority swaps its automatic reminders.
+- Database: tables `task_reminders`, `reminder_rules`; job `task-reminders` every minute (`private.send_due_reminders`). whatsapp-sender v9 (checks the new template too).
+
 ## Version 1.2.3 — 30 Sep 2026
 
 - **Perisclaw — task numbers in the Google Sheet:** once a row becomes a task, the app writes its number (e.g. `TM-165`) into a **Task No** column (added automatically if missing). When a row with a task number is edited later, that exact task is updated (if it's still the same task); rows without one become new tasks. Rows that already had tasks get their numbers on the next sync. The Task No column is ignored when comparing rows, so writing it doesn't count as an edit.

@@ -1,15 +1,17 @@
 import { useSearchParams } from 'react-router-dom'
 import { Perisclaw } from './Perisclaw'
 import { WhatsAppLogs } from './WhatsAppLogs'
+import { ReminderSettings } from './ReminderSettings'
 
-export type SettingsTab = 'perisclaw' | 'whatsapp'
+export type SettingsTab = 'perisclaw' | 'whatsapp' | 'reminders'
 export const SETTINGS_TABS: Record<SettingsTab, string> = {
   perisclaw: 'Perisclaw',
   whatsapp: 'WhatsApp',
+  reminders: 'Reminders',
 }
-export const settingsTab = (t: string | null): SettingsTab => (t === 'whatsapp' ? t : 'perisclaw')
+export const settingsTab = (t: string | null): SettingsTab => (t === 'whatsapp' || t === 'reminders' ? t : 'perisclaw')
 
-/** Admin → Settings: Perisclaw and WhatsApp as tabs (?tab=…). */
+/** Admin → Settings: Perisclaw, WhatsApp and Reminders as tabs (?tab=…). */
 export function Settings() {
   const [params, setParams] = useSearchParams()
   const tab = settingsTab(params.get('tab'))
@@ -21,7 +23,7 @@ export function Settings() {
             onClick={() => setParams(v === 'perisclaw' ? {} : { tab: v })}>{SETTINGS_TABS[v]}</button>
         ))}
       </div>
-      {tab === 'perisclaw' ? <Perisclaw /> : <WhatsAppLogs />}
+      {tab === 'perisclaw' ? <Perisclaw /> : tab === 'whatsapp' ? <WhatsAppLogs /> : <ReminderSettings />}
     </>
   )
 }
