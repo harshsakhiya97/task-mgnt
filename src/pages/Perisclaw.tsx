@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Bot, UserX, CheckCircle2, CircleSlash, ExternalLink, FileSpreadsheet, Plus, RefreshCw, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, Bot, SlidersHorizontal, UserX, CheckCircle2, CircleSlash, ExternalLink, FileSpreadsheet, Plus, RefreshCw, Sparkles, X } from 'lucide-react'
 import { Drawer } from '../components/Drawer'
 import { Field } from '../components/Fields'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
+import { SubTabs, useSubView } from '../components/SubTabs'
 import { TaskForm } from '../components/TaskForm'
 import { TaskView } from '../components/TaskView'
 import { TimeRangeInput, timePairError, toDbTime } from '../components/TimeRangeInput'
@@ -63,6 +64,8 @@ export function Perisclaw() {
   const [editingTask, setEditingTask] = useState<import('../lib/tasks').Task | null>(null)
   const [rowBusy, setRowBusy] = useState('')
   const [admins, setAdmins] = useState<{ id: string; full_name: string }[]>([])
+  // Not connected yet → open on Configuration.
+  const [view, setView] = useSubView(['list', 'config'] as const, s && !s.sheet_url ? 'config' : 'list')
 
   const load = useCallback(async (background = false) => {
     const [st, en, ad] = await Promise.all([
@@ -157,6 +160,12 @@ export function Perisclaw() {
         </div>
       </div>
 
+      <SubTabs value={view} onChange={setView} options={[
+        { value: 'list', label: 'Sheet Rows', icon: FileSpreadsheet, badge: counts.all },
+        { value: 'config', label: 'Configuration', icon: SlidersHorizontal },
+      ]} />
+
+      {view === 'config' && (
       <div className="panel pc-settings">
         <div className="pc-grid">
           <div>
@@ -205,7 +214,15 @@ export function Perisclaw() {
           </div>
         </div>
       </div>
+      )}
 
+      {view === 'list' && <>
+      {!s?.enabled && s && (
+        <div className="alert info sub-tabs-alert">
+          <span>{s.sheet_url ? 'Perisclaw sync is switched off, so no new rows are read.' : 'No Google Sheet connected yet.'}</span>
+          <button className="small-btn" onClick={() => setView('config')}>Open Configuration</button>
+        </div>
+      )}
       <div className="stats tab-stats">
         <StatCard icon={FileSpreadsheet} tone="navy" value={counts.all} label="All Rows" onClick={() => setFilter('')} active={filter === ''} />
         <StatCard icon={CheckCircle2} tone="green" value={counts.created} label="Added as Task" onClick={() => setFilter('created')} active={filter === 'created'} />
@@ -271,6 +288,7 @@ export function Perisclaw() {
         </div>
         <Pagination page={page} pageSize={pageSize} total={visible.length} onPage={setPage} onPageSize={setPageSize} />
       </div>
+      </>}
 
       {viewingTask && !editingTask && (
         <TaskView taskId={viewingTask} onClose={() => setViewingTask(null)} onEdit={setEditingTask} onChanged={() => load(true)} />

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock3, MessageCircle, RefreshCw, RotateCcw, Search, UserX, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, SlidersHorizontal, Clock3, MessageCircle, RefreshCw, RotateCcw, Search, UserX, XCircle } from 'lucide-react'
 import { Drawer } from '../components/Drawer'
 import { Pagination } from '../components/Pagination'
 import { StatCard } from '../components/StatCard'
+import { SubTabs, useSubView } from '../components/SubTabs'
 import { WatiConnection } from '../components/WatiConnection'
 import { supabase } from '../lib/supabase'
 import { addDays, todayStr } from '../lib/tasks'
@@ -35,6 +36,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: '2-di
 
 /** Admin: every WhatsApp message the app sent (or tried to), with filters and resend. */
 export function WhatsAppLogs() {
+  const [view, setView] = useSubView(['list', 'config'] as const, 'list')
   const [from, setFrom] = useState(() => addDays(todayStr(), -6))
   const [to, setTo] = useState(todayStr)
   const [rows, setRows] = useState<WaLog[]>([])
@@ -96,8 +98,14 @@ export function WhatsAppLogs() {
         </div>
       </div>
 
-      <WatiConnection />
+      <SubTabs value={view} onChange={setView} options={[
+        { value: 'list', label: 'Messages', icon: MessageCircle, badge: counts.total },
+        { value: 'config', label: 'Configuration', icon: SlidersHorizontal },
+      ]} />
 
+      {view === 'config' && <WatiConnection />}
+
+      {view === 'list' && <>
       {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
 
       <div className="stats tab-stats">
@@ -161,6 +169,8 @@ export function WhatsAppLogs() {
         </div>
         <Pagination page={page} pageSize={pageSize} total={visible.length} onPage={setPage} onPageSize={setPageSize} />
       </div>
+
+      </>}
 
       {open && <MessageDrawer log={open} onClose={() => setOpen(null)} onChanged={() => { setOpen(null); load() }} />}
     </>

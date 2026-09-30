@@ -622,3 +622,6 @@ textarea.pc-desc { white-space: pre-wrap; line-height: 1.5; min-height: 150px; r
 .wati-templates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
 .wati-templates .badge { font-size: 11.5px; }
 .wati-form { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 12px; }
+.sub-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.sub-tab-badge { font-size: 11px; background: var(--primary-soft); color: var(--primary); border-radius: 10px; padding: 1px 7px; font-weight: 600; }
+.sub-tabs-alert { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
