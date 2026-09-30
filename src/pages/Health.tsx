@@ -46,7 +46,7 @@ export function Health() {
         if (error) throw new Error(error.message)
         return JSON.stringify(data)
       }} />
-      <p className="muted small">All WhatsApp messages, with filters and resend: <Link to="/whatsapp-logs">WhatsApp Logs</Link>.</p>
+      <p className="muted small">All WhatsApp messages, with filters and resend: <Link to="/settings?tab=whatsapp">WhatsApp Logs</Link>.</p>
       <p className="muted small">{VERSION_LABEL} ({APP_VERSION}) · Build time: {new Date(__BUILD_TIME__).toLocaleString()}</p>
     </>
   )

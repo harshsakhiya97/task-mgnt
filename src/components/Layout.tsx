@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Activity, BarChart3, Bell, Bot, MessageCircle, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, UserRound, Users } from 'lucide-react'
+import { BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
+import { SETTINGS_TABS, settingsTab } from '../pages/Settings'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { APP_VERSION, VERSION_LABEL, VERSION_SHORT } from '../lib/version'
@@ -32,14 +33,7 @@ const SECTIONS: { title: string; items: NavDef[] }[] = [
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
       { to: '/users', label: 'Users & Roles', icon: Users, roles: ['admin'] },
-    ],
-  },
-  {
-    title: 'System Settings',
-    items: [
-      { to: '/perisclaw', label: 'Perisclaw', icon: Bot, roles: ['admin'] },
-      { to: '/whatsapp-logs', label: 'WhatsApp Logs', icon: MessageCircle, roles: ['admin'] },
-      { to: '/health', label: 'System Check', icon: Activity, roles: ['admin'] },
+      { to: '/settings', label: 'Settings', icon: SettingsIcon, roles: ['admin'] },
     ],
   },
   { title: 'Account', items: [{ to: '/profile', label: 'My Profile', icon: UserRound }] },
@@ -52,11 +46,8 @@ const TITLES: Record<string, [string, string]> = {
   '/notifications': ['Notifications', 'Overview'],
   '/calendar': ['Calendar', 'Overview'],
   '/reports': ['Reports', 'Overview'],
-  '/whatsapp-logs': ['WhatsApp Logs', 'Overview'],
-  '/perisclaw': ['Perisclaw', 'Tasks from Google Sheet'],
   '/users': ['Users & Roles', 'Overview'],
-  '/health': ['System Check', 'Overview'],
-  '/profile': ['Settings', 'My Profile'],
+  '/profile': ['My Profile', 'Account'],
 }
 
 function readCollapsed() {
@@ -82,7 +73,9 @@ export function Layout() {
   }, [collapsed])
 
   if (!profile) return null
-  const [title, sub] = TITLES[location.pathname] ?? ['Task Mgnt', '']
+  const [title, sub] = location.pathname === '/settings'
+    ? ['Settings', SETTINGS_TABS[settingsTab(new URLSearchParams(location.search).get('tab'))]]
+    : TITLES[location.pathname] ?? ['Task Mgnt', '']
   const Icon = SECTIONS.flatMap((s) => s.items).find((i) => i.to === location.pathname)?.icon ?? LayoutGrid
 
   return (

@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireAuth } from './components/RequireAuth'
 import { ForgotPassword } from './pages/ForgotPassword'
-import { Health } from './pages/Health'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Notifications } from './pages/Notifications'
@@ -13,8 +12,7 @@ import { Setup } from './pages/Setup'
 import { Tasks } from './pages/Tasks'
 import { Reports } from './pages/Reports'
 import { Users } from './pages/Users'
-import { Perisclaw } from './pages/Perisclaw'
-import { WhatsAppLogs } from './pages/WhatsAppLogs'
+import { Settings } from './pages/Settings'
 
 // The calendar library is large, so it's only downloaded when the Calendar page is opened.
 const Calendar = lazy(() => import('./pages/Calendar').then((m) => ({ default: m.Calendar })))
@@ -34,11 +32,13 @@ export default function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/reports" element={<RequireAuth roles={['admin']}><Reports /></RequireAuth>} />
-        <Route path="/perisclaw" element={<RequireAuth roles={['admin']}><Perisclaw /></RequireAuth>} />
-        <Route path="/whatsapp-logs" element={<RequireAuth roles={['admin']}><WhatsAppLogs /></RequireAuth>} />
+        <Route path="/settings" element={<RequireAuth roles={['admin']}><Settings /></RequireAuth>} />
+        {/* old addresses → Settings tabs */}
+        <Route path="/perisclaw" element={<Navigate to="/settings" replace />} />
+        <Route path="/whatsapp-logs" element={<Navigate to="/settings?tab=whatsapp" replace />} />
+        <Route path="/health" element={<Navigate to="/settings?tab=system" replace />} />
         <Route path="/users" element={<RequireAuth roles={['admin']}><Users /></RequireAuth>} />
         <Route path="/teams" element={<Navigate to="/users?tab=teams" replace />} />
-        <Route path="/health" element={<RequireAuth roles={['admin']}><Health /></RequireAuth>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

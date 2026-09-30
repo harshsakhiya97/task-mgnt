@@ -610,3 +610,4 @@ textarea.pc-desc { white-space: pre-wrap; line-height: 1.5; min-height: 150px; r
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .badge.unassigned { background: #fff1e6; color: #c2410c; border: 1px dashed #f5b27a; padding: 2px 9px; }
+.settings-tabs { margin: 0 0 18px; }
