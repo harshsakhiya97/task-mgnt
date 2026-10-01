@@ -13,10 +13,12 @@ export const RELEASES: Release[] = [
   {
     version: '1.3.2',
     date: '2026-10-01',
-    title: 'Automatic reminders you can change',
+    title: 'Easier reminders, and count cards on phones',
     summary: 'When you add an urgent or high priority task, its automatic reminders are listed in the form, so you can remove them or add more before saving.',
     changes: [
       { type: 'improved', text: 'Add Task shows the automatic reminders for the chosen priority as rows marked "Auto". Remove any you don\'t need, or add your own.' },
+      { type: 'improved', text: 'Reminders say who they\'re for by name: "Remind me" or "Remind Sara".' },
+      { type: 'improved', text: 'On a phone, tapping a count card (To Do, Expired, Due Today…) scrolls down to the list it filters.' },
     ],
   },
   {

@@ -6,6 +6,8 @@ To release a new version: bump it there, add a section below, add the user-facin
 ## Version 1.3.2 — 1 Oct 2026
 
 - **Add Task → Reminders:** the automatic reminders for the chosen priority (Settings → Reminders, e.g. Urgent: assignee 2 hrs + you 1 hr before) now appear as rows marked **Auto**. Remove any with ×, or add more. Changing the priority shows that priority's reminders again. The database still adds them on insert; the ones removed in the form are deleted right after the task is saved.
+- Reminder labels use names: "Remind me" / "Remind Sara" (form dropdown, rows and task details).
+- **Mobile:** tapping a count card scrolls to the list below it (`StatCard`, ≤ 800px).
 
 ## Version 1.3.1 — 1 Oct 2026
 
