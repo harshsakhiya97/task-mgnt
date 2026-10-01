@@ -1,3 +1,4 @@
+import { InstallApp } from './InstallApp'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Sparkles, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
@@ -101,6 +102,7 @@ export function Layout() {
               </div>
             )
           })}
+          <InstallApp variant="nav" />
         </nav>
         <div className="sidebar-user">
           <div className="avatar">{initials(profile.full_name)}</div>

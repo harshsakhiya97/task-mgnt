@@ -9,6 +9,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 - Reminder labels use names: "Remind me" / "Remind Sara" (form dropdown, rows and task details).
 - **Edit Task** shows the task's reminders (`TaskReminders`, saved straight away); changing the priority previews the new priority's Auto rows (old pending Auto ones hidden); ones removed in the form are deleted after Update.
 - **Mobile:** tapping a count card scrolls to the list below it (`StatCard`, ≤ 800px).
+- **Installable app (PWA):** `public/manifest.json`, icons in `public/icons/`, `public/sw.js` (no caching — always loads the latest version; offline page for navigations). "Download this app" (`InstallApp`) on the login page and in the sidebar on phones: uses the browser's install prompt (`beforeinstallprompt`, Android Chrome/Edge/Samsung) or shows Add-to-Home-Screen steps (iPhone Safari / when no prompt). Hidden when already opened as the app.
 - **Mobile layout pass (≤ 800px), checked page by page at 375px:**
   - Task lists (Tasks, Dashboard) render as cards (`.task-table` grid areas); compact count cards (icon beside the number).
   - View tabs, filters, task-detail tabs and settings sub-tabs are single rows that scroll sideways.

@@ -20,6 +20,7 @@ export const RELEASES: Release[] = [
       { type: 'improved', text: 'Reminders say who they\'re for by name: "Remind me" or "Remind Sara".' },
       { type: 'improved', text: 'Edit Task shows the task\'s reminders too, so you can add or remove them there. Changing the priority shows its automatic reminders straight away.' },
       { type: 'improved', text: 'On a phone, tapping a count card (To Do, Expired, Due Today…) scrolls down to the list it filters.' },
+      { type: 'new', text: 'Download this app: on a phone, add Task Mgnt to your home screen (button on the login page and in the menu). It then opens full screen like a normal app.' },
       { type: 'improved', text: 'Phones: tasks show as cards (number, priority, title, person, due date and status) instead of a wide table.' },
       { type: 'improved', text: 'Phones: smaller count cards, tabs and filters in one row you can swipe sideways.' },
       { type: 'improved', text: 'Phones: on the Calendar, Day / Week / Month is at the top, and Week view fits all seven days.' },

@@ -770,3 +770,12 @@ a.app-version:hover { color: var(--primary); }
   .crumb small { display: none; }
   .crumb { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* "Download this app" (phones) */
+.install-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
+.install-nav { width: 100%; justify-content: flex-start; background: none; border: 0; text-align: left; font: inherit; cursor: pointer; margin-top: 8px; color: var(--primary); }
+.install-help { position: relative; text-align: left; }
+.install-help h3, .install-help p { text-align: center; }
+.install-close { position: absolute; top: 10px; right: 10px; }
+.install-steps { margin: 4px 0 18px; padding-left: 22px; display: grid; gap: 8px; font-size: 14px; }
+.install-steps svg { vertical-align: -2px; margin: 0 2px; }

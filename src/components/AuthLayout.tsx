@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Brand } from './Brand'
 import { VERSION_LABEL } from '../lib/version'
+import { InstallApp } from './InstallApp'
 
 const BARS: [string, number][] = [['To do', 72], ['In progress', 54], ['Done', 88], ['Ongoing', 40], ['Expired', 18]]
 
@@ -12,6 +13,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="auth-box">
           <Brand size="lg" />
           {children}
+          <InstallApp />
           <p className="auth-version">{VERSION_LABEL}</p>
         </div>
       </div>
