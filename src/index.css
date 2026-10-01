@@ -881,3 +881,7 @@ a.app-version:hover { color: var(--primary); }
   .ov-actions button { justify-content: center; padding: 12px 14px; }
   .ov-actions button:only-child { grid-column: 1 / -1; }
 }
+@media (max-width: 800px) {
+  /* Phones: Reassign lives under the description (Overview tab), not in the header */
+  .task-head .top-reassign { display: none; }
+}

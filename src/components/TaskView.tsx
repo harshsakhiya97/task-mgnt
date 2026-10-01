@@ -95,7 +95,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
           <h3>{task ? <span className="task-no">{taskCode(task.task_no)}</span> : 'Loading…'}</h3>
           {/* On a phone the buttons drop to their own row so the close (×) always stays next to the task number. */}
           <div className="head-actions task-head-actions">
-            {mayReassign && <button onClick={() => setReassigning(true)}><Forward size={15} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
+            {mayReassign && <button className="top-reassign" onClick={() => setReassigning(true)}><Forward size={15} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
             {canEdit && task && <button className="secondary" onClick={() => onEdit(task)}><Pencil size={15} /> Edit</button>}
             {canEdit && <button className="danger-outline" onClick={() => setConfirmDelete(true)}><Trash2 size={15} /> Delete</button>}
           </div>
