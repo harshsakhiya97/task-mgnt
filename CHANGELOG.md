@@ -3,6 +3,11 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.4.1 — 1 Oct 2026
+
+- **Phone notifications for new tasks and comments** (in addition to WhatsApp + bell). Trigger `notifications_push` on `notifications` insert (`20261001140000_push_tasks_comments.sql`): type `assigned` → push only to the task's current assignee (admins' "X assigned … to Y" bells don't push); type `comment` → push to everyone who gets the comment bell. Only queued for people with a device registered. Tag per task (`comment-<task>` / `assigned-<task>`), so newer replaces older; `renotify` in `sw.js`.
+- Texts in My Profile → Phone Notifications and the prompts now mention reminders, new tasks and comments.
+
 ## Version 1.4 — 1 Oct 2026
 
 - **Reminders as phone notifications (Web Push)** instead of WhatsApp. Reminders now go to: the bell (Notifications → Reminders) + a push notification on every device where the person turned them on. Task assigned / comments / unassigned / day-end report stay on WhatsApp + bell.

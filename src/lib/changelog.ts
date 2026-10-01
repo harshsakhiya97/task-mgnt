@@ -11,6 +11,17 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.4.1',
+    date: '2026-10-01',
+    title: 'Phone notifications for new tasks and comments',
+    summary: 'If you turned on phone notifications, you now also get one when a task is assigned to you and when someone comments on your tasks.',
+    changes: [
+      { type: 'new', text: 'Phone notification when a task is assigned (or passed on) to you. Tap it to open the task.' },
+      { type: 'new', text: 'Phone notification for new comments on tasks you\'re part of. Several comments on one task show as one notification (the latest).' },
+      { type: 'improved', text: 'WhatsApp messages and the bell for new tasks and comments work the same as before.' },
+    ],
+  },
+  {
     version: '1.4',
     date: '2026-10-01',
     title: 'Reminders as phone notifications',

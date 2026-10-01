@@ -1,5 +1,5 @@
 // Task Mgnt service worker: makes the site installable as an app ("Add to Home screen") and shows
-// phone notifications for reminders (Web Push, sent by the push-sender Edge Function).
+// phone notifications (reminders, new tasks, comments — Web Push, sent by the push-sender Edge Function).
 // It does not cache the app or its data, so every launch always loads the latest version from the server.
 // When the phone is offline, page loads show a short "You're offline" message instead of the browser's error.
 self.addEventListener('install', () => self.skipWaiting())
@@ -25,6 +25,7 @@ self.addEventListener('push', (e) => {
     icon: '/icons/icon-192.png',
     badge: '/icons/badge-96.png',
     tag: d.tag || undefined,
+    renotify: !!d.tag,   // a newer comment on the same task replaces the older one but still alerts
     data: { url: d.url || '/' },
     vibrate: [120, 60, 120],
   }))

@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.4 (1.4.0)**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.4.1**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -13,7 +13,7 @@ Pilot: TVS team (≈7 users), then the whole company (16–20).
 | Frontend: React 18 + Vite 5 + TypeScript, react-router 6, FullCalendar 6, lucide-react, write-excel-file | Static build (`dist/`) on **cPanel** shared hosting |
 | Database (Postgres + RLS), Auth (email + password), Storage, Edge Functions (Deno), pg_cron, pg_net, Vault | **Supabase** project `tazlvzjalhxsudceabqy` ("Pride") |
 | WhatsApp messages | **WATI** (template messages), called from the `whatsapp-sender` Edge Function |
-| Phone notifications (reminders) | **Web Push** (VAPID, no third-party service), sent by the `push-sender` Edge Function |
+| Phone notifications (reminders, new tasks, comments) | **Web Push** (VAPID, no third-party service), sent by the `push-sender` Edge Function |
 | AI (Perisclaw rows → tasks) | **Google Gemini** `gemini-2.5-flash` (backup `gemini-2.5-flash-lite`), from `perisclaw-sync` |
 | Google Sheet access | Google **service account** ("robot"), Sheets API read + write |
 
@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            33 SQL files, applied in order (timestamps 20260925… → 20261001130000)
+  migrations/            34 SQL files, applied in order (timestamps 20260925… → 20261001140000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -69,6 +69,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.3.2 (1 Oct)** — Add/Edit Task list the priority's automatic reminders as removable "Auto" rows (removed ones are deleted after save via `dropAutoReminders`); reminder labels by name ("Remind me" / "Remind Sara"). Mobile-first layout pass (task cards, compact count cards, scrolling tabs/filters, calendar view switch on top). Installable app (PWA) + "Download this app" on phones.
 
 **1.4 (1 Oct)** — **Reminders as phone notifications** (Web Push) + Notifications → Reminders tab, **no longer WhatsApp**. Turn on: Dashboard / Reminders-tab banner or My Profile → Phone Notifications (test button). iPhone needs the installed app (iOS 16.4+). Task assigned / comments stay WhatsApp + bell.
+**1.4.1 (1 Oct)** — Phone notifications also for "task assigned to you" and comments (trigger `notifications_push` on `notifications`), on top of WhatsApp + bell.
 
 ---
 
@@ -79,7 +80,7 @@ Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, 
 Key `tasks` columns: `task_no` (shown as `TM-<n>`), title, description, `assigned_by`, `assigned_to` (nullable), `created_by`, `participants uuid[]` (drives RLS read/update), due_date, start_time, end_time, priority, status, task_type (`adhoc`/`recurring`), `recurring_id`, `occurrence_date`, `seen_at`, `reassigned`, `completed_at`.
 
 Important triggers on `tasks`: `tasks_before_write` (permission rules, participants, assignment bookkeeping, active-user check), `tasks_notify` (bell), `tasks_whatsapp` (WhatsApp task_assigned), `tasks_log_activity`, `tasks_occurrence_defaults`, `tasks_auto_reminders`, `tasks_reminders_recheck`.
-Other: `task_comments_whatsapp`, `whatsapp_outbox_kick` (instant send via pg_net), `perisclaw_entries_guard`, `perisclaw_unassigned_alert`, `task_reminders_before`, `profiles_role_sync`, `roles_guard`.
+Other: `notifications_push` (assigned→assignee / comment → push_outbox), `task_comments_whatsapp`, `whatsapp_outbox_kick` (instant send via pg_net), `perisclaw_entries_guard`, `perisclaw_unassigned_alert`, `task_reminders_before`, `profiles_role_sync`, `roles_guard`.
 
 Helpers in schema `private` (security definer): `is_admin()`, `can_see_task()`, `person_name()`, `active_admins()`, `today_ist()`, `task_deadline()`, `reminder_deadline()` (end time or 19:00 IST), `setting(key)` (from `private.app_settings`, e.g. `app_url`), `wa_enqueue()`, `wa_text()`, `wa_due_text()`, `notify()`, `send_due_reminders()`, `perisclaw_kick()`, `wa_kick()`.
 Public RPCs: `report_by_person`, `plan_recurring_day`, `sync_app_url` (admin; keeps `app_url` in sync with where admins open the app, ignores localhost), `whatsapp_claim_batch` / `whatsapp_mark` (service role), `whatsapp_retry` (admin), `whatsapp_set_config` / `whatsapp_config_status` (admin), `whatsapp_get_config` (service role only), `push_subscribe` / `push_public_key` / `push_test` (users), `push_claim_batch` / `push_mark` / `push_get_keys` / `push_set_keys` (service role). VAPID keys: private in Vault `vapid_private_key`, public in `private.app_settings.vapid_public_key` (created once by push-sender; never replace — devices are tied to it).
@@ -151,6 +152,5 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 ## 10. Known follow-ups / ideas
 
 - Delete the old `WATI_TOKEN` Supabase secret now that the token is saved in the app.
-- Phone notifications are reminders-only for now; other events (assigned/comments) could be added to `push_outbox` later.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.
