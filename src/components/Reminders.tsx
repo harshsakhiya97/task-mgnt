@@ -47,24 +47,26 @@ export function ReminderAdder({ canRemindAssignee, assigneeIsMe, hasDue, onAdd, 
 export function AutoReminderNote({ priority, recurring, prefilled }: { priority: TaskPriority; recurring?: boolean; prefilled?: boolean }) {
   const [rules, setRules] = useState<ReminderRule[]>([])
   useEffect(() => { loadReminderRules().then(setRules) }, [])
-  if (recurring) return <p className="muted small rem-note">Recurring tasks don't have reminders.</p>
+  if (recurring) return <p className="muted small rem-note"><span>Recurring tasks don't have reminders.</span></p>
   const text = ruleText(rules.find((r) => r.priority === priority), 'you')
   if (prefilled) {
     return (
       <p className="muted small rem-note">
-        <AlarmClock size={13} /> {text
+        <AlarmClock size={13} />
+        <span>{text
           ? <>Reminders marked <b>Auto</b> are added for {PRIORITY_LABELS[priority].toLowerCase()} tasks. Remove any you don't need, or add more.</>
           : <>{PRIORITY_LABELS[priority]} tasks have no automatic reminders. You can add your own.</>}
-        {' '}The deadline is the task's end time, or 7:00 pm if it has no time.
+        {' '}The deadline is the task's end time, or 7:00 pm if it has no time.</span>
       </p>
     )
   }
   return (
     <p className="muted small rem-note">
-      <AlarmClock size={13} /> {text
+      <AlarmClock size={13} />
+      <span>{text
         ? <>{PRIORITY_LABELS[priority]} tasks get automatic reminders: {text}. You can remove them in the task details.</>
         : <>{PRIORITY_LABELS[priority]} tasks have no automatic reminders.</>}
-      {' '}The deadline is the task's end time, or 7:00 pm if it has no time.
+      {' '}The deadline is the task's end time, or 7:00 pm if it has no time.</span>
     </p>
   )
 }
