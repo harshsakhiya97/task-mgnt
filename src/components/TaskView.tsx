@@ -19,9 +19,9 @@ import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
 
-type Tab = 'details' | 'comments' | 'files' | 'reminders' | 'activity'
+type Tab = 'overview' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
 
-/** Slide-over showing one task with Details / Comments / Attachments / Reminders / Activity tabs. */
+/** Slide-over showing one task with Overview (title + description) / Details / Comments / Attachments / Reminders / Activity tabs. */
 export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   taskId: string
   onClose: () => void
@@ -34,7 +34,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   const [comments, setComments] = useState<TaskComment[]>([])
   const [files, setFiles] = useState<TaskAttachment[]>([])
   const [activity, setActivity] = useState<TaskActivity[]>([])
-  const [tab, setTab] = useState<Tab>('details')
+  const [tab, setTab] = useState<Tab>('overview')
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reassigning, setReassigning] = useState(false)
@@ -102,6 +102,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
           <button className="icon drawer-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
         <div className="tabs">
+          <button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>Overview</button>
           <button className={tab === 'details' ? 'active' : ''} onClick={() => setTab('details')}>Details</button>
           <button className={tab === 'comments' ? 'active' : ''} onClick={() => setTab('comments')}>Comments <span className="tab-count">{comments.length}</span></button>
           <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>Attachments <span className="tab-count">{files.length}</span></button>
@@ -114,6 +115,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
           {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
           {!task ? <div className="empty">Loading…</div> : (
             <>
+              {tab === 'overview' && <Overview task={task} />}
               {tab === 'details' && (
                 <Details task={task} onStatus={setStatus}
                   canPlan={canSetTime(task, profile?.id, profile?.role === 'admin')}
@@ -156,7 +158,6 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
   return (
     <>
       <div className="fgrid">
-        <Cell label="Task Title" span={6}><span className="fcell-title">{task.title}</span></Cell>
         <Cell label="Assigned By" span={3}>
           {task.assigner?.full_name ?? '—'}
           {task.created_by !== task.assigned_by && task.creator && <small className="muted"> · created by {task.creator.full_name}</small>}
@@ -177,6 +178,17 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
         <Cell label="Status" span={2}><StatusSelect value={task.status} onChange={onStatus} /></Cell>
 
         <DateTimeEditor task={task} editable={canPlan} schedule={schedule} onChanged={onChanged} onError={onError} />
+      </div>
+    </>
+  )
+}
+
+/** Overview tab: just the title and the description. */
+function Overview({ task }: { task: Task }) {
+  return (
+    <>
+      <div className="fgrid">
+        <Cell label="Task Title" span={6}><span className="fcell-title">{task.title}</span></Cell>
       </div>
       <div className="form-section">Description</div>
       {task.description ? <div className="desc">{task.description}</div> : <p className="muted">No description.</p>}
