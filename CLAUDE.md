@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.4.1**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.4.2**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -70,6 +70,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 
 **1.4 (1 Oct)** — **Reminders as phone notifications** (Web Push) + Notifications → Reminders tab, **no longer WhatsApp**. Turn on: Dashboard / Reminders-tab banner or My Profile → Phone Notifications (test button). iPhone needs the installed app (iOS 16.4+). Task assigned / comments stay WhatsApp + bell.
 **1.4.1 (1 Oct)** — Phone notifications also for "task assigned to you" and comments (trigger `notifications_push` on `notifications`), on top of WhatsApp + bell.
+**1.4.2 (1 Oct)** — iPhone: sidebar/drawers use `100dvh` + safe-area padding (user box was cut off).
 
 ---
 

@@ -11,6 +11,16 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.4.2',
+    date: '2026-10-01',
+    title: 'iPhone menu fix',
+    summary: 'On iPhone, the bottom of the side menu (your name and Log out) is no longer cut off.',
+    changes: [
+      { type: 'fixed', text: 'iPhone: the side menu fits the screen, so your name, Log out and the version are visible.' },
+      { type: 'fixed', text: 'iPhone: buttons at the bottom of forms (Create Task, Update) stay clear of the home bar.' },
+    ],
+  },
+  {
     version: '1.4.1',
     date: '2026-10-01',
     title: 'Phone notifications for new tasks and comments',

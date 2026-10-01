@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.4.2 — 1 Oct 2026
+
+- iPhone: sidebar height uses `100dvh` (100vh includes the area under Safari's bars, which cut off the user box) + `env(safe-area-inset-bottom)`; drawers use `100dvh` and keep the footer buttons above the home bar.
+
 ## Version 1.4.1 — 1 Oct 2026
 
 - **Phone notifications for new tasks and comments** (in addition to WhatsApp + bell). Trigger `notifications_push` on `notifications` insert (`20261001140000_push_tasks_comments.sql`): type `assigned` → push only to the task's current assignee (admins' "X assigned … to Y" bells don't push); type `comment` → push to everyone who gets the comment bell. Only queued for people with a device registered. Tag per task (`comment-<task>` / `assigned-<task>`), so newer replaces older; `renotify` in `sw.js`.

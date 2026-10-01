@@ -129,6 +129,8 @@ input:disabled, select:disabled { background: var(--panel); color: var(--muted);
 .sidebar {
   width: var(--sidebar-w); flex-shrink: 0; border-right: 1px solid var(--border); background: #fff;
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; transition: width .2s;
+  height: 100dvh;   /* phones: the visible height (100vh includes the area under the browser bars) */
+  padding-bottom: env(safe-area-inset-bottom);   /* iPhone home bar */
 }
 .sidebar-head { height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 16px; border-bottom: 1px solid var(--border); }
 .brand { display: flex; align-items: center; gap: 10px; }
@@ -802,3 +804,8 @@ a.app-version:hover { color: var(--primary); }
   .settings-nav { align-items: center; scrollbar-width: none; }
   .settings-nav button { flex: none; white-space: nowrap; }
 }
+
+/* iPhone: keep bottom buttons clear of the home bar */
+.drawer { height: 100dvh; }
+.drawer-foot { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+.app { min-height: 100dvh; }
