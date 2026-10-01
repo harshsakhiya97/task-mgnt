@@ -19,9 +19,9 @@ import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
 
-type Tab = 'details' | 'comments' | 'files' | 'activity'
+type Tab = 'details' | 'comments' | 'files' | 'reminders' | 'activity'
 
-/** Slide-over showing one task with Details / Comments / Files / Activity tabs. */
+/** Slide-over showing one task with Details / Comments / Attachments / Reminders / Activity tabs. */
 export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   taskId: string
   onClose: () => void
@@ -38,20 +38,23 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reassigning, setReassigning] = useState(false)
+  const [reminderCount, setReminderCount] = useState(0)
   const users = useActiveUsers()
 
   const load = useCallback(async () => {
-    const [t, c, f, a] = await Promise.all([
+    const [t, c, f, a, r] = await Promise.all([
       supabase.from('tasks').select(TASK_SELECT).eq('id', taskId).maybeSingle(),
       supabase.from('task_comments').select('*, author:profiles(id, full_name)').eq('task_id', taskId).order('created_at'),
       supabase.from('task_attachments').select('*, uploader:profiles(id, full_name)').eq('task_id', taskId).order('created_at'),
       supabase.from('task_activity').select('*, actor:profiles(id, full_name)').eq('task_id', taskId).order('created_at', { ascending: false }),
+      supabase.from('task_reminders').select('id', { count: 'exact', head: true }).eq('task_id', taskId),
     ])
     if (t.error) setError(t.error.message)
     setTask((t.data as Task) ?? null)
     setComments((c.data as TaskComment[]) ?? [])
     setFiles((f.data as TaskAttachment[]) ?? [])
     setActivity((a.data as TaskActivity[]) ?? [])
+    setReminderCount(r.count ?? 0)
   }, [taskId])
 
   useEffect(() => { load() }, [load])
@@ -102,6 +105,9 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
           <button className={tab === 'details' ? 'active' : ''} onClick={() => setTab('details')}>Details</button>
           <button className={tab === 'comments' ? 'active' : ''} onClick={() => setTab('comments')}>Comments <span className="tab-count">{comments.length}</span></button>
           <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>Attachments <span className="tab-count">{files.length}</span></button>
+          {!task?.recurring_id && (
+            <button className={tab === 'reminders' ? 'active' : ''} onClick={() => setTab('reminders')}>Reminders <span className="tab-count">{reminderCount}</span></button>
+          )}
           <button className={tab === 'activity' ? 'active' : ''} onClick={() => setTab('activity')}>Activity</button>
         </div>
         <div className="drawer-body">
@@ -115,6 +121,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
               )}
               {tab === 'comments' && <Comments taskId={taskId} comments={comments} onChanged={refresh} onError={setError} />}
               {tab === 'files' && <Files taskId={taskId} files={files} canEdit={canEdit} onChanged={refresh} onError={setError} />}
+              {tab === 'reminders' && <TaskReminders task={task} onError={setError} heading={false} onCount={setReminderCount} />}
               {tab === 'activity' && <Activity items={activity} />}
             </>
           )}
@@ -173,7 +180,6 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
       </div>
       <div className="form-section">Description</div>
       {task.description ? <div className="desc">{task.description}</div> : <p className="muted">No description.</p>}
-      <TaskReminders task={task} onError={onError} />
     </>
   )
 }

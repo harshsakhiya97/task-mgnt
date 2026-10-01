@@ -162,7 +162,13 @@ export async function dropAutoReminders(taskId: string, assignerId: string, keys
 /** Edit Task with a new priority: the Auto reminders that task will get when it's saved (shown before saving). */
 export interface AutoPreview { rows: (AutoDraft & { label: string })[]; onRemove: (k: AutoKey) => void }
 
-export function TaskReminders({ task, onError, preview }: { task: Task; onError: (m: string) => void; preview?: AutoPreview }) {
+export function TaskReminders({ task, onError, preview, heading = true, onCount }: {
+  task: Task; onError: (m: string) => void; preview?: AutoPreview
+  /** Show the "Reminders" section title (off in the task's Reminders tab). */
+  heading?: boolean
+  /** Tells the parent how many reminders the task has (for the tab's count). */
+  onCount?: (n: number) => void
+}) {
   const { profile } = useAuth()
   const [list, setList] = useState<Reminder[]>([])
   const [busy, setBusy] = useState(false)
@@ -173,6 +179,8 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
   const load = useCallback(async () => {
     const { data } = await supabase.from('task_reminders').select(REMINDER_SELECT).eq('task_id', task.id).order('created_at')
     setList((data as unknown as Reminder[]) ?? [])
+    onCount?.((data ?? []).length)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task.id])
   useEffect(() => { load() }, [load, task.due_date, task.start_time, task.end_time, task.priority])
 
@@ -187,7 +195,7 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
   }
   const remove = async (r: Reminder) => {
     const { error } = await supabase.from('task_reminders').delete().eq('id', r.id)
-    if (error) onError(error.message); else setList((l) => l.filter((x) => x.id !== r.id))
+    if (error) onError(error.message); else setList((l) => { const n = l.filter((x) => x.id !== r.id); onCount?.(n.length); return n })
   }
   const canRemove = (r: Reminder) => !!me && (isAdmin || r.created_by === me || r.person_id === me || me === task.assigned_by || me === task.created_by)
   const who = (r: Reminder) => r.target === 'assignee'
@@ -196,7 +204,7 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
 
   return (
     <>
-      <div className="form-section">Reminders</div>
+      {heading && <div className="form-section">Reminders</div>}
       <div className="rem-box">
         {/* With a preview, the old priority's pending Auto reminders are about to be replaced, so they're hidden. */}
         {(preview ? list.filter((r) => !(r.auto && !r.sent_at && !r.skipped)) : list).length === 0 && !preview?.rows.length
