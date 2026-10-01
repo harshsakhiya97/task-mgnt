@@ -3,6 +3,12 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.3.1 — 1 Oct 2026
+
+- **Perisclaw — wrong Task No in the sheet:** Perisclaw sometimes fills the "Task No" column itself (it guessed `TM-173` for a new row, a number already used by a task made in the app). The app treated that row as an edit of TM-173 and added it as a comment, so the new task was never created. Now a Task No in the sheet is only trusted if the app itself linked that task to a Perisclaw row; otherwise the row is a new task and its Task No cell is overwritten with the real number.
+- Data fix: removed the wrong comment from TM-173; the row became TM-177.
+- perisclaw-sync v14.
+
 ## Version 1.3 — 30 Sep 2026
 
 - **Reminders on tasks:**

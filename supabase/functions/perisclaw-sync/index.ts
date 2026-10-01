@@ -268,11 +268,14 @@ Deno.serve(async (req) => {
       ? await base.eq('task_id', linkedTaskId).order('processed_at', { ascending: false }).limit(1)
       : await base.eq('row_number', row.rowNumber).not('task_id', 'is', null).order('processed_at', { ascending: false }).limit(1)
     const prev = prevs?.[0]
-    if (prev && !sameTaskRow(prev.raw_text, row.text)) return null      // the row now holds a different task
-    if (!prev && !linkedTaskId) return null
-    const { data: t } = await db.from('tasks').select('id, task_no, description, due_date, priority, start_time, end_time').eq('id', linkedTaskId ?? prev!.task_id).maybeSingle()
+    // Only trust a Task No the app wrote itself: the task must have come from a Perisclaw row. Perisclaw
+    // sometimes fills the column on its own (e.g. guesses the next number), which can point at a task
+    // someone made in the app; then this row is new, and its cell gets the right number afterwards.
+    if (!prev) return null
+    if (!sameTaskRow(prev.raw_text, row.text)) return null      // the row now holds a different task
+    const { data: t } = await db.from('tasks').select('id, task_no, description, due_date, priority, start_time, end_time').eq('id', linkedTaskId ?? prev.task_id).maybeSingle()
     if (!t) return null
-    const old = (prev?.parsed as { suggested?: Decision['task'] } | null)?.suggested ?? null
+    const old = (prev.parsed as { suggested?: Decision['task'] } | null)?.suggested ?? null
     const hhmm = (x: string | null | undefined) => (x ?? '').slice(0, 5)
     const patch: Record<string, unknown> = {}
     const changed: string[] = []

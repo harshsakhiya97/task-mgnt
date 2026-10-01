@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.3.1',
+    date: '2026-10-01',
+    title: 'Perisclaw task number fix',
+    summary: 'A new Perisclaw task is no longer mixed up with an existing task when the sheet shows the wrong task number.',
+    changes: [
+      { type: 'fixed', admin: true, text: 'If Perisclaw writes a task number into the sheet on its own (for example one already used by a task made in the app), the row is now added as a new task and the sheet gets its correct number.' },
+    ],
+  },
+  {
     version: '1.3',
     date: '2026-09-30',
     title: 'Reminders',

@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.3 (1.3.0)**, released 30 Sep 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.3.1**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -63,6 +63,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.2.3** — Perisclaw: app writes `TM-…` into a "Task No" column in the sheet and uses it to match edits (robot must be **Editor**).
 
 **1.3 (30 Sep)** — **Reminders** (see §7). Notifications page split into **Notifications** / **Reminders** tabs.
+**1.3.1 (1 Oct)** — Perisclaw: a Task No in the sheet is trusted only if the app linked that task to a Perisclaw row (Perisclaw sometimes writes its own guess); otherwise the row is a new task and the cell is corrected.
 
 ---
 
@@ -91,7 +92,7 @@ Timezone: everything user-facing is IST (Asia/Kolkata).
 | `admin-users` | on | Admin user management (create/update/set_active/set_password); checks caller is admin via `roles.is_admin` |
 | `setup-admin` | off | One-time "create first admin" for an empty install; refuses once any user exists. Keep it. |
 | `whatsapp-sender` (v9) | off | Sends queued `whatsapp_outbox` rows via WATI `sendTemplateMessage`; token from Vault (`whatsapp_get_config`) or `WATI_TOKEN` secret fallback; `{action:'check'}` (admin JWT) tests the token and returns each template's WATI approval status |
-| `perisclaw-sync` (v13) | off | Reads the Perisclaw sheet, Gemini parsing, creates/updates tasks, writes Task No back; `{action:'status'|'parse'|'clear'}` |
+| `perisclaw-sync` (v14) | off | Reads the Perisclaw sheet, Gemini parsing, creates/updates tasks, writes Task No back; `{action:'status'|'parse'|'clear'}` |
 
 Secrets (Supabase → Edge Functions → Secrets; values never in code/chat): `GEMINI_API_KEY`, optional `GEMINI_MODEL`, `GOOGLE_SERVICE_ACCOUNT_JSON`, optional `WATI_TOKEN` / `WATI_API_URL` (fallback only — normally set in the app), optional `WATI_TEMPLATE_<KIND>` name overrides.
 Deploying functions: files are uploaded whole (index.ts + lib.ts + google.ts for perisclaw-sync). Type-check first with `deno check`.
