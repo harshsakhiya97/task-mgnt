@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5.3',
+    date: '2026-10-01',
+    title: 'No zooming on phones',
+    summary: 'The app no longer zooms in on phones (pinch or double-tap), so nothing gets pushed off the screen.',
+    changes: [
+      { type: 'improved', text: 'Phones and the installed app: pinch-to-zoom and double-tap zoom are turned off, so the menu and buttons always fit the screen. Scrolling works as before.' },
+    ],
+  },
+  {
     version: '1.5.2',
     date: '2026-10-01',
     title: 'Small fixes',

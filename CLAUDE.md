@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.5.2**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.5.3**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -74,7 +74,8 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 
 **1.5 (1 Oct)** — **Team Board** (admin, `/team-board`, `pages/TeamBoard.tsx`): a column per person with task cards (▶ started time from `task_activity`, ✓ done today), filters (status/due/team/search), drag a card onto another person to reassign (Undo). Click a name → that person's status board (`?person=id`: To Do / In Progress / Done last 7 days; drag between columns to change status).
 **1.5.1 (1 Oct)** — Tasks page: admins default to (and see first) the All Tasks tab. Reminders can be N min **before/after** the task's **start or end** (`direction`, `anchor`; start-based need a start time).
-**1.5.2 (1 Oct)** — Template Messages tab count fixed (4).
+**1.5.2 (1 Oct)** — Template Messages tab count fixed (4); add-reminder line in 4 equal columns.
+**1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
 
 ---
 

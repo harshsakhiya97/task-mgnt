@@ -904,3 +904,7 @@ a.app-version:hover { color: var(--primary); }
   .rem-adder input { padding-right: 6px; }
   .rem-adder button { padding: 8px 6px; font-size: 13px; }
 }
+
+/* No zoom on phones: pinch and double-tap zoom are blocked (scrolling still works) */
+html { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+a, button, select, input, textarea, label, [role="button"] { touch-action: manipulation; }

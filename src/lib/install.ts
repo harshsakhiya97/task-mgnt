@@ -12,6 +12,12 @@ const listeners = new Set<() => void>()
 const notify = () => listeners.forEach((l) => l())
 
 if (typeof window !== 'undefined') {
+  // No zooming on phones (pinch or double-tap): a zoomed-in app hides parts of the screen and confuses people.
+  // iPhone ignores user-scalable=no in the viewport tag, so pinch gestures are also stopped here.
+  const stop = (e: Event) => e.preventDefault()
+  document.addEventListener('gesturestart', stop, { passive: false })
+  document.addEventListener('gesturechange', stop, { passive: false })
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault() }, { passive: false })
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e as InstallPromptEvent; notify() })
   window.addEventListener('appinstalled', () => { deferred = null; notify() })
   if ('serviceWorker' in navigator) {

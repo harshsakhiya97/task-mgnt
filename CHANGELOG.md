@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.5.3 — 1 Oct 2026
+
+- No zoom on phones / installed app: viewport `maximum-scale=1, user-scalable=no`; `html { touch-action: pan-x pan-y }` + `touch-action: manipulation` on controls (no pinch / double-tap zoom); iOS `gesturestart`/`gesturechange` and multi-touch `touchmove` are cancelled (lib/install.ts), since iOS Safari ignores `user-scalable=no`.
+
 ## Version 1.5.2 — 1 Oct 2026
 
 - Add-reminder line: 4 equal columns (who / amount / before-after start-end or date / Add). Phones: short labels ("Me", "2h", "before end", "Date…") via `useNarrow`, no dropdown arrows.
