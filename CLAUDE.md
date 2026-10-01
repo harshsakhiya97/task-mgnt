@@ -102,7 +102,7 @@ Timezone: everything user-facing is IST (Asia/Kolkata).
 | `perisclaw-sync` (v14) | off | Reads the Perisclaw sheet, Gemini parsing, creates/updates tasks, writes Task No back; `{action:'status'|'parse'|'clear'}` |
 | `push-sender` (v1) | off | Sends queued `push_outbox` rows as Web Push (index.ts + webpush.ts: VAPID ES256 + aes128gcm with WebCrypto); removes gone devices (404/410), retries 429/5xx ×3, expires after 3 h; makes the VAPID keys on first run |
 
-Secrets (Supabase → Edge Functions → Secrets; values never in code/chat): `GEMINI_API_KEY`, optional `GEMINI_MODEL`, `GOOGLE_SERVICE_ACCOUNT_JSON`, optional `WATI_TOKEN` / `WATI_API_URL` (fallback only — normally set in the app), optional `WATI_TEMPLATE_<KIND>` name overrides.
+Secrets (Supabase → Edge Functions → Secrets; values never in code/chat): `GEMINI_API_KEY`, optional `GEMINI_MODEL`, `GOOGLE_SERVICE_ACCOUNT_JSON`, optional `WATI_TOKEN` / `WATI_API_URL` (fallback only — the token is saved in the app; the old `WATI_TOKEN` secret was deleted 1 Oct), optional `WATI_TEMPLATE_<KIND>` name overrides.
 Deploying functions: files are uploaded whole (index.ts + lib.ts + google.ts for perisclaw-sync). Type-check first with `deno check`.
 
 ---
@@ -152,6 +152,5 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 
 ## 10. Known follow-ups / ideas
 
-- Delete the old `WATI_TOKEN` Supabase secret now that the token is saved in the app.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.
