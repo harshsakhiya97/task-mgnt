@@ -11,6 +11,18 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5',
+    date: '2026-10-01',
+    title: 'Team Board',
+    summary: 'A new board for admins showing everyone\'s tasks as cards, one column per person — and you can drag a task to someone else to reassign it.',
+    changes: [
+      { type: 'new', admin: true, text: 'Team Board (sidebar → Administration): every person\'s tasks as cards, with how many they have and how many they finished today (✓).' },
+      { type: 'new', admin: true, text: 'Cards show the task number, priority, due date (red when overdue), planned time, and ▶ the time work started (when it was moved to In Progress).' },
+      { type: 'new', admin: true, text: 'Filter by status (Open, To Do, In Progress, Done, All), due date (today & overdue, today, overdue, this week), team, or search.' },
+      { type: 'new', admin: true, text: 'Drag a card onto another person to reassign it (on a computer), with Undo. Tasks without an assignee have their own "Unassigned" column to drag from.' },
+    ],
+  },
+  {
     version: '1.4.2',
     date: '2026-10-01',
     title: 'iPhone menu fix',

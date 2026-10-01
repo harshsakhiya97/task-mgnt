@@ -3,6 +3,12 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.5 — 1 Oct 2026
+
+- **Team Board** (`/team-board`, admin, sidebar → Administration): one column per active user (+ "Unassigned" when there are such tasks), task cards (TM-no, priority, due date red when overdue, time range + length, ▶ started = latest `task_activity` status → `in_progress`, ✓ completed time), header counts (tasks shown, ✓ done today). Filters: status (Open default / To Do / In Progress / Done / All), due (any / today & overdue / today / overdue / this week), team, search. In Progress first, then by due date. Refreshes every minute.
+- Drag & drop (desktop, HTML5 DnD) onto another person → `tasks.assigned_to` update (normal reassign rules, WhatsApp/bell/push as usual) with Undo toast. Phones: columns stack; tap → task details (Reassign there).
+- No database changes.
+
 ## Version 1.4.2 — 1 Oct 2026
 
 - iPhone: sidebar height uses `100dvh` (100vh includes the area under Safari's bars, which cut off the user box) + `env(safe-area-inset-bottom)`; drawers use `100dvh` and keep the footer buttons above the home bar.

@@ -2,7 +2,7 @@ import { InstallApp } from './InstallApp'
 import { syncPush } from '../lib/push'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Sparkles, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
+import { BarChart3, Bell, SquareKanban, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Sparkles, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
 import { SETTINGS_TABS, settingsTab } from '../pages/Settings'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
@@ -31,6 +31,7 @@ const SECTIONS: { title: string; items: NavDef[] }[] = [
   {
     title: 'Administration',
     items: [
+      { to: '/team-board', label: 'Team Board', icon: SquareKanban, roles: ['admin'] },
       { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
       { to: '/users', label: 'Users & Roles', icon: Users, roles: ['admin'] },
       { to: '/settings', label: 'Settings', icon: SettingsIcon, roles: ['admin'] },
@@ -45,6 +46,7 @@ const TITLES: Record<string, [string, string]> = {
   '/tasks': ['Tasks', 'Overview'],
   '/notifications': ['Notifications', 'Overview'],
   '/calendar': ['Calendar', 'Overview'],
+  '/team-board': ['Team Board', 'Overview'],
   '/reports': ['Reports', 'Overview'],
   '/users': ['Users & Roles', 'Overview'],
   '/profile': ['My Profile', 'Account'],

@@ -11,6 +11,7 @@ import { ResetPassword } from './pages/ResetPassword'
 import { Setup } from './pages/Setup'
 import { Tasks } from './pages/Tasks'
 import { Reports } from './pages/Reports'
+import { TeamBoard } from './pages/TeamBoard'
 import { Users } from './pages/Users'
 import { Settings } from './pages/Settings'
 import { WhatsNew } from './pages/WhatsNew'
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/whats-new" element={<WhatsNew />} />
         <Route path="/reports" element={<RequireAuth roles={['admin']}><Reports /></RequireAuth>} />
+        <Route path="/team-board" element={<RequireAuth roles={['admin']}><TeamBoard /></RequireAuth>} />
         <Route path="/settings" element={<RequireAuth roles={['admin']}><Settings /></RequireAuth>} />
         {/* old addresses → Settings tabs */}
         <Route path="/perisclaw" element={<Navigate to="/settings" replace />} />

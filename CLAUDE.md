@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.4.2**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.5 (1.5.0)**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -36,7 +36,7 @@ src/
   lib/                   supabase client, tasks.ts (types, TASK_SELECT, helpers), reminders.ts, whatsappTemplates.ts
                          (template texts/samples for previews), changelog.ts (What's New content), version.ts, adminApi.ts
   notifications/         NotificationsProvider (realtime + poll), NotificationBell, NotificationIcon
-  pages/                 Home (dashboard), Tasks, Calendar, Notifications, Reports, Users (Users/Roles/Teams tabs),
+  pages/                 Home (dashboard), Tasks, Calendar, Notifications, TeamBoard, Reports, Users (Users/Roles/Teams tabs),
                          Settings (tabs: Perisclaw, WhatsApp, Reminders), Perisclaw, WhatsAppLogs, ReminderSettings,
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
@@ -71,6 +71,8 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.4 (1 Oct)** — **Reminders as phone notifications** (Web Push) + Notifications → Reminders tab, **no longer WhatsApp**. Turn on: Dashboard / Reminders-tab banner or My Profile → Phone Notifications (test button). iPhone needs the installed app (iOS 16.4+). Task assigned / comments stay WhatsApp + bell.
 **1.4.1 (1 Oct)** — Phone notifications also for "task assigned to you" and comments (trigger `notifications_push` on `notifications`), on top of WhatsApp + bell.
 **1.4.2 (1 Oct)** — iPhone: sidebar/drawers use `100dvh` + safe-area padding (user box was cut off).
+
+**1.5 (1 Oct)** — **Team Board** (admin, `/team-board`, `pages/TeamBoard.tsx`): a column per person with task cards (▶ started time from `task_activity`, ✓ done today), filters (status/due/team/search), drag a card onto another person to reassign (Undo).
 
 ---
 
