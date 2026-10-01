@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
-import { AlarmClock, CheckCircle2, Play, RefreshCw, Repeat, Search, UserX } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { AlarmClock, ArrowLeft, CheckCircle2, ChevronRight, Play, RefreshCw, Repeat, Search, UserX } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { addDays, fetchTasks, isOverdue, taskCode, timeLength, formatTimeRange, todayStr, type Task } from '../lib/tasks'
+import { addDays, fetchTasks, isOverdue, STATUS_LABELS, taskCode, timeLength, formatTimeRange, todayStr, type Task, type TaskStatus } from '../lib/tasks'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 import { initials } from '../lib/initials'
@@ -16,6 +17,9 @@ type DueFilter = 'any' | 'today_overdue' | 'today' | 'overdue' | 'week'
 const STATUS_OPTIONS: [StatusFilter, string][] = [['open', 'Open'], ['todo', 'To Do'], ['in_progress', 'In Progress'], ['done', 'Done'], ['all', 'All']]
 const DUE_OPTIONS: [DueFilter, string][] = [['any', 'Any due date'], ['today_overdue', 'Today & overdue'], ['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'Due this week']]
 const UNASSIGNED = '__unassigned'
+/** One person's board: a column per status. Done shows the last 7 days (by completion). */
+const STATUS_COLS: TaskStatus[] = ['todo', 'in_progress', 'done']
+const ST = 'st:'
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 /** "01 Oct" from "2026-10-01". */
@@ -30,10 +34,14 @@ const clock = (iso: string) => {
 /**
  * Admin → Team Board: every person's tasks as cards in their own column (like a daily work board).
  * Filter by status / due date / team; drag a card onto another person to reassign it.
+ * Click a person's name → their own board (?person=id): To Do / In Progress / Done columns; drag between them to change status.
  */
 export function TeamBoard() {
   useMinuteTick()
   const users = useActiveUsers()
+  const [params, setParams] = useSearchParams()
+  const personId = params.get('person')
+  const openPerson = (id: string | null) => { const n = new URLSearchParams(params); if (id) n.set('person', id); else n.delete('person'); setParams(n); window.scrollTo(0, 0) }
   const [tasks, setTasks] = useState<Task[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [started, setStarted] = useState<Record<string, string>>({})   // task id → when it went In Progress
@@ -127,6 +135,24 @@ export function TeamBoard() {
       } : undefined,
     })
   }
+  const changeStatus = async (task: Task, to: TaskStatus) => {
+    const from = task.status
+    if (from === to) return
+    setTasks((all) => all.map((x) => (x.id === task.id ? { ...x, status: to, completed_at: to === 'done' ? new Date().toISOString() : null } : x)))
+    if (to === 'in_progress') setStarted((m) => ({ ...m, [task.id]: new Date().toISOString() }))
+    const { error } = await supabase.from('tasks').update({ status: to }).eq('id', task.id)
+    if (error) { setError(error.message); load(); return }
+    load()
+    setToast({
+      text: `${taskCode(task.task_no)} → ${STATUS_LABELS[to]}`,
+      undo: async () => {
+        setToast(null)
+        const { error: e2 } = await supabase.from('tasks').update({ status: from }).eq('id', task.id)
+        if (e2) setError(e2.message)
+        load()
+      },
+    })
+  }
   const onDragStart = (e: DragEvent, t: Task) => { setDragId(t.id); e.dataTransfer.setData('text/plain', t.id); e.dataTransfer.effectAllowed = 'move' }
   const onDragOver = (e: DragEvent, col: string) => { if (!dragId || col === UNASSIGNED) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (overCol !== col) setOverCol(col) }
   const onDrop = (e: DragEvent, col: string) => {
@@ -134,7 +160,9 @@ export function TeamBoard() {
     const id = e.dataTransfer.getData('text/plain') || dragId
     setDragId(null)
     const t = tasks.find((x) => x.id === id)
-    if (t && col !== UNASSIGNED) reassign(t, col)
+    if (!t || col === UNASSIGNED) return
+    if (col.startsWith(ST)) changeStatus(t, col.slice(ST.length) as TaskStatus)
+    else reassign(t, col)
   }
 
   const card = (t: Task) => {
@@ -166,7 +194,11 @@ export function TeamBoard() {
       onDragOver={(e) => onDragOver(e, id)} onDragLeave={() => setOverCol((c) => (c === id ? null : c))} onDrop={(e) => onDrop(e, id)}>
       <div className="tb-head">
         <span className="tb-avatar">{id === UNASSIGNED ? <UserX size={15} /> : initials(name).slice(0, 1)}</span>
-        <div className="tb-name"><b>{name}</b>{sub && <small>{sub}</small>}</div>
+        {id === UNASSIGNED
+          ? <div className="tb-name"><b>{name}</b>{sub && <small>{sub}</small>}</div>
+          : <button type="button" className="tb-name tb-name-btn" onClick={() => openPerson(id)} title={`Open ${name}'s board`}>
+              <b>{name} <ChevronRight size={14} /></b>{sub && <small>{sub}</small>}
+            </button>}
         <span className="tb-count" title="Tasks shown">{list.length}</span>
         {!!done && <span className="tb-donecount" title="Completed today">✓{done}</span>}
       </div>
@@ -178,14 +210,68 @@ export function TeamBoard() {
   )
 
   const teamName = (id: string | null) => teams.find((t) => t.id === id)?.name
+  const person = personId ? users.find((u) => u.id === personId) : undefined
+
+  // ---- one person's board: To Do / In Progress / Done ----
+  const weekAgo = addDays(today, -6)
+  const personBoard = () => {
+    const mine = tasks.filter((t) => t.assigned_to === personId).filter((t) => {
+      const d = t.due_date
+      if (due === 'today' && d !== today) return false
+      if (due === 'overdue' && !isOverdue(t)) return false
+      if (due === 'today_overdue' && !(d === today || isOverdue(t))) return false
+      if (due === 'week' && !(d && d >= today && d <= weekEnd)) return false
+      if (q && !t.title.toLowerCase().includes(q) && !taskCode(t.task_no).toLowerCase().includes(q)) return false
+      // Done: only what was finished in the last 7 days, so the column stays useful.
+      if (t.status === 'done' && !(t.completed_at && todayStr(new Date(t.completed_at)) >= weekAgo)) return false
+      return true
+    })
+    const col = (st: TaskStatus) => {
+      const list = mine.filter((t) => t.status === st)
+        .sort((a, b) => st === 'done'
+          ? (b.completed_at ?? '').localeCompare(a.completed_at ?? '')
+          : (a.due_date ?? '9').localeCompare(b.due_date ?? '9') || b.task_no - a.task_no)
+      const id = ST + st
+      return (
+        <div key={st} className={`tb-col tb-stcol st-${st} ${overCol === id ? 'drop' : ''}`}
+          onDragOver={(e) => onDragOver(e, id)} onDragLeave={() => setOverCol((c) => (c === id ? null : c))} onDrop={(e) => onDrop(e, id)}>
+          <div className="tb-head">
+            <span className={`tb-dot st-${st}`} />
+            <div className="tb-name"><b>{STATUS_LABELS[st]}</b>{st === 'done' && <small>Last 7 days</small>}</div>
+            <span className="tb-count">{list.length}</span>
+          </div>
+          <div className="tb-list">
+            {list.map(card)}
+            {list.length === 0 && <div className="tb-empty">{dragId ? `Drop here: ${STATUS_LABELS[st]}` : 'No tasks'}</div>}
+          </div>
+        </div>
+      )
+    }
+    return <div className="tb-grid tb-statuses">{STATUS_COLS.map(col)}</div>
+  }
+  const personHead = () => (
+    <div className="tb-person-head">
+      <button className="secondary" onClick={() => openPerson(null)}><ArrowLeft size={16} /> All people</button>
+      <span className="tb-avatar lg">{person ? initials(person.full_name).slice(0, 1) : '?'}</span>
+      <div className="tb-name">
+        <b>{person?.full_name ?? 'Unknown person'}</b>
+        <small>{[teamName(person?.team_id ?? null), `✓ ${doneToday.get(personId!) ?? 0} done today`].filter(Boolean).join(' · ')}</small>
+      </div>
+      <select className="pill-select" value={personId ?? ''} onChange={(e) => openPerson(e.target.value)} aria-label="Person">
+        {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+      </select>
+    </div>
+  )
   const shownTotal = people.reduce((n, u) => n + (byPerson.get(u.id)?.length ?? 0), 0) + unassigned.length
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h2>Team Board</h2>
-          <p>Everyone's tasks at a glance. Click a card to open it; drag a card onto another person to reassign it. ▶ = when work started, ✓ = done today.</p>
+          <h2>{person ? `${person.full_name}'s Board` : 'Team Board'}</h2>
+          <p>{person
+            ? 'Their tasks by status. Drag a card to another column to change its status; click it to open. ▶ = when work started.'
+            : "Everyone's tasks at a glance. Click a name to see their board by status; drag a card onto another person to reassign it. ▶ = when work started, ✓ = done today."}</p>
         </div>
         <div className="head-actions">
           <button className="secondary" onClick={load}><RefreshCw size={16} /> Refresh</button>
@@ -193,26 +279,31 @@ export function TeamBoard() {
       </div>
 
       {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
+      {personId && personHead()}
 
       <div className="tb-filters">
-        <div className="view-tabs">
-          {STATUS_OPTIONS.map(([v, l]) => <button key={v} className={status === v ? 'active' : ''} onClick={() => setStatus(v)}>{l}</button>)}
-        </div>
+        {!personId && (
+          <div className="view-tabs">
+            {STATUS_OPTIONS.map(([v, l]) => <button key={v} className={status === v ? 'active' : ''} onClick={() => setStatus(v)}>{l}</button>)}
+          </div>
+        )}
         <select className="pill-select" value={due} onChange={(e) => setDue(e.target.value as DueFilter)} aria-label="Due date">
           {DUE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select className="pill-select" value={team} onChange={(e) => setTeam(e.target.value)} aria-label="Team">
-          <option value="">All teams</option>
-          {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
+        {!personId && (
+          <select className="pill-select" value={team} onChange={(e) => setTeam(e.target.value)} aria-label="Team">
+            <option value="">All teams</option>
+            {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        )}
         <div className="search-box">
           <Search size={16} />
           <input placeholder="Search title or TM-number" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <span className="count-pill">{shownTotal} Tasks</span>
+        {!personId && <span className="count-pill">{shownTotal} Tasks</span>}
       </div>
 
-      {loading ? <div className="empty">Loading…</div> : (
+      {loading ? <div className="empty">Loading…</div> : personId ? personBoard() : (
         <div className="tb-grid">
           {unassigned.length > 0 && !team && column(UNASSIGNED, 'Unassigned', unassigned)}
           {people.map((u) => column(u.id, u.full_name, byPerson.get(u.id) ?? [], doneToday.get(u.id), teamName(u.team_id)))}

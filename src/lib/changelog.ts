@@ -20,6 +20,7 @@ export const RELEASES: Release[] = [
       { type: 'new', admin: true, text: 'Cards show the task number, priority, due date (red when overdue), planned time, and ▶ the time work started (when it was moved to In Progress).' },
       { type: 'new', admin: true, text: 'Filter by status (Open, To Do, In Progress, Done, All), due date (today & overdue, today, overdue, this week), team, or search.' },
       { type: 'new', admin: true, text: 'Drag a card onto another person to reassign it (on a computer), with Undo. Tasks without an assignee have their own "Unassigned" column to drag from.' },
+      { type: 'new', admin: true, text: 'Click a person\'s name to open their own board: To Do, In Progress and Done (last 7 days) columns. Drag a card to another column to change its status.' },
     ],
   },
   {

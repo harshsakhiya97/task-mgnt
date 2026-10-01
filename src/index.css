@@ -850,3 +850,19 @@ a.app-version:hover { color: var(--primary); }
   .tb-grid { grid-template-columns: 1fr; }
   .tb-card { cursor: pointer; }
 }
+/* Team Board → one person's board (status columns) */
+.tb-name-btn { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.tb-name-btn b { display: inline-flex; align-items: center; gap: 2px; }
+.tb-name-btn:hover b { color: var(--primary); text-decoration: underline; }
+.tb-name-btn svg { color: var(--muted); }
+.tb-person-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.tb-person-head > button { display: inline-flex; align-items: center; gap: 6px; }
+.tb-person-head .tb-name { flex: 1; min-width: 160px; }
+.tb-avatar.lg { width: 40px; height: 40px; font-size: 18px; border-radius: 10px; }
+.tb-statuses { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tb-dot { width: 10px; height: 10px; border-radius: 50%; background: #8a90c9; flex: none; }
+.tb-dot.st-in_progress { background: #e8a33d; }
+.tb-dot.st-done { background: #1e8e4f; }
+.tb-stcol.st-in_progress { background: #fffdf8; }
+.tb-stcol.st-done { background: #fbfefc; }
+@media (max-width: 800px) { .tb-statuses { grid-template-columns: 1fr; } }
