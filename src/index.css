@@ -851,9 +851,13 @@ a.app-version:hover { color: var(--primary); }
   .tb-card { cursor: pointer; }
 }
 /* Team Board → one person's board (status columns) */
-.tb-name-btn { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.tb-name-btn { background: none; border: 0; padding: 4px 8px; margin: -4px -8px; border-radius: 8px; text-align: left; cursor: pointer; color: inherit; font: inherit;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; transition: background .15s; }
 .tb-name-btn b { display: inline-flex; align-items: center; gap: 2px; }
-.tb-name-btn:hover b { color: var(--primary); text-decoration: underline; }
+.tb-name-btn:hover:not(:disabled) { background: var(--primary-soft); }
+.tb-name-btn:hover b { color: var(--primary); }
+.tb-name-btn:hover svg { color: var(--primary); transform: translateX(2px); }
+.tb-name-btn svg { transition: transform .15s; }
 .tb-name-btn svg { color: var(--muted); }
 .tb-person-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .tb-person-head > button { display: inline-flex; align-items: center; gap: 6px; }
