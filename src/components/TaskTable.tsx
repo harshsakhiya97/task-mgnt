@@ -18,7 +18,7 @@ export function TaskTable({ tasks, offset = 0, person, onOpen, onStatus, onDelet
   const { profile } = useAuth()
   const canDelete = (t: Task) => !!onDelete && (t.created_by === profile?.id || profile?.role === 'admin')
   return (
-    <table>
+    <table className="task-table">
       <thead>
         <tr>
           <th>Sr. No.</th><th>Task No.</th><th>Title</th>
@@ -30,9 +30,9 @@ export function TaskTable({ tasks, offset = 0, person, onOpen, onStatus, onDelet
       <tbody>
         {tasks.map((t, i) => (
           <tr key={t.id} className={`clickable ${isNewFor(t, profile?.id) ? 'is-new' : ''}`} onClick={() => onOpen(t)}>
-            <td>{offset + i + 1}</td>
+            <td className="c-sr">{offset + i + 1}</td>
             <td className="task-no">{taskCode(t.task_no)}</td>
-            <td>
+            <td className="c-title">
               <div className="task-title" title={t.title}>
                 {isNewFor(t, profile?.id) && <span className="new-badge">New</span>}
                 {t.title}
@@ -42,17 +42,17 @@ export function TaskTable({ tasks, offset = 0, person, onOpen, onStatus, onDelet
                 <div className="reassigned-tag">↪ Reassigned by {t.assigner.full_name} · {timeAgo(t.assigned_at)}</div>
               )}
             </td>
-            {person !== 'assigner' && <td><AssigneeName task={t} /></td>}
-            {person !== 'assignee' && <td>{t.assigner?.full_name ?? '—'}</td>}
-            <td>
+            {person !== 'assigner' && <td className="c-to" data-label="To"><AssigneeName task={t} /></td>}
+            {person !== 'assignee' && <td className="c-by" data-label="By">{t.assigner?.full_name ?? '—'}</td>}
+            <td className="c-due">
               <div className="due-cell">
                 <span className={isOverdue(t) ? 'overdue-text' : ''}>{formatDate(t.due_date)}</span>
                 {t.start_time && <span className="time-text">{formatTimeRange(t.start_time, t.end_time)}</span>}
                 <DueTagBadge task={t} />
               </div>
             </td>
-            <td><PriorityBadge priority={t.priority} /></td>
-            <td><StatusSelect value={t.status} onChange={(s) => onStatus(t, s)} /></td>
+            <td className="c-pri"><PriorityBadge priority={t.priority} /></td>
+            <td className="c-status" onClick={(e) => e.stopPropagation()}><StatusSelect value={t.status} onChange={(s) => onStatus(t, s)} /></td>
             <td className="actions">
               <button className="icon" title="View" onClick={(e) => { e.stopPropagation(); onOpen(t) }}><Eye size={17} /></button>
               {canDelete(t) && (

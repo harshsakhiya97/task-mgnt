@@ -683,3 +683,90 @@ a.app-version:hover { color: var(--primary); }
 .rem-note svg { flex: none; margin-top: 2px; }
 .rem-settings-foot { margin: 0; padding: 12px 18px 16px; }
 .rem-skip { white-space: normal; display: inline-block; max-width: 220px; text-align: right; line-height: 1.35; }
+
+/* ---------- Phone layout (mobile first fixes) ---------- */
+.cal-views { display: flex; width: 100%; margin-bottom: 10px; }
+.cal-views button { flex: 1; }
+@media (max-width: 800px) {
+  /* Filters: one row that scrolls sideways instead of a tall stack */
+  .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters > * { flex: none; }
+  /* Task details header: number + × on the first row, action buttons on the second */
+  .task-head { flex-wrap: wrap; row-gap: 12px; }
+  .task-head h3 { flex: 1; }
+  .task-head .drawer-close { order: 2; }
+  .task-head .task-head-actions { order: 3; width: 100%; }
+  .task-head .task-head-actions:empty { display: none; }
+  .task-head .task-head-actions button { flex: 1; justify-content: center; }
+  /* Month / Year jump sits below the Day / Week / Month switch */
+  .cal-jump { top: 62px; }
+}
+@media (max-width: 800px) {
+  /* Count cards: compact (icon beside the number) so a phone shows them in a few short rows */
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stat { display: grid; grid-template-columns: 34px 1fr; column-gap: 10px; align-items: center; padding: 10px 12px; text-align: left; }
+  .stat-icon { width: 34px; height: 34px; margin: 0; grid-row: span 2; }
+  .stat-icon svg { width: 17px; height: 17px; }
+  .stat b { font-size: 18px; line-height: 1.2; }
+  .stat span { font-size: 12px; line-height: 1.25; color: var(--muted); }
+  /* Tabs: one row that scrolls sideways */
+  .view-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .view-tabs::-webkit-scrollbar { display: none; }
+  .view-tabs button { flex: none; white-space: nowrap; }
+  .panel-toolbar .view-tabs { flex-basis: 100%; }
+
+  /* Task list: each task is a card instead of a wide table row */
+  .task-table thead { display: none; }
+  .task-table, .task-table tbody { display: block; }
+  .task-table tr { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "no pri act" "title title title" "to to to" "by by by" "due due status";
+    column-gap: 10px; row-gap: 6px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .task-table td { display: block; padding: 0; border: 0; white-space: normal; min-width: 0; }
+  .task-table .c-sr { display: none; }
+  .task-table .task-no { grid-area: no; }
+  .task-table .c-pri { grid-area: pri; }
+  .task-table .actions { grid-area: act; display: flex; gap: 2px; }
+  .task-table .c-title { grid-area: title; }
+  .task-table .c-title .task-title { white-space: normal; max-width: none; font-weight: 500; }
+  .task-table .c-to { grid-area: to; font-size: 13px; }
+  .task-table .c-by { grid-area: by; font-size: 13px; }
+  .task-table .c-to::before, .task-table .c-by::before { content: attr(data-label) ": "; color: var(--muted); }
+  .task-table .c-due { grid-area: due; font-size: 13px; }
+  .task-table .c-due .due-cell { flex-wrap: wrap; }
+  .task-table .c-status { grid-area: status; }
+  .task-table .actions .icon { padding: 4px; }
+}
+@media (max-width: 800px) {
+  .task-table tr.is-new { background: #fbfbff; box-shadow: inset 3px 0 0 var(--primary); }
+  .task-table tr.is-new td { background: transparent; box-shadow: none; }
+  .task-table tr.is-new .task-title { font-weight: 600; }
+  .task-table .c-due .due-cell { flex-direction: row; align-items: center; gap: 8px; }
+}
+@media (max-width: 800px) {
+  button.stat-btn { display: grid; }
+  .task-table .actions { justify-self: end; }
+}
+@media (max-width: 800px) {
+  /* Tab strips (task details, settings sub-tabs) scroll sideways instead of pushing the page wider */
+  .tabs, .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar, .segmented::-webkit-scrollbar { display: none; }
+  .tabs > button, .segmented > button { flex: none; white-space: nowrap; }
+  .cal-views > button { flex: 1; }
+  .rem-box + .form-section, .rem-adder + .form-section { margin-top: 18px; }
+}
+@media (max-width: 800px) {
+  .cal-jump { gap: 4px; }
+  .cal-jump select { font-size: 13px; padding: 5px 22px 5px 8px; background-position: right 6px center; }
+  .cal-panel .fc .fc-toolbar { gap: 6px; }
+  .cal-panel .fc .fc-toolbar-title { font-size: 15px; }
+  .cal-panel .fc .fc-button { padding: 5px 10px; }
+  .cal-panel .fc-daygrid-event { font-size: 11px; }
+  .cal-panel .fc-timegrid-axis-cushion, .cal-panel .fc-timegrid-slot-label-cushion { font-size: 11px; }
+}
+.wk-head { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.wk-head small { font-size: 10px; font-weight: 500; color: var(--muted); }
+@media (max-width: 560px) {
+  /* Top bar: just the page name on small phones */
+  .crumb small { display: none; }
+  .crumb { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

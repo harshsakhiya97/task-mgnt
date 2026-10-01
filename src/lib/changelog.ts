@@ -13,12 +13,16 @@ export const RELEASES: Release[] = [
   {
     version: '1.3.2',
     date: '2026-10-01',
-    title: 'Easier reminders, and count cards on phones',
+    title: 'Easier reminders and a better phone layout',
     summary: 'When you add an urgent or high priority task, its automatic reminders are listed in the form, so you can remove them or add more before saving.',
     changes: [
       { type: 'improved', text: 'Add Task shows the automatic reminders for the chosen priority as rows marked "Auto". Remove any you don\'t need, or add your own.' },
       { type: 'improved', text: 'Reminders say who they\'re for by name: "Remind me" or "Remind Sara".' },
       { type: 'improved', text: 'On a phone, tapping a count card (To Do, Expired, Due Today…) scrolls down to the list it filters.' },
+      { type: 'improved', text: 'Phones: tasks show as cards (number, priority, title, person, due date and status) instead of a wide table.' },
+      { type: 'improved', text: 'Phones: smaller count cards, tabs and filters in one row you can swipe sideways.' },
+      { type: 'improved', text: 'Phones: on the Calendar, Day / Week / Month is at the top, and Week view fits all seven days.' },
+      { type: 'fixed', text: 'Phones: the close (×) button in a task\'s details no longer gets pushed off the screen.' },
     ],
   },
   {

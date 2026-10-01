@@ -88,14 +88,15 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   return (
     <div className="overlay" onMouseDown={onClose}>
       <div className="drawer wide" role="dialog" aria-label="Task" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="drawer-head">
+        <div className="drawer-head task-head">
           <h3>{task ? <span className="task-no">{taskCode(task.task_no)}</span> : 'Loading…'}</h3>
-          <div className="head-actions">
+          {/* On a phone the buttons drop to their own row so the close (×) always stays next to the task number. */}
+          <div className="head-actions task-head-actions">
             {mayReassign && <button onClick={() => setReassigning(true)}><Forward size={15} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
             {canEdit && task && <button className="secondary" onClick={() => onEdit(task)}><Pencil size={15} /> Edit</button>}
             {canEdit && <button className="danger-outline" onClick={() => setConfirmDelete(true)}><Trash2 size={15} /> Delete</button>}
-            <button className="icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
           </div>
+          <button className="icon drawer-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
         <div className="tabs">
           <button className={tab === 'details' ? 'active' : ''} onClick={() => setTab('details')}>Details</button>

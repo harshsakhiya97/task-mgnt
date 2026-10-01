@@ -8,6 +8,11 @@ To release a new version: bump it there, add a section below, add the user-facin
 - **Add Task → Reminders:** the automatic reminders for the chosen priority (Settings → Reminders, e.g. Urgent: assignee 2 hrs + you 1 hr before) now appear as rows marked **Auto**. Remove any with ×, or add more. Changing the priority shows that priority's reminders again. The database still adds them on insert; the ones removed in the form are deleted right after the task is saved.
 - Reminder labels use names: "Remind me" / "Remind Sara" (form dropdown, rows and task details).
 - **Mobile:** tapping a count card scrolls to the list below it (`StatCard`, ≤ 800px).
+- **Mobile layout pass (≤ 800px), checked page by page at 375px:**
+  - Task lists (Tasks, Dashboard) render as cards (`.task-table` grid areas); compact count cards (icon beside the number).
+  - View tabs, filters, task-detail tabs and settings sub-tabs are single rows that scroll sideways.
+  - Calendar: Day/Week/Month switch on top (own segmented control), short titles, two-line week headers, ‹ Month Year › in Month view, max 2 events per day.
+  - Task details header: number + × on row 1, Reassign/Edit/Delete on row 2. Top bar hides the breadcrumb under 560px.
 
 ## Version 1.3.1 — 1 Oct 2026
 

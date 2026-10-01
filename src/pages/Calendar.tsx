@@ -271,6 +271,15 @@ export function Calendar() {
       </div>
 
       <div className="panel cal-panel">
+        {narrow && (
+          // On a phone the Day / Week / Month switch sits on top (FullCalendar's toolbar has no room for it).
+          <div className="segmented cal-views" role="tablist" aria-label="Calendar view">
+            {([['timeGridDay', 'Day'], ['timeGridWeek', 'Week'], ['dayGridMonth', 'Month']] as const).map(([v, l]) => (
+              <button key={v} type="button" role="tab" aria-selected={viewType === v} className={viewType === v ? 'on' : ''}
+                onClick={() => calRef.current?.getApi().changeView(v)}>{l}</button>
+            ))}
+          </div>
+        )}
         {viewType === 'dayGridMonth' && (
           <div className="cal-jump">
             <select aria-label="Month" value={cursor.getMonth()}
@@ -288,9 +297,9 @@ export function Calendar() {
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView={narrow ? 'timeGridDay' : 'timeGridWeek'}
           headerToolbar={narrow
-            ? { left: 'prev,next', center: viewType === 'dayGridMonth' ? '' : 'title', right: 'today' }
+            // Month view on a phone: ‹ [Month] [Year] › (no room for Today next to the month/year pickers)
+            ? viewType === 'dayGridMonth' ? { left: 'prev', center: '', right: 'next' } : { left: 'prev,next', center: 'title', right: 'today' }
             : { left: 'today prev,next', center: viewType === 'dayGridMonth' ? '' : 'title', right: 'timeGridDay,timeGridWeek,dayGridMonth' }}
-          footerToolbar={narrow ? { center: 'timeGridDay,timeGridWeek,dayGridMonth' } : undefined}
           buttonText={{ today: 'Today', day: 'Day', week: 'Week', month: 'Month' }}
           firstDay={0}
           height="auto"
@@ -309,7 +318,17 @@ export function Calendar() {
           selectAllow={(sel) => todayStr(sel.start) === todayStr(new Date(sel.end.getTime() - 1))}
           selectMirror
           editable
-          dayMaxEvents={showAll ? 4 : 3}
+          dayMaxEvents={narrow ? 2 : showAll ? 4 : 3}
+          // Phones: "S 27" column heads in Week view so seven days fit.
+          views={narrow ? {
+            timeGridWeek: {
+              dayHeaderContent: (a: { date: Date }) => (
+                <span className="wk-head"><small>{a.date.toLocaleDateString('en-IN', { weekday: 'narrow' })}</small>{a.date.getDate()}</span>
+              ),
+              titleFormat: { month: 'short', day: 'numeric' },
+            },
+            timeGridDay: { titleFormat: { weekday: 'short', month: 'short', day: 'numeric' } },
+          } : undefined}
           slotEventOverlap={false}
           events={events}
           select={onSelect}
