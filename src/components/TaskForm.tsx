@@ -8,7 +8,7 @@ import { Field } from './Fields'
 import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
 import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRangeInput'
-import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, TaskReminders, type AutoKey, type DraftReminder } from './Reminders'
+import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, TaskReminders, type AutoKey, type AutoPreview, type DraftReminder } from './Reminders'
 import { loadReminderRules, type ReminderRule } from '../lib/reminders'
 
 export type TaskSaved = { taskId?: string; recurring?: boolean }
@@ -41,13 +41,24 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   // Automatic reminders (Settings → Reminders) are shown as rows in the form; the ones taken out are removed after saving.
   const [rules, setRules] = useState<ReminderRule[]>([])
   const [removedAuto, setRemovedAuto] = useState<AutoKey[]>([])
-  useEffect(() => { if (!task) loadReminderRules(true).then(setRules) }, [task])
+  useEffect(() => { loadReminderRules(true).then(setRules) }, [])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const creatingRecurring = !task && type === 'recurring'
   const assigneeIsMe = assignedTo === profile?.id
   const autoAll = !task && !creatingRecurring && dueDate ? autoDrafts(rules.find((r) => r.priority === priority), assigneeIsMe) : []
   const autoShown = autoAll.filter((d) => !removedAuto.includes(d.key))
+  // Editing with a different priority: show the Auto reminders the task will get on Update (the database swaps them).
+  const priorityChanged = !!task && task.task_type !== 'recurring' && priority !== task.priority
+  const editAssigner = task?.assigned_by
+  const editAuto = priorityChanged && dueDate
+    ? autoDrafts(rules.find((r) => r.priority === priority), (assignedTo || null) === editAssigner) : []
+  const nameOf = (id?: string | null) => id === profile?.id ? 'Remind me' : `Remind ${users.find((u) => u.id === id)?.full_name ?? (id === task?.assigned_to ? task?.assignee?.full_name : task?.assigner?.full_name) ?? 'someone'}`
+  const preview: AutoPreview | undefined = priorityChanged ? {
+    rows: editAuto.filter((d) => !removedAuto.includes(d.key))
+      .map((d) => ({ ...d, label: nameOf(d.key === 'assignee' ? assignedTo || null : editAssigner) })),
+    onRemove: (k) => setRemovedAuto((r) => [...r, k]),
+  } : undefined
 
   const submit = async () => {
     if (!profile) return
@@ -75,6 +86,10 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       if (task) {
         const { error } = await supabase.from('tasks').update(fields).eq('id', task.id)
         if (error) throw new Error(error.message)
+        // Auto reminders taken out in the form (the database just added them for the new priority).
+        const dropped = editAuto.filter((d) => removedAuto.includes(d.key)).map((d) => d.key)
+        const err = dropped.length ? await dropAutoReminders(task.id, task.assigned_by, dropped) : null
+        if (err) throw new Error(`Task updated, but a reminder couldn't be removed: ${err}`)
       } else {
         const { data, error } = await supabase.from('tasks').insert({ ...fields, task_type: 'adhoc', assigned_by: profile.id }).select('id').single()
         if (error) throw new Error(error.message)
@@ -159,10 +174,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       {task && task.task_type !== 'recurring' && (
         // Editing: the task's reminders, added / removed straight away (same as in its details).
         <>
-          <TaskReminders task={task} onError={setError} />
-          {priority !== task.priority && (
-            <p className="muted small rem-note"><span>When you click <b>Update</b>, the <b>Auto</b> reminders change to the ones for {PRIORITY_LABELS[priority].toLowerCase()} tasks.</span></p>
-          )}
+          <TaskReminders task={task} onError={setError} preview={preview} />
         </>
       )}
       {!creatingRecurring && !task && (

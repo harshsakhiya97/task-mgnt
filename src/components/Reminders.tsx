@@ -134,7 +134,10 @@ export async function dropAutoReminders(taskId: string, assignerId: string, keys
 }
 
 /** Task details → Reminders: list, add and remove. */
-export function TaskReminders({ task, onError }: { task: Task; onError: (m: string) => void }) {
+/** Edit Task with a new priority: the Auto reminders that task will get when it's saved (shown before saving). */
+export interface AutoPreview { rows: (AutoDraft & { label: string })[]; onRemove: (k: AutoKey) => void }
+
+export function TaskReminders({ task, onError, preview }: { task: Task; onError: (m: string) => void; preview?: AutoPreview }) {
   const { profile } = useAuth()
   const [list, setList] = useState<Reminder[]>([])
   const [busy, setBusy] = useState(false)
@@ -170,8 +173,18 @@ export function TaskReminders({ task, onError }: { task: Task; onError: (m: stri
     <>
       <div className="form-section">Reminders</div>
       <div className="rem-box">
-        {list.length === 0 && <p className="muted small">No reminders on this task.</p>}
-        {list.map((r) => {
+        {/* With a preview, the old priority's pending Auto reminders are about to be replaced, so they're hidden. */}
+        {(preview ? list.filter((r) => !(r.auto && !r.sent_at && !r.skipped)) : list).length === 0 && !preview?.rows.length
+          && <p className="muted small">No reminders on this task.</p>}
+        {preview?.rows.map((d) => (
+          <div key={d.key} className="rem-row">
+            <AlarmClock size={15} />
+            <span className="rem-what"><b>{d.label}</b> · {minutesLabel(d.minutes ?? 0)} before the deadline <span className="tag">Auto</span></span>
+            <span className="rem-state small"><span className="muted">Added when you click Update</span></span>
+            <button type="button" className="icon" onClick={() => preview.onRemove(d.key)} aria-label="Remove reminder" title="Remove reminder"><X size={15} /></button>
+          </div>
+        ))}
+        {(preview ? list.filter((r) => !(r.auto && !r.sent_at && !r.skipped)) : list).map((r) => {
           const at = reminderTime(r, task)
           return (
             <div key={r.id} className={`rem-row ${r.sent_at || r.skipped ? 'done' : ''}`}>

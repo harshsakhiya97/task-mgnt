@@ -18,7 +18,7 @@ export const RELEASES: Release[] = [
     changes: [
       { type: 'improved', text: 'Add Task shows the automatic reminders for the chosen priority as rows marked "Auto". Remove any you don\'t need, or add your own.' },
       { type: 'improved', text: 'Reminders say who they\'re for by name: "Remind me" or "Remind Sara".' },
-      { type: 'improved', text: 'Edit Task shows the task\'s reminders too, so you can add or remove them there.' },
+      { type: 'improved', text: 'Edit Task shows the task\'s reminders too, so you can add or remove them there. Changing the priority shows its automatic reminders straight away.' },
       { type: 'improved', text: 'On a phone, tapping a count card (To Do, Expired, Due Today…) scrolls down to the list it filters.' },
       { type: 'improved', text: 'Phones: tasks show as cards (number, priority, title, person, due date and status) instead of a wide table.' },
       { type: 'improved', text: 'Phones: smaller count cards, tabs and filters in one row you can swipe sideways.' },
