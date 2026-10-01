@@ -8,7 +8,7 @@ import { Field } from './Fields'
 import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
 import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRangeInput'
-import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, type AutoKey, type DraftReminder } from './Reminders'
+import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, TaskReminders, type AutoKey, type DraftReminder } from './Reminders'
 import { loadReminderRules, type ReminderRule } from '../lib/reminders'
 
 export type TaskSaved = { taskId?: string; recurring?: boolean }
@@ -156,15 +156,22 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </div>
         </>
       )}
-      {!creatingRecurring && task?.task_type !== 'recurring' && (
+      {task && task.task_type !== 'recurring' && (
+        // Editing: the task's reminders, added / removed straight away (same as in its details).
+        <>
+          <TaskReminders task={task} onError={setError} />
+          {priority !== task.priority && (
+            <p className="muted small rem-note"><span>When you click <b>Update</b>, the <b>Auto</b> reminders change to the ones for {PRIORITY_LABELS[priority].toLowerCase()} tasks.</span></p>
+          )}
+        </>
+      )}
+      {!creatingRecurring && !task && (
         <>
           <div className="form-section">Reminders</div>
-          <AutoReminderNote priority={priority} prefilled={!task} />
-          {task
-            ? <p className="muted small">Add or remove this task's reminders in its details.</p>
-            : <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
-                assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate}
-                auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />}
+          <AutoReminderNote priority={priority} prefilled />
+          <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
+            assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate}
+            auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />
         </>
       )}
       {!task && !creatingRecurring && (

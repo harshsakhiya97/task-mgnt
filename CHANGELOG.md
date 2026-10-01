@@ -7,6 +7,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 
 - **Add Task → Reminders:** the automatic reminders for the chosen priority (Settings → Reminders, e.g. Urgent: assignee 2 hrs + you 1 hr before) now appear as rows marked **Auto**. Remove any with ×, or add more. Changing the priority shows that priority's reminders again. The database still adds them on insert; the ones removed in the form are deleted right after the task is saved.
 - Reminder labels use names: "Remind me" / "Remind Sara" (form dropdown, rows and task details).
+- **Edit Task** shows the task's reminders (`TaskReminders`, saved straight away); if the priority is changed, a note says the Auto reminders switch on Update.
 - **Mobile:** tapping a count card scrolls to the list below it (`StatCard`, ≤ 800px).
 - **Mobile layout pass (≤ 800px), checked page by page at 375px:**
   - Task lists (Tasks, Dashboard) render as cards (`.task-table` grid areas); compact count cards (icon beside the number).
