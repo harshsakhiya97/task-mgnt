@@ -149,12 +149,20 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 - **Deploy only when the owner says "deploy"**: merge into `main`, then fast-forward `deploy` and push → GitHub Actions (`deploy.yml`) builds with Node 20 and uploads changed files to cPanel over FTPS (secrets `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 - Database migrations and Edge Functions are applied/deployed directly to Supabase when built (they're live before the frontend deploy — keep frontend and DB compatible).
 - **Every release:** bump `package.json` (+ lockfile) version, add a section to `CHANGELOG.md`, add a user-facing entry at the top of `src/lib/changelog.ts` (What's New; `admin: true` for admin-only items), tag `vX.Y(.Z)`. Version label shows `major.minor` plus patch when ≠ 0.
-- Owner's Mac repo: `/Users/harshsakhiya/Documents/Projects/Task Mgnt/Repo` (on `main`, tags v1.0 … v1.3 local).
+- Owner's Mac repo: `/Users/harshsakhiya/Documents/Projects/Task Mgnt/Repo` (on `main`, tags v1.0 … v1.5.2 local). Sync from the cloud session by `git bundle` → copy to the Mac → `git fetch`/`merge --ff-only`.
 - Working style: discuss first when the owner is exploring an idea; build when they say start/go. Test DB changes with rollback blocks; verify live behaviour; don't paste or ask for secrets in chat (owner adds them in Supabase/GitHub or in the app).
 
 ---
 
 ## 10. Known follow-ups / ideas
 
+- **Pending decision (1 Oct): turn off WhatsApp for "task assigned" and "comment"** (they're phone notifications + bell now). Not applied — owner wants to wait until the team has phone notifications on. When told, apply (and add as a migration):
+  ```sql
+  drop trigger if exists tasks_whatsapp on public.tasks;
+  drop trigger if exists task_comments_whatsapp on public.task_comments;
+  update public.whatsapp_outbox set status = 'skipped', last_error = 'WhatsApp for new tasks/comments turned off'
+   where kind in ('task_assigned', 'task_comment') and status in ('queued', 'sending');
+  ```
+  Then drop `task_assigned` / `task_comment` from `WA_ACTIVE_KINDS` (src/lib/whatsappTemplates.ts) and from `KINDS` in whatsapp-sender. Undo = recreate the two triggers (functions `private.wa_task_assigned` / `private.wa_task_comment` still exist).
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.
