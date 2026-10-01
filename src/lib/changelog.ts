@@ -20,6 +20,7 @@ export const RELEASES: Release[] = [
       { type: 'new', text: 'Start-based reminders need the task to have a start time; without one they aren\'t sent (the form warns you).' },
       { type: 'new', admin: true, text: 'Settings → Reminders: each automatic reminder can also be before/after the start or the end.' },
       { type: 'improved', text: 'Task details are split into tabs: Overview (title and description, opens first), Details (people, dates, priority, status, time), Comments, Attachments, Reminders (with a count) and Activity.' },
+      { type: 'improved', text: 'Phones: under a task\'s description there are "Show details" and Assign / Reassign buttons.' },
       { type: 'improved', admin: true, text: 'Tasks page: All Tasks is the first tab for admins and opens by default. Assigned to Me, Assigned by Me and Recurring are still one tap away.' },
     ],
   },

@@ -874,3 +874,10 @@ a.app-version:hover { color: var(--primary); }
 .rule-cell { display: flex; gap: 8px; flex-wrap: wrap; }
 .rule-cell select { width: auto; flex: 1 1 140px; }
 .rem-warn { color: #c47a12; }
+/* Task details → Overview: next steps under the description (phones only) */
+.ov-actions { display: none; }
+@media (max-width: 800px) {
+  .ov-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .ov-actions button { justify-content: center; padding: 12px 14px; }
+  .ov-actions button:only-child { grid-column: 1 / -1; }
+}

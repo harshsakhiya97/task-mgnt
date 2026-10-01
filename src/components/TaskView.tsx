@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Check, Download, FileText, Forward, Pencil, Send, Trash2, X } from 'lucide-react'
+import { Check, ChevronRight, Download, FileText, Forward, Pencil, Send, Trash2, X } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { initials } from '../lib/initials'
 import { supabase } from '../lib/supabase'
@@ -115,7 +115,10 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
           {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
           {!task ? <div className="empty">Loading…</div> : (
             <>
-              {tab === 'overview' && <Overview task={task} />}
+              {tab === 'overview' && (
+                <Overview task={task} onShowDetails={() => setTab('details')}
+                  onReassign={mayReassign ? () => setReassigning(true) : undefined} />
+              )}
               {tab === 'details' && (
                 <Details task={task} onStatus={setStatus}
                   canPlan={canSetTime(task, profile?.id, profile?.role === 'admin')}
@@ -183,8 +186,8 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
   )
 }
 
-/** Overview tab: just the title and the description. */
-function Overview({ task }: { task: Task }) {
+/** Overview tab: just the title and the description (+ on phones, "Show details" and Assign / Reassign below). */
+function Overview({ task, onShowDetails, onReassign }: { task: Task; onShowDetails: () => void; onReassign?: () => void }) {
   return (
     <>
       <div className="fgrid">
@@ -192,6 +195,10 @@ function Overview({ task }: { task: Task }) {
       </div>
       <div className="form-section">Description</div>
       {task.description ? <div className="desc">{task.description}</div> : <p className="muted">No description.</p>}
+      <div className="ov-actions">
+        <button type="button" className="secondary" onClick={onShowDetails}>Show details <ChevronRight size={16} /></button>
+        {onReassign && <button type="button" onClick={onReassign}><Forward size={16} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
+      </div>
     </>
   )
 }
