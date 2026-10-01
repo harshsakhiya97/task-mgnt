@@ -90,7 +90,7 @@ export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigne
   canRemindAssignee: boolean; assigneeIsMe: boolean; assigneeName?: string; hasDue: boolean
   auto?: AutoDraft[]; onRemoveAuto?: (k: AutoKey) => void
 }) {
-  const who = (d: DraftReminder) => d.who === 'me' ? 'You' : assigneeIsMe ? 'You (assignee)' : assigneeName ?? 'Assignee'
+  const who = (d: DraftReminder) => d.who === 'me' || assigneeIsMe ? 'Remind me' : `Remind ${assigneeName ?? 'the assignee'}`
   return (
     <div className="rem-box">
       {auto.map((d) => (
@@ -163,8 +163,8 @@ export function TaskReminders({ task, onError }: { task: Task; onError: (m: stri
   }
   const canRemove = (r: Reminder) => !!me && (isAdmin || r.created_by === me || r.person_id === me || me === task.assigned_by || me === task.created_by)
   const who = (r: Reminder) => r.target === 'assignee'
-    ? (task.assigned_to === me ? 'You (assignee)' : task.assignee?.full_name ?? 'Assignee')
-    : r.person_id === me ? 'You' : r.person?.full_name ?? 'Someone'
+    ? (task.assigned_to === me ? 'Remind me' : `Remind ${task.assignee?.full_name ?? 'the assignee'}`)
+    : r.person_id === me ? 'Remind me' : `Remind ${r.person?.full_name ?? 'someone'}`
 
   return (
     <>
