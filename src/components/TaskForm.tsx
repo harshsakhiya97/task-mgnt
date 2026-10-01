@@ -182,7 +182,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           <div className="form-section">Reminders</div>
           <AutoReminderNote priority={priority} prefilled />
           <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
-            assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate}
+            assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate} hasStart={!!from}
             auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />
         </>
       )}

@@ -4,27 +4,37 @@ import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { PRIORITY_LABELS, type Task, type TaskPriority } from '../lib/tasks'
 import {
-  loadReminderRules, minutesLabel, REMINDER_PRESETS, REMINDER_SELECT, reminderTime, ruleText, whenText,
-  type Reminder, type ReminderRule,
+  loadReminderRules, minutesLabel, offsetText, RELATIONS, REMINDER_PRESETS, REMINDER_SELECT, reminderTime, ruleText, whenText,
+  type Anchor, type Direction, type Reminder, type ReminderRule,
 } from '../lib/reminders'
 
-/** A reminder being set up (before it's saved). who: 'me' or 'assignee'; either minutes before the deadline or an exact time. */
-export interface DraftReminder { who: 'me' | 'assignee'; minutes: number | null; at: string | null }
+/** A reminder being set up (before it's saved). who: 'me' or 'assignee';
+ *  either N minutes before/after the task's start/end, or an exact time (`at`). */
+export interface DraftReminder { who: 'me' | 'assignee'; minutes: number | null; direction: Direction; anchor: Anchor; at: string | null }
+
+/** "30 min before the start" / "Fri, 3 Oct, 4:00 pm" for a draft. */
+const draftText = (d: DraftReminder) => d.minutes != null ? offsetText(d.minutes, d.direction, d.anchor) : whenText(d.at ? new Date(d.at) : null)
 
 const localNow = () => { const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000); return d.toISOString().slice(0, 16) }
 
-/** One line to add a reminder: [Remind me/assignee] [2 hrs before / at a time] [Add]. */
-export function ReminderAdder({ canRemindAssignee, assigneeIsMe, assigneeName, hasDue, onAdd, busy }: {
-  canRemindAssignee: boolean; assigneeIsMe?: boolean; assigneeName?: string; hasDue: boolean; busy?: boolean
+/** One line to add a reminder: [Remind me/assignee] [30 min] [before the start / after the end …] [Add],
+ *  or [At a date & time…] [date-time]. */
+export function ReminderAdder({ canRemindAssignee, assigneeIsMe, assigneeName, hasDue, hasStart = true, onAdd, busy }: {
+  canRemindAssignee: boolean; assigneeIsMe?: boolean; assigneeName?: string; hasDue: boolean
+  /** The task has a start time (start-based reminders need one). */
+  hasStart?: boolean; busy?: boolean
   onAdd: (d: DraftReminder) => void
 }) {
   const [who, setWho] = useState<'me' | 'assignee'>('me')
   const [when, setWhen] = useState<string>(hasDue ? '120' : 'at')
+  const [rel, setRel] = useState('before:end')
   const [at, setAt] = useState('')
   useEffect(() => { if (!hasDue) setWhen('at') }, [hasDue])
+  useEffect(() => { if (when === '0' && rel.startsWith('after')) setRel(rel.replace('after', 'before')) }, [when, rel])
+  const relation = RELATIONS.find((r) => r.value === rel) ?? RELATIONS[2]
   const add = () => {
-    if (when === 'at') { if (!at) return; onAdd({ who, minutes: null, at: new Date(at).toISOString() }); setAt('') }
-    else onAdd({ who, minutes: Number(when), at: null })
+    if (when === 'at') { if (!at) return; onAdd({ who, minutes: null, direction: 'before', anchor: 'end', at: new Date(at).toISOString() }); setAt('') }
+    else onAdd({ who, minutes: Number(when), direction: relation.direction, anchor: relation.anchor, at: null })
   }
   return (
     <div className="rem-adder">
@@ -32,10 +42,19 @@ export function ReminderAdder({ canRemindAssignee, assigneeIsMe, assigneeName, h
         <option value="me">Remind me</option>
         {canRemindAssignee && !assigneeIsMe && <option value="assignee">{assigneeName ? `Remind ${assigneeName}` : 'Remind the assignee'}</option>}
       </select>
-      <select value={when} onChange={(e) => setWhen(e.target.value)} aria-label="When">
-        {hasDue && REMINDER_PRESETS.map((m) => <option key={m} value={m}>{minutesLabel(m)} before the deadline</option>)}
+      <select value={when} onChange={(e) => setWhen(e.target.value)} aria-label="How long">
+        {hasDue && REMINDER_PRESETS.map((m) => <option key={m} value={m}>{m === 0 ? 'Right' : minutesLabel(m)}</option>)}
         <option value="at">At a date & time…</option>
       </select>
+      {when !== 'at' && (
+        <select value={rel} onChange={(e) => setRel(e.target.value)} aria-label="Before or after the start or end">
+          {(when === '0' ? RELATIONS.filter((r) => r.direction === 'before') : RELATIONS).map((r) => (
+            <option key={r.value} value={r.value}>
+              {when === '0' ? `at the ${r.anchor}` : r.label}{r.anchor === 'start' && !hasStart ? ' (needs a start time)' : ''}
+            </option>
+          ))}
+        </select>
+      )}
       {when === 'at' && <input type="datetime-local" min={localNow()} value={at} onChange={(e) => setAt(e.target.value)} aria-label="Reminder time" />}
       <button type="button" className="secondary small-btn" onClick={add} disabled={busy || (when === 'at' && !at)}><Plus size={14} /> Add</button>
     </div>
@@ -56,7 +75,7 @@ export function AutoReminderNote({ priority, recurring, prefilled }: { priority:
         <span>{text
           ? <>Reminders marked <b>Auto</b> are added for {PRIORITY_LABELS[priority].toLowerCase()} tasks. Remove any you don't need, or add more.</>
           : <>{PRIORITY_LABELS[priority]} tasks have no automatic reminders. You can add your own.</>}
-        {' '}The deadline is the task's end time, or 7:00 pm if it has no time.</span>
+        {' '}The end is the task's end time (7:00 pm if it has no time); the start is its start time.</span>
       </p>
     )
   }
@@ -66,7 +85,7 @@ export function AutoReminderNote({ priority, recurring, prefilled }: { priority:
       <span>{text
         ? <>{PRIORITY_LABELS[priority]} tasks get automatic reminders: {text}. You can remove them in the task details.</>
         : <>{PRIORITY_LABELS[priority]} tasks have no automatic reminders.</>}
-      {' '}The deadline is the task's end time, or 7:00 pm if it has no time.</span>
+      {' '}The end is the task's end time (7:00 pm if it has no time); the start is its start time.</span>
     </p>
   )
 }
@@ -79,15 +98,15 @@ export interface AutoDraft extends DraftReminder { key: AutoKey }
 export function autoDrafts(rule: ReminderRule | undefined, assigneeIsMe: boolean): AutoDraft[] {
   if (!rule) return []
   const list: AutoDraft[] = []
-  if (rule.assignee_minutes) list.push({ key: 'assignee', who: 'assignee', minutes: rule.assignee_minutes, at: null })
-  if (rule.assigner_minutes && !assigneeIsMe) list.push({ key: 'assigner', who: 'me', minutes: rule.assigner_minutes, at: null })
+  if (rule.assignee_minutes != null) list.push({ key: 'assignee', who: 'assignee', minutes: rule.assignee_minutes, direction: rule.assignee_direction, anchor: rule.assignee_anchor, at: null })
+  if (rule.assigner_minutes != null && !assigneeIsMe) list.push({ key: 'assigner', who: 'me', minutes: rule.assigner_minutes, direction: rule.assigner_direction, anchor: rule.assigner_anchor, at: null })
   return list
 }
 
 /** Reminders added in the Add Task form (saved right after the task is created). */
-export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigneeIsMe, assigneeName, hasDue, auto = [], onRemoveAuto }: {
+export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigneeIsMe, assigneeName, hasDue, hasStart, auto = [], onRemoveAuto }: {
   drafts: DraftReminder[]; onChange: (d: DraftReminder[]) => void
-  canRemindAssignee: boolean; assigneeIsMe: boolean; assigneeName?: string; hasDue: boolean
+  canRemindAssignee: boolean; assigneeIsMe: boolean; assigneeName?: string; hasDue: boolean; hasStart?: boolean
   auto?: AutoDraft[]; onRemoveAuto?: (k: AutoKey) => void
 }) {
   const who = (d: DraftReminder) => d.who === 'me' || assigneeIsMe ? 'Remind me' : `Remind ${assigneeName ?? 'the assignee'}`
@@ -96,21 +115,27 @@ export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigne
       {auto.map((d) => (
         <div key={d.key} className="rem-row">
           <AlarmClock size={15} />
-          <span className="rem-what"><b>{who(d)}</b> · {minutesLabel(d.minutes ?? 0)} before the deadline <span className="tag">Auto</span></span>
+          <span className="rem-what"><b>{who(d)}</b> · {draftText(d).toLowerCase()} <span className="tag">Auto</span>{noStart(d, hasStart)}</span>
           <button type="button" className="icon" onClick={() => onRemoveAuto?.(d.key)} aria-label="Remove reminder" title="Remove reminder"><X size={15} /></button>
         </div>
       ))}
       {drafts.map((d, i) => (
         <div key={i} className="rem-row">
           <AlarmClock size={15} />
-          <span className="rem-what"><b>{who(d)}</b> · {d.minutes ? `${minutesLabel(d.minutes)} before the deadline` : whenText(d.at ? new Date(d.at) : null)}</span>
+          <span className="rem-what"><b>{who(d)}</b> · {d.minutes != null ? draftText(d).toLowerCase() : draftText(d)}{noStart(d, hasStart)}</span>
           <button type="button" className="icon" onClick={() => onChange(drafts.filter((_, j) => j !== i))} aria-label="Remove reminder"><X size={15} /></button>
         </div>
       ))}
       <ReminderAdder canRemindAssignee={canRemindAssignee} assigneeIsMe={assigneeIsMe} assigneeName={assigneeName} hasDue={hasDue}
-        onAdd={(d) => onChange([...drafts, d])} />
+        hasStart={hasStart} onAdd={(d) => onChange([...drafts, d])} />
     </div>
   )
+}
+
+/** "(needs a start time)" note for a start-based reminder on a task without one. */
+function noStart(d: Pick<DraftReminder, 'minutes' | 'anchor'>, hasStart?: boolean) {
+  return d.minutes != null && d.anchor === 'start' && hasStart === false
+    ? <span className="rem-warn"> · needs a start time, won't be sent without one</span> : null
 }
 
 /** Save the form's reminders for a newly created task. */
@@ -118,7 +143,7 @@ export async function saveDraftReminders(taskId: string, meId: string, drafts: D
   if (!drafts.length) return null
   const { error } = await supabase.from('task_reminders').insert(drafts.map((d) => ({
     task_id: taskId, target: d.who === 'me' ? 'person' : 'assignee', person_id: d.who === 'me' ? meId : null,
-    minutes_before: d.minutes, remind_at: d.at,
+    minutes_before: d.minutes, remind_at: d.at, direction: d.direction, anchor: d.anchor,
   })))
   return error?.message ?? null
 }
@@ -149,7 +174,7 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
     const { data } = await supabase.from('task_reminders').select(REMINDER_SELECT).eq('task_id', task.id).order('created_at')
     setList((data as unknown as Reminder[]) ?? [])
   }, [task.id])
-  useEffect(() => { load() }, [load, task.due_date, task.end_time, task.priority])
+  useEffect(() => { load() }, [load, task.due_date, task.start_time, task.end_time, task.priority])
 
   if (task.recurring_id) return null
 
@@ -179,7 +204,7 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
         {preview?.rows.map((d) => (
           <div key={d.key} className="rem-row">
             <AlarmClock size={15} />
-            <span className="rem-what"><b>{d.label}</b> · {minutesLabel(d.minutes ?? 0)} before the deadline <span className="tag">Auto</span></span>
+            <span className="rem-what"><b>{d.label}</b> · {draftText(d).toLowerCase()} <span className="tag">Auto</span>{noStart(d, !!task.start_time)}</span>
             <span className="rem-state small"><span className="muted">Added when you click Update</span></span>
             <button type="button" className="icon" onClick={() => preview.onRemove(d.key)} aria-label="Remove reminder" title="Remove reminder"><X size={15} /></button>
           </div>
@@ -190,8 +215,8 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
             <div key={r.id} className={`rem-row ${r.sent_at || r.skipped ? 'done' : ''}`}>
               <AlarmClock size={15} />
               <span className="rem-what">
-                <b>{who(r)}</b> · {r.minutes_before ? `${minutesLabel(r.minutes_before)} before the deadline` : 'at a set time'}
-                <span className="muted"> · {whenText(at)}</span>
+                <b>{who(r)}</b> · {r.minutes_before != null ? offsetText(r.minutes_before, r.direction, r.anchor).toLowerCase() : 'at a set time'}
+                <span className="muted"> · {at ? whenText(at) : 'no start time yet'}</span>
                 {r.auto && <span className="tag">Auto</span>}
               </span>
               <span className="rem-state small">
@@ -208,7 +233,7 @@ export function TaskReminders({ task, onError, preview }: { task: Task; onError:
         {task.status !== 'done' && (
           <ReminderAdder canRemindAssignee={canRemindAssignee && !!task.assigned_to} assigneeIsMe={task.assigned_to === me}
             assigneeName={task.assignee?.full_name}
-            hasDue={!!task.due_date} onAdd={add} busy={busy} />
+            hasDue={!!task.due_date} hasStart={!!task.start_time} onAdd={add} busy={busy} />
         )}
       </div>
     </>

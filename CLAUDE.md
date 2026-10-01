@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            34 SQL files, applied in order (timestamps 20260925… → 20261001140000)
+  migrations/            35 SQL files, applied in order (timestamps 20260925… → 20261001150000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -73,7 +73,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.4.2 (1 Oct)** — iPhone: sidebar/drawers use `100dvh` + safe-area padding (user box was cut off).
 
 **1.5 (1 Oct)** — **Team Board** (admin, `/team-board`, `pages/TeamBoard.tsx`): a column per person with task cards (▶ started time from `task_activity`, ✓ done today), filters (status/due/team/search), drag a card onto another person to reassign (Undo). Click a name → that person's status board (`?person=id`: To Do / In Progress / Done last 7 days; drag between columns to change status).
-**1.5.1 (1 Oct)** — Tasks page: admins default to (and see first) the All Tasks tab.
+**1.5.1 (1 Oct)** — Tasks page: admins default to (and see first) the All Tasks tab. Reminders can be N min **before/after** the task's **start or end** (`direction`, `anchor`; start-based need a start time).
 
 ---
 
@@ -125,9 +125,9 @@ Rows already in the sheet when it's first connected are `skipped_existing` (Add 
 
 ## 7. Reminders (1.3)
 
-`task_reminders`: target `assignee` (whoever holds the task at send time) or `person` (+`person_id`); either `minutes_before` the deadline (moves with the task) or fixed `remind_at`; `auto`, `sent_at`, `skipped` (reason).
+`task_reminders`: target `assignee` (whoever holds the task at send time) or `person` (+`person_id`); either `minutes_before` (amount, 0 = right at) + `direction` (before/after) + `anchor` (start/end) — moves with the task — or fixed `remind_at`; `auto`, `sent_at`, `skipped` (reason). Fire time: `private.reminder_fire_at(...)`. Start = start time on the due date (no start time → start-based reminders skipped).
 Deadline = due date + end time, or **7:00 pm IST** if no time. Recurring tasks: no reminders.
-`reminder_rules` (Settings → Reminders, admin): defaults **urgent** = assignee 120 min + assigner 60 min; **high** = assignee 120 min; medium/low none. Added on task insert and swapped on priority change (assigner rule skipped for self-tasks).
+`reminder_rules` (Settings → Reminders, admin; each column has minutes + direction + anchor): defaults **urgent** = assignee 120 min + assigner 60 min; **high** = assignee 120 min; medium/low none. Added on task insert and swapped on priority change (assigner rule skipped for self-tasks).
 Who may add: anyone who can see the task → for themselves; assigner/creator/admin → also for the assignee/others.
 `send_due_reminders()` (every minute): bell type `reminder` + `push_outbox` row (phone notification; since 1.4 no WhatsApp); skipped if done, no assignee, deadline passed, auto reminder already past when the task was created, or >3 h late. `tasks_reminders_recheck` re-opens skipped reminders when date/time/status/assignee change.
 

@@ -870,3 +870,7 @@ a.app-version:hover { color: var(--primary); }
 .tb-stcol.st-in_progress { background: #fffdf8; }
 .tb-stcol.st-done { background: #fbfefc; }
 @media (max-width: 800px) { .tb-statuses { grid-template-columns: 1fr; } }
+/* Settings → Reminders: [amount] [before/after the start/end] */
+.rule-cell { display: flex; gap: 8px; flex-wrap: wrap; }
+.rule-cell select { width: auto; flex: 1 1 140px; }
+.rem-warn { color: #c47a12; }

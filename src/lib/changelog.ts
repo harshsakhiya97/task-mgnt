@@ -13,9 +13,12 @@ export const RELEASES: Release[] = [
   {
     version: '1.5.1',
     date: '2026-10-01',
-    title: 'All Tasks first for admins',
-    summary: 'Admins now land on All Tasks when they open the Tasks page.',
+    title: 'Reminders before or after the start or end',
+    summary: 'Reminders can now be set before or after a task\'s start or its end — for example "15 min before the start" or "30 min after the end". Admins also land on All Tasks.',
     changes: [
+      { type: 'new', text: 'Reminders: choose before or after, and the start or the end of the task (e.g. "15 min before the start", "Right at the start", "30 min after the end").' },
+      { type: 'new', text: 'Start-based reminders need the task to have a start time; without one they aren\'t sent (the form warns you).' },
+      { type: 'new', admin: true, text: 'Settings → Reminders: each automatic reminder can also be before/after the start or the end.' },
       { type: 'improved', admin: true, text: 'Tasks page: All Tasks is the first tab for admins and opens by default. Assigned to Me, Assigned by Me and Recurring are still one tap away.' },
     ],
   },
