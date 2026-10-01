@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5.1',
+    date: '2026-10-01',
+    title: 'All Tasks first for admins',
+    summary: 'Admins now land on All Tasks when they open the Tasks page.',
+    changes: [
+      { type: 'improved', admin: true, text: 'Tasks page: All Tasks is the first tab for admins and opens by default. Assigned to Me, Assigned by Me and Recurring are still one tap away.' },
+    ],
+  },
+  {
     version: '1.5',
     date: '2026-10-01',
     title: 'Team Board',

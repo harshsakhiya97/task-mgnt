@@ -27,7 +27,9 @@ export function Tasks() {
   const [params, setParams] = useSearchParams()
   const isAdmin = profile?.role === 'admin'
   const pv = params.get('view')
-  const view: View = pv === 'given' ? 'given' : pv === 'recurring' ? 'recurring' : pv === 'all' && isAdmin ? 'all' : 'mine'
+  // Admins start on All Tasks; everyone else on Assigned to Me.
+  const defaultView: View = isAdmin ? 'all' : 'mine'
+  const view: View = pv === 'given' ? 'given' : pv === 'recurring' ? 'recurring' : pv === 'mine' ? 'mine' : pv === 'all' && isAdmin ? 'all' : defaultView
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,7 +61,7 @@ export function Tasks() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  const setView = (v: View) => { setParams(v === 'mine' ? {} : { view: v }); setPerson('') }
+  const setView = (v: View) => { setParams(v === defaultView ? {} : { view: v }); setPerson('') }
 
   const inView = useMemo(() => tasks.filter((t) =>
     view === 'mine' ? t.assigned_to === profile?.id : view === 'given' ? isGivenBy(t, profile?.id) : true,
@@ -170,7 +172,7 @@ export function Tasks() {
       <div className="panel">
         <div className="panel-toolbar">
           <div className="view-tabs">
-            {(['mine', 'given', ...(isAdmin ? ['all'] : []), 'recurring'] as View[]).map((v) => (
+            {((isAdmin ? ['all', 'mine', 'given', 'recurring'] : ['mine', 'given', 'recurring']) as View[]).map((v) => (
               <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>
                 {VIEW_LABELS[v]}{v === 'mine' && newCount > 0 && <span className="new-count">{newCount} new</span>}
               </button>

@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.5 (1.5.0)**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.5.1**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -73,6 +73,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.4.2 (1 Oct)** — iPhone: sidebar/drawers use `100dvh` + safe-area padding (user box was cut off).
 
 **1.5 (1 Oct)** — **Team Board** (admin, `/team-board`, `pages/TeamBoard.tsx`): a column per person with task cards (▶ started time from `task_activity`, ✓ done today), filters (status/due/team/search), drag a card onto another person to reassign (Undo). Click a name → that person's status board (`?person=id`: To Do / In Progress / Done last 7 days; drag between columns to change status).
+**1.5.1 (1 Oct)** — Tasks page: admins default to (and see first) the All Tasks tab.
 
 ---
 

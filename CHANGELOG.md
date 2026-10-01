@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.5.1 — 1 Oct 2026
+
+- Tasks page: for admins the default tab is **All Tasks**, shown first (All Tasks / Assigned to Me / Assigned by Me / Recurring). `?view=mine` now selects Assigned to Me explicitly; the default view has no `?view`.
+
 ## Version 1.5 — 1 Oct 2026
 
 - **Team Board** (`/team-board`, admin, sidebar → Administration): one column per active user (+ "Unassigned" when there are such tasks), task cards (TM-no, priority, due date red when overdue, time range + length, ▶ started = latest `task_activity` status → `in_progress`, ✓ completed time), header counts (tasks shown, ✓ done today). Filters: status (Open default / To Do / In Progress / Done / All), due (any / today & overdue / today / overdue / this week), team, search. In Progress first, then by due date. Refreshes every minute.
