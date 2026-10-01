@@ -678,9 +678,16 @@ a.app-version:hover { color: var(--primary); }
 .rem-row.done { opacity: .65; }
 .rem-what { flex: 1; min-width: 0; }
 .rem-state { white-space: nowrap; }
-.rem-adder { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.rem-adder select, .rem-adder input { width: auto; flex: 1 1 160px; }
-.rem-adder button { display: inline-flex; align-items: center; gap: 4px; }
+/* Add a reminder: [who] [how long] [before/after start/end · or the date-time] [Add] — four equal columns */
+.rem-adder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center; }
+.rem-adder select, .rem-adder input { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.rem-adder button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 100%; }
+@media (max-width: 560px) {
+  .rem-adder { gap: 6px; }
+  .rem-adder select, .rem-adder input { font-size: 13px; padding-left: 8px; padding-right: 22px; background-position: right 6px center; }
+  .rem-adder input { padding-right: 6px; }
+  .rem-adder button { padding-left: 6px; padding-right: 6px; font-size: 13px; }
+}
 .rem-note { display: flex; gap: 6px; align-items: flex-start; margin: 6px 0 0; line-height: 1.45; }
 .rem-note svg { flex: none; margin-top: 2px; }
 .rem-settings-foot { margin: 0; padding: 12px 18px 16px; }
@@ -884,4 +891,16 @@ a.app-version:hover { color: var(--primary); }
 @media (max-width: 800px) {
   /* Phones: Reassign lives under the description (Overview tab), not in the header */
   .task-head .top-reassign { display: none; }
+}
+/* Add-reminder line: 4 equal columns — [who] [amount] [before/after start/end or date-time] [Add] */
+.rem-adder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.rem-adder select, .rem-adder input { width: 100%; min-width: 0; flex: none; text-overflow: ellipsis; }
+.rem-adder button { justify-content: center; width: 100%; }
+@media (max-width: 800px) {
+  .rem-adder { gap: 6px; }
+  /* No dropdown arrow here: 4 columns on a phone leave no room for it (still tap to open) */
+  .rem-adder select { -webkit-appearance: none; appearance: none; background-image: none; font-size: 12px; padding: 9px 2px; letter-spacing: -.01em; text-align: center; text-align-last: center; }
+  .rem-adder input { font-size: 12px; padding: 8px 4px; }
+  .rem-adder input { padding-right: 6px; }
+  .rem-adder button { padding: 8px 6px; font-size: 13px; }
 }

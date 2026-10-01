@@ -15,6 +15,22 @@ export interface DraftReminder { who: 'me' | 'assignee'; minutes: number | null;
 /** "30 min before the start" / "Fri, 3 Oct, 4:00 pm" for a draft. */
 const draftText = (d: DraftReminder) => d.minutes != null ? offsetText(d.minutes, d.direction, d.anchor) : whenText(d.at ? new Date(d.at) : null)
 
+/** "30m", "2h", "1d" — short amounts for the phone layout. */
+const shortMinutes = (m: number) => (m % 1440 === 0 ? `${m / 1440}d` : m % 60 === 0 ? `${m / 60}h` : m > 60 ? `${Math.floor(m / 60)}h${m % 60}m` : `${m}m`)
+
+/** True on phone-width screens (≤ 800px), updating when the window is resized. */
+function useNarrow() {
+  const q = '(max-width: 800px)'
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches)
+  useEffect(() => {
+    const m = window.matchMedia(q)
+    const on = () => setNarrow(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  return narrow
+}
+
 const localNow = () => { const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000); return d.toISOString().slice(0, 16) }
 
 /** One line to add a reminder: [Remind me/assignee] [30 min] [before the start / after the end …] [Add],
@@ -26,6 +42,7 @@ export function ReminderAdder({ canRemindAssignee, assigneeIsMe, assigneeName, h
   onAdd: (d: DraftReminder) => void
 }) {
   const [who, setWho] = useState<'me' | 'assignee'>('me')
+  const short = useNarrow()   // phones: 4 equal columns, so the labels are shortened
   const [when, setWhen] = useState<string>(hasDue ? '120' : 'at')
   const [rel, setRel] = useState('before:end')
   const [at, setAt] = useState('')
@@ -39,18 +56,21 @@ export function ReminderAdder({ canRemindAssignee, assigneeIsMe, assigneeName, h
   return (
     <div className="rem-adder">
       <select value={who} onChange={(e) => setWho(e.target.value as 'me' | 'assignee')} aria-label="Who gets the reminder">
-        <option value="me">Remind me</option>
-        {canRemindAssignee && !assigneeIsMe && <option value="assignee">{assigneeName ? `Remind ${assigneeName}` : 'Remind the assignee'}</option>}
+        <option value="me">{short ? 'Me' : 'Remind me'}</option>
+        {canRemindAssignee && !assigneeIsMe && (
+          <option value="assignee">{short ? (assigneeName?.split(' ')[0] ?? 'Assignee') : assigneeName ? `Remind ${assigneeName}` : 'Remind the assignee'}</option>
+        )}
       </select>
       <select value={when} onChange={(e) => setWhen(e.target.value)} aria-label="How long">
-        {hasDue && REMINDER_PRESETS.map((m) => <option key={m} value={m}>{m === 0 ? 'Right' : minutesLabel(m)}</option>)}
-        <option value="at">At a date & time…</option>
+        {hasDue && REMINDER_PRESETS.map((m) => <option key={m} value={m}>{m === 0 ? (short ? 'At' : 'Right') : short ? shortMinutes(m) : minutesLabel(m)}</option>)}
+        <option value="at">{short ? 'Date…' : 'At a date & time…'}</option>
       </select>
       {when !== 'at' && (
         <select value={rel} onChange={(e) => setRel(e.target.value)} aria-label="Before or after the start or end">
           {(when === '0' ? RELATIONS.filter((r) => r.direction === 'before') : RELATIONS).map((r) => (
             <option key={r.value} value={r.value}>
-              {when === '0' ? `at the ${r.anchor}` : r.label}{r.anchor === 'start' && !hasStart ? ' (needs a start time)' : ''}
+              {when === '0' ? (short ? r.anchor : `at the ${r.anchor}`) : short ? r.label.replace(' the ', ' ') : r.label}
+              {r.anchor === 'start' && !hasStart ? (short ? ' (no start)' : ' (needs a start time)') : ''}
             </option>
           ))}
         </select>

@@ -14,8 +14,9 @@ export const RELEASES: Release[] = [
     version: '1.5.2',
     date: '2026-10-01',
     title: 'Small fixes',
-    summary: 'Settings → WhatsApp shows the right number of message templates.',
+    summary: 'A tidier "add reminder" line, and Settings → WhatsApp shows the right number of message templates.',
     changes: [
+      { type: 'improved', text: 'Adding a reminder: who, how long, before/after the start or end, and Add sit side by side in one row (shorter labels on phones).' },
       { type: 'fixed', admin: true, text: 'Settings → WhatsApp: the Template Messages tab showed 5; it now shows 4, the number of templates the app actually sends.' },
     ],
   },

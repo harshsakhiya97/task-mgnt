@@ -5,6 +5,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 
 ## Version 1.5.2 — 1 Oct 2026
 
+- Add-reminder line: 4 equal columns (who / amount / before-after start-end or date / Add). Phones: short labels ("Me", "2h", "before end", "Date…") via `useNarrow`, no dropdown arrows.
 - Settings → WhatsApp: the Template Messages tab count was hard-coded to 5; it now uses `WA_ACTIVE_KINDS` (lib/whatsappTemplates.ts, 4 templates), shared with the template list.
 
 ## Version 1.5.1 — 1 Oct 2026
