@@ -37,7 +37,7 @@ export function ReminderSettings() {
       <div className="page-head">
         <div>
           <h2>Reminders</h2>
-          <p>Automatic reminders added to every new one-time task, by priority. They go out on WhatsApp and as a notification, and aren't sent if the task is already done. Anyone can still add or remove reminders in a task's details. Recurring tasks don't get reminders.</p>
+          <p>Automatic reminders added to every new one-time task, by priority. They pop up as a phone notification (for people who turned them on in My Profile → Phone Notifications) and in Notifications → Reminders, and aren't sent if the task is already done. Anyone can still add or remove reminders in a task's details. Recurring tasks don't get reminders.</p>
         </div>
       </div>
       {error && <div className="alert error">{error}</div>}

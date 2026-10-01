@@ -5,12 +5,13 @@ import { LogoutDialog } from '../components/LogoutDialog'
 import { initials } from '../lib/initials'
 import { supabase } from '../lib/supabase'
 import { roleBadge, type Team } from '../lib/types'
+import { PushSettings } from '../components/PushSettings'
 
-type Tab = 'profile' | 'password'
+type Tab = 'profile' | 'phone' | 'password'
 
 /** Settings page with its own sub-menu: My Profile, Reset Password, Logout. */
 export function Profile() {
-  const [tab, setTab] = useState<Tab>('profile')
+  const [tab, setTab] = useState<Tab>(new URLSearchParams(location.search).get('tab') === 'phone' ? 'phone' : 'profile')
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   return (
@@ -18,11 +19,12 @@ export function Profile() {
       <div className="settings-nav">
         <div className="nav-section">Settings</div>
         <button className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>My Profile</button>
+        <button className={tab === 'phone' ? 'active' : ''} onClick={() => setTab('phone')}>Phone Notifications</button>
         <button className={tab === 'password' ? 'active' : ''} onClick={() => setTab('password')}>Reset Password</button>
         <button onClick={() => setConfirmLogout(true)}>Logout</button>
       </div>
       <div className="settings-body">
-        {tab === 'profile' ? <MyProfile /> : <ChangePassword />}
+        {tab === 'profile' ? <MyProfile /> : tab === 'phone' ? <><h2>Phone Notifications</h2><PushSettings /></> : <ChangePassword />}
       </div>
       {confirmLogout && <LogoutDialog onCancel={() => setConfirmLogout(false)} />}
     </div>

@@ -3,6 +3,16 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.4 — 1 Oct 2026
+
+- **Reminders as phone notifications (Web Push)** instead of WhatsApp. Reminders now go to: the bell (Notifications → Reminders) + a push notification on every device where the person turned them on. Task assigned / comments / unassigned / day-end report stay on WhatsApp + bell.
+  - Turn on: Dashboard banner, Notifications → Reminders banner, or My Profile → **Phone Notifications** (status, turn off, "Send a test notification"). iPhone: only in the installed app (iOS 16.4+); the card explains and offers "Download this app". Blocked permission → how to unblock.
+  - Tapping a notification opens the task (`public/sw.js`: `push` + `notificationclick`). Badge icon `public/icons/badge-96.png`.
+  - Logging out removes this device's subscription. The app re-saves its subscription on load (`syncPush`).
+- Database (`20261001120000_web_push.sql`, `20261001130000_push_test.sql`): tables `push_subscriptions` (own rows via RLS; `push_subscribe()` upserts by endpoint) and `push_outbox` (admin read); `push_claim_batch` / `push_mark` (service role); `push_public_key()`; VAPID keys made once by the function (private key in Vault `vapid_private_key`, public in `private.app_settings.vapid_public_key`); `private.push_kick()` + cron `push-sender` every minute; `push_test()`. `send_due_reminders()` now queues push instead of WhatsApp `task_reminder`.
+- New Edge Function **`push-sender`** (v1, verify_jwt off): VAPID (ES256) + aes128gcm encryption with WebCrypto only (`webpush.ts`, checked against the `http_ece` reference implementation). Removes devices that are gone (404/410); retries 429/5xx up to 3 times; messages older than 3 h expire.
+- whatsapp-sender v11: "Check connection" checks 4 templates (no `task_reminder`). Template Messages tab shows 4.
+
 ## Version 1.3.2 — 1 Oct 2026
 
 - **Add Task → Reminders:** the automatic reminders for the chosen priority (Settings → Reminders, e.g. Urgent: assignee 2 hrs + you 1 hr before) now appear as rows marked **Auto**. Remove any with ×, or add more. Changing the priority shows that priority's reminders again. The database still adds them on insert; the ones removed in the form are deleted right after the task is saved.

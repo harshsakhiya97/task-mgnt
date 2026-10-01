@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.3.2**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.4 (1.4.0)**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -13,10 +13,12 @@ Pilot: TVS team (≈7 users), then the whole company (16–20).
 | Frontend: React 18 + Vite 5 + TypeScript, react-router 6, FullCalendar 6, lucide-react, write-excel-file | Static build (`dist/`) on **cPanel** shared hosting |
 | Database (Postgres + RLS), Auth (email + password), Storage, Edge Functions (Deno), pg_cron, pg_net, Vault | **Supabase** project `tazlvzjalhxsudceabqy` ("Pride") |
 | WhatsApp messages | **WATI** (template messages), called from the `whatsapp-sender` Edge Function |
+| Phone notifications (reminders) | **Web Push** (VAPID, no third-party service), sent by the `push-sender` Edge Function |
 | AI (Perisclaw rows → tasks) | **Google Gemini** `gemini-2.5-flash` (backup `gemini-2.5-flash-lite`), from `perisclaw-sync` |
 | Google Sheet access | Google **service account** ("robot"), Sheets API read + write |
 
-No custom backend server: all logic is in Postgres (triggers, RLS, security-definer functions in schema `private`) and 4 Edge Functions.
+No custom backend server: all logic is in Postgres (triggers, RLS, security-definer functions in schema `private`) and 5 Edge Functions.
+The app is an installable PWA (`public/manifest.json`, `public/sw.js`, icons in `public/icons/`).
 
 Frontend env (build time): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. `__APP_VERSION__` is injected from `package.json` by Vite.
 
@@ -39,8 +41,8 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            31 SQL files, applied in order (timestamps 20260925… → 20260930160000)
-  functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender
+  migrations/            33 SQL files, applied in order (timestamps 20260925… → 20261001130000)
+  functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
 CHANGELOG.md             technical changelog;  src/lib/changelog.ts = user-facing "What's New"
@@ -64,13 +66,15 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 
 **1.3 (30 Sep)** — **Reminders** (see §7). Notifications page split into **Notifications** / **Reminders** tabs.
 **1.3.1 (1 Oct)** — Perisclaw: a Task No in the sheet is trusted only if the app linked that task to a Perisclaw row (Perisclaw sometimes writes its own guess); otherwise the row is a new task and the cell is corrected.
-**1.3.2 (1 Oct)** — Add Task lists the priority's automatic reminders as removable "Auto" rows (removed ones are deleted after insert via `dropAutoReminders`).
+**1.3.2 (1 Oct)** — Add/Edit Task list the priority's automatic reminders as removable "Auto" rows (removed ones are deleted after save via `dropAutoReminders`); reminder labels by name ("Remind me" / "Remind Sara"). Mobile-first layout pass (task cards, compact count cards, scrolling tabs/filters, calendar view switch on top). Installable app (PWA) + "Download this app" on phones.
+
+**1.4 (1 Oct)** — **Reminders as phone notifications** (Web Push) + Notifications → Reminders tab, **no longer WhatsApp**. Turn on: Dashboard / Reminders-tab banner or My Profile → Phone Notifications (test button). iPhone needs the installed app (iOS 16.4+). Task assigned / comments stay WhatsApp + bell.
 
 ---
 
 ## 4. Database (schema `public`, RLS on everything)
 
-Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, team_id, is_active), `roles`, `teams`, `tasks`, `recurring_tasks`, `task_comments`, `task_attachments`, `task_activity`, `notifications`, `whatsapp_outbox`, `perisclaw_settings` (single row id=1), `perisclaw_entries`, `task_reminders`, `reminder_rules`, `health_check` (legacy).
+Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, team_id, is_active), `roles`, `teams`, `tasks`, `recurring_tasks`, `task_comments`, `task_attachments`, `task_activity`, `notifications`, `whatsapp_outbox`, `perisclaw_settings` (single row id=1), `perisclaw_entries`, `task_reminders`, `reminder_rules`, `push_subscriptions` (one per device; own rows), `push_outbox`, `health_check` (legacy).
 
 Key `tasks` columns: `task_no` (shown as `TM-<n>`), title, description, `assigned_by`, `assigned_to` (nullable), `created_by`, `participants uuid[]` (drives RLS read/update), due_date, start_time, end_time, priority, status, task_type (`adhoc`/`recurring`), `recurring_id`, `occurrence_date`, `seen_at`, `reassigned`, `completed_at`.
 
@@ -78,9 +82,9 @@ Important triggers on `tasks`: `tasks_before_write` (permission rules, participa
 Other: `task_comments_whatsapp`, `whatsapp_outbox_kick` (instant send via pg_net), `perisclaw_entries_guard`, `perisclaw_unassigned_alert`, `task_reminders_before`, `profiles_role_sync`, `roles_guard`.
 
 Helpers in schema `private` (security definer): `is_admin()`, `can_see_task()`, `person_name()`, `active_admins()`, `today_ist()`, `task_deadline()`, `reminder_deadline()` (end time or 19:00 IST), `setting(key)` (from `private.app_settings`, e.g. `app_url`), `wa_enqueue()`, `wa_text()`, `wa_due_text()`, `notify()`, `send_due_reminders()`, `perisclaw_kick()`, `wa_kick()`.
-Public RPCs: `report_by_person`, `plan_recurring_day`, `sync_app_url` (admin; keeps `app_url` in sync with where admins open the app, ignores localhost), `whatsapp_claim_batch` / `whatsapp_mark` (service role), `whatsapp_retry` (admin), `whatsapp_set_config` / `whatsapp_config_status` (admin), `whatsapp_get_config` (service role only).
+Public RPCs: `report_by_person`, `plan_recurring_day`, `sync_app_url` (admin; keeps `app_url` in sync with where admins open the app, ignores localhost), `whatsapp_claim_batch` / `whatsapp_mark` (service role), `whatsapp_retry` (admin), `whatsapp_set_config` / `whatsapp_config_status` (admin), `whatsapp_get_config` (service role only), `push_subscribe` / `push_public_key` / `push_test` (users), `push_claim_batch` / `push_mark` / `push_get_keys` / `push_set_keys` (service role). VAPID keys: private in Vault `vapid_private_key`, public in `private.app_settings.vapid_public_key` (created once by push-sender; never replace — devices are tied to it).
 
-pg_cron jobs (UTC): `generate-recurring-tasks` 35 18 * * * (00:05 IST) + retry 35 0 * * *; `whatsapp-sender` every minute; `whatsapp-daily-report` 45 15 * * * (21:15 IST); `perisclaw-sync` every 2 min; `task-reminders` every minute.
+pg_cron jobs (UTC): `generate-recurring-tasks` 35 18 * * * (00:05 IST) + retry 35 0 * * *; `whatsapp-sender` every minute; `whatsapp-daily-report` 45 15 * * * (21:15 IST); `perisclaw-sync` every 2 min; `task-reminders` every minute; `push-sender` every minute (`private.push_kick()`; reminders also kick it instantly).
 
 Timezone: everything user-facing is IST (Asia/Kolkata).
 
@@ -92,8 +96,9 @@ Timezone: everything user-facing is IST (Asia/Kolkata).
 |---|---|---|
 | `admin-users` | on | Admin user management (create/update/set_active/set_password); checks caller is admin via `roles.is_admin` |
 | `setup-admin` | off | One-time "create first admin" for an empty install; refuses once any user exists. Keep it. |
-| `whatsapp-sender` (v9) | off | Sends queued `whatsapp_outbox` rows via WATI `sendTemplateMessage`; token from Vault (`whatsapp_get_config`) or `WATI_TOKEN` secret fallback; `{action:'check'}` (admin JWT) tests the token and returns each template's WATI approval status |
+| `whatsapp-sender` (v11) | off | Sends queued `whatsapp_outbox` rows via WATI `sendTemplateMessage`; token from Vault (`whatsapp_get_config`) or `WATI_TOKEN` secret fallback; `{action:'check'}` (admin JWT) tests the token and returns each template's WATI approval status |
 | `perisclaw-sync` (v14) | off | Reads the Perisclaw sheet, Gemini parsing, creates/updates tasks, writes Task No back; `{action:'status'|'parse'|'clear'}` |
+| `push-sender` (v1) | off | Sends queued `push_outbox` rows as Web Push (index.ts + webpush.ts: VAPID ES256 + aes128gcm with WebCrypto); removes gone devices (404/410), retries 429/5xx ×3, expires after 3 h; makes the VAPID keys on first run |
 
 Secrets (Supabase → Edge Functions → Secrets; values never in code/chat): `GEMINI_API_KEY`, optional `GEMINI_MODEL`, `GOOGLE_SERVICE_ACCOUNT_JSON`, optional `WATI_TOKEN` / `WATI_API_URL` (fallback only — normally set in the app), optional `WATI_TEMPLATE_<KIND>` name overrides.
 Deploying functions: files are uploaded whole (index.ts + lib.ts + google.ts for perisclaw-sync). Type-check first with `deno check`.
@@ -119,16 +124,16 @@ Rows already in the sheet when it's first connected are `skipped_existing` (Add 
 Deadline = due date + end time, or **7:00 pm IST** if no time. Recurring tasks: no reminders.
 `reminder_rules` (Settings → Reminders, admin): defaults **urgent** = assignee 120 min + assigner 60 min; **high** = assignee 120 min; medium/low none. Added on task insert and swapped on priority change (assigner rule skipped for self-tasks).
 Who may add: anyone who can see the task → for themselves; assigner/creator/admin → also for the assignee/others.
-`send_due_reminders()` (every minute): WhatsApp `task_reminder` + bell type `reminder`; skipped if done, no assignee, deadline passed, auto reminder already past when the task was created, or >3 h late. `tasks_reminders_recheck` re-opens skipped reminders when date/time/status/assignee change.
+`send_due_reminders()` (every minute): bell type `reminder` + `push_outbox` row (phone notification; since 1.4 no WhatsApp); skipped if done, no assignee, deadline passed, auto reminder already past when the task was created, or >3 h late. `tasks_reminders_recheck` re-opens skipped reminders when date/time/status/assignee change.
 
 ---
 
 ## 8. WhatsApp (WATI) templates
 
 Kinds / template names (all Utility, English, named `{{variables}}`, each ends with "– Task Mgnt, Pride Educare"; full texts + samples in `docs/whatsapp-templates.md` and in-app Settings → WhatsApp → Template Messages):
-`task_assigned` (name, assigner, task, due, link) · `task_comment` (name, commenter, task, comment, link) · `daily_task_report` (name, date, total, done, expired, pending, overdue, link) · `task_unassigned` (name, person, task, link) · `task_reminder` (name, task, due, status, link).
+`task_assigned` (name, assigner, task, due, link) · `task_comment` (name, commenter, task, comment, link) · `daily_task_report` (name, date, total, done, expired, pending, overdue, link) · `task_unassigned` (name, person, task, link). (`task_reminder` no longer used since 1.4 — reminders are phone notifications.)
 `{{task}}` = "TM-125 – title". `{{link}}` built from `app_url` setting. Outbox: retries up to 5, expires after 24 h; phone numbers from profiles (10-digit → +91).
-**Status 30 Sep:** first four approved; `task_reminder` must be created/approved in WATI.
+**Status 1 Oct:** all four approved.
 
 ---
 
@@ -145,6 +150,7 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 
 ## 10. Known follow-ups / ideas
 
-- Create + approve WATI template `task_reminder`; delete the old `WATI_TOKEN` Supabase secret now that the token is saved in the app.
+- Delete the old `WATI_TOKEN` Supabase secret now that the token is saved in the app.
+- Phone notifications are reminders-only for now; other events (assigned/comments) could be added to `push_outbox` later.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.

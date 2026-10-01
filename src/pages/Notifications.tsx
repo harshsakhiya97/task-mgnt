@@ -1,3 +1,4 @@
+import { PushPrompt } from '../components/PushSettings'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlarmClock, Bell, CheckCheck } from 'lucide-react'
@@ -77,6 +78,7 @@ export function Notifications() {
         { value: 'updates', label: 'Notifications', icon: Bell, badge: unreadBy.updates || undefined },
         { value: 'reminders', label: 'Reminders', icon: AlarmClock, badge: unreadBy.reminders || undefined },
       ]} />
+      {kind === 'reminders' && <PushPrompt always />}
       <div className="panel">
         <div className="panel-toolbar">
           <div className="view-tabs">

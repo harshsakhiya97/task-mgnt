@@ -3,7 +3,7 @@ import { Download, MoreVertical, PlusSquare, Share, X } from 'lucide-react'
 import { useInstall } from '../lib/install'
 
 /** "Download this app" on phones: installs Task Mgnt on the home screen, or shows how to when the browser can't ask. */
-export function InstallApp({ variant = 'button' }: { variant?: 'button' | 'nav' }) {
+export function InstallApp({ variant = 'button', compact }: { variant?: 'button' | 'nav'; compact?: boolean }) {
   const { show, ios, install } = useInstall()
   const [help, setHelp] = useState(false)
   if (!show) return null
@@ -12,7 +12,9 @@ export function InstallApp({ variant = 'button' }: { variant?: 'button' | 'nav' 
     <>
       {variant === 'nav'
         ? <button type="button" className="nav-item install-nav" onClick={click}><Download size={20} /><span>Download this app</span></button>
-        : <button type="button" className="secondary block install-btn" onClick={click}><Download size={18} /> Download this app</button>}
+        : compact
+          ? <button type="button" onClick={click}><Download size={16} /> Install</button>
+          : <button type="button" className="secondary block install-btn" onClick={click}><Download size={18} /> Download this app</button>}
       {help && (
         <div className="dialog-wrap" onMouseDown={() => setHelp(false)}>
           <div className="dialog install-help" role="dialog" aria-label="Install Task Mgnt" onMouseDown={(e) => e.stopPropagation()}>

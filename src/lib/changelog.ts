@@ -11,6 +11,20 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.4',
+    date: '2026-10-01',
+    title: 'Reminders as phone notifications',
+    summary: 'Reminders now pop up on your phone like any app notification — even when Task Mgnt is closed. Tap one to open the task.',
+    changes: [
+      { type: 'new', text: 'Phone notifications for reminders. Turn them on once: tap "Turn on" on the Dashboard, or go to My Profile → Phone Notifications.' },
+      { type: 'new', text: 'Works on Android (Chrome, Edge, Samsung Internet) and computers. On iPhone (iOS 16.4 or newer), first add Task Mgnt to your home screen with "Download this app", then turn notifications on from the app.' },
+      { type: 'new', text: '"Send a test notification" in My Profile → Phone Notifications, to check it works on your phone.' },
+      { type: 'improved', text: 'Reminders now come as a phone notification and in Notifications → Reminders, instead of WhatsApp. New tasks and comments still come on WhatsApp and in Notifications.' },
+      { type: 'improved', text: 'Logging out turns off reminder notifications on that device, so the next person doesn\'t get yours.' },
+      { type: 'removed', admin: true, text: 'The WhatsApp "task_reminder" template is no longer needed (Settings → WhatsApp → Template Messages shows 4 templates).' },
+    ],
+  },
+  {
     version: '1.3.2',
     date: '2026-10-01',
     title: 'Easier reminders and a better phone layout',

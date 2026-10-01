@@ -1,3 +1,4 @@
+import { PushPrompt } from '../components/PushSettings'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -90,6 +91,7 @@ export function Home() {
         </div>
       </div>
 
+      <PushPrompt />
       <div className="section-label">My Day</div>
       <div className="stats">
         <StatCard icon={BellDot} tone="orange" value={stats.newTasks} label="New / Reassigned" />

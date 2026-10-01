@@ -1,4 +1,5 @@
 import { InstallApp } from './InstallApp'
+import { syncPush } from '../lib/push'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { BarChart3, Bell, CalendarDays, ClipboardList, LayoutGrid, type LucideIcon, LogOut, Menu, PanelLeft, Sparkles, Settings as SettingsIcon, UserRound, Users } from 'lucide-react'
@@ -63,6 +64,7 @@ export function Layout() {
 
   const [unseen, setUnseen] = useState(hasUnseenUpdate)
   useEffect(() => { setMobileOpen(false); setUnseen(hasUnseenUpdate()) }, [location.pathname])
+  useEffect(() => { syncPush() }, [])   // keep this device's phone-notification address up to date
   // Keep the app's web address (used in WhatsApp links) in sync with where admins open it.
   // The database ignores local/dev addresses, so this is safe on localhost.
   useEffect(() => {

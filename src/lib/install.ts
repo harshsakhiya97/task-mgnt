@@ -14,7 +14,7 @@ const notify = () => listeners.forEach((l) => l())
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e as InstallPromptEvent; notify() })
   window.addEventListener('appinstalled', () => { deferred = null; notify() })
-  if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}) })
   }
 }

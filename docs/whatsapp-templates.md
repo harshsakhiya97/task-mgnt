@@ -91,7 +91,9 @@ Please create the user to assign the task: {{link}}
 ```
 Samples: name = Viral Sakhiya · person = Rahul Raja · task = TM-160 – Coordinate post-webinar automation · link = https://pride.viralsakhiya.com/tasks?task=abc
 
-## 5. `task_reminder`
+## 5. `task_reminder` — no longer used (since 1.4)
+> Reminders are now sent as **phone notifications** (Web Push) plus the in-app Reminders tab, not WhatsApp. You don't need to create this template in WATI. Kept here for reference only.
+
 A task reminder: some time before the deadline (the task's end time, or 7:00 pm if it has no time) or at a set time. Urgent and high tasks get automatic reminders (Settings → Reminders); anyone can add their own in the task details. Not sent if the task is already done; recurring tasks have none.
 
 ```

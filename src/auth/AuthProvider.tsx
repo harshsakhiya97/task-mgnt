@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { disablePush } from '../lib/push'
 import type { Profile } from '../lib/types'
 
 interface AuthState {
@@ -59,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
       if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Wrong email or password' : error.message)
     },
-    signOut: async () => { await supabase.auth.signOut() },
+    // Stop this device's reminder notifications first, so the next person on this phone doesn't get mine.
+    signOut: async () => { await disablePush().catch(() => {}); await supabase.auth.signOut() },
     refreshProfile: () => loadProfile(session),
     clearRecovering: () => setRecovering(false),
   }

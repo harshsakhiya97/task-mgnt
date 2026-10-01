@@ -10,7 +10,7 @@
 //   WATI_TOKEN     the access token from WATI → API Docs ("Bearer …" is fine too)
 //   POST {"action":"check"} (admin only) -> is the token working, and are the templates approved?
 // Optional, if your WATI template names differ from the defaults:
-//   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT, WATI_TEMPLATE_TASK_UNASSIGNED, WATI_TEMPLATE_TASK_REMINDER
+//   WATI_TEMPLATE_TASK_ASSIGNED, WATI_TEMPLATE_TASK_COMMENT, WATI_TEMPLATE_DAILY_TASK_REPORT, WATI_TEMPLATE_TASK_UNASSIGNED
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 interface Outbox {
@@ -24,7 +24,8 @@ interface Outbox {
 // Pride's WATI API endpoint (not secret). A WATI_API_URL secret overrides it.
 const DEFAULT_WATI_API_URL = 'https://live-mt-server.wati.io/10103863'
 
-const KINDS: Outbox['kind'][] = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned', 'task_reminder']
+// Templates checked by "Check connection". (task_reminder is no longer sent: reminders are phone notifications since 1.4.)
+const KINDS: Outbox['kind'][] = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned']
 const INTERNAL_PARAMS = new Set(['more_count'])
 
 // Allows "Check connection" (Settings → WhatsApp → Configuration) to call this from the browser.
