@@ -89,3 +89,7 @@ export const WA_SAMPLES: Record<string, Record<string, string>> = {
   task_unassigned: { name: 'Viral Sakhiya', person: 'Rahul Raja', task: 'TM-160 – Coordinate post-webinar automation', link: 'https://pride.viralsakhiya.com/tasks?task=abc' },
   task_reminder: { name: 'Ravi', task: 'TM-165 – Prepare TVS weekly report', due: '01-Oct-2026, 04:00 PM - 05:00 PM (in 2 hours)', status: 'In Progress', link: 'https://pride.viralsakhiya.com/tasks?task=abc' },
 }
+
+/** The templates the app sends today (shown in Settings → WhatsApp → Template Messages and checked in WATI).
+ *  task_reminder is no longer sent: reminders are phone notifications since 1.4. */
+export const WA_ACTIVE_KINDS = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned'] as const

@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.5.2 — 1 Oct 2026
+
+- Settings → WhatsApp: the Template Messages tab count was hard-coded to 5; it now uses `WA_ACTIVE_KINDS` (lib/whatsappTemplates.ts, 4 templates), shared with the template list.
+
 ## Version 1.5.1 — 1 Oct 2026
 
 - **Reminders before/after the start or end.** `task_reminders.direction` (before/after) + `anchor` (start/end), `minutes_before` = amount (0 allowed = right at). Same per column in `reminder_rules` (`assignee_/assigner_direction`, `_anchor`). Start = start time on the due date (IST); no start time → start-based reminders are skipped ("Task has no start time") once the due date arrives, and re-opened if a start time is added (`tasks_reminders_recheck` now also watches `start_time`). New helpers `private.task_start`, `private.reminder_fire_at`, `private.human_rel`. "Before" reminders whose start/end already passed are skipped; "after" ones still send (unless done or >3 h late). Bell/push text: "starts at 10:00 AM (in 15 minutes)", "started at …", "is due …", "was due … (30 minutes ago)". Migration `20261001150000_reminder_anchor.sql`.

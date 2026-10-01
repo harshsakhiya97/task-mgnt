@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5.2',
+    date: '2026-10-01',
+    title: 'Small fixes',
+    summary: 'Settings → WhatsApp shows the right number of message templates.',
+    changes: [
+      { type: 'fixed', admin: true, text: 'Settings → WhatsApp: the Template Messages tab showed 5; it now shows 4, the number of templates the app actually sends.' },
+    ],
+  },
+  {
     version: '1.5.1',
     date: '2026-10-01',
     title: 'Reminders before or after the start or end',

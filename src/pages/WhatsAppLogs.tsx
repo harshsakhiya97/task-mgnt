@@ -8,7 +8,7 @@ import { WaTemplates } from '../components/WaTemplates'
 import { WatiConnection } from '../components/WatiConnection'
 import { supabase } from '../lib/supabase'
 import { addDays, todayStr } from '../lib/tasks'
-import { renderWhatsApp, WA_KIND_LABELS } from '../lib/whatsappTemplates'
+import { renderWhatsApp, WA_ACTIVE_KINDS, WA_KIND_LABELS } from '../lib/whatsappTemplates'
 
 export interface WaLog {
   id: string
@@ -115,7 +115,7 @@ export function WhatsAppLogs() {
 
       <SubTabs value={view} onChange={setView} options={[
         { value: 'list', label: 'WhatsApp Logs', icon: MessageCircle, badge: counts.total },
-        { value: 'templates', label: 'Template Messages', icon: FileText, badge: 5 },
+        { value: 'templates', label: 'Template Messages', icon: FileText, badge: WA_ACTIVE_KINDS.length },
         { value: 'config', label: 'Configuration', icon: SlidersHorizontal },
       ]} />
 
