@@ -42,12 +42,23 @@ export function ReminderAdder({ canRemindAssignee, assigneeIsMe, hasDue, onAdd, 
   )
 }
 
-/** "Urgent tasks get automatic reminders: the assignee 2 hrs before, you 1 hr before." */
-export function AutoReminderNote({ priority, recurring }: { priority: TaskPriority; recurring?: boolean }) {
+/** "Urgent tasks get automatic reminders: the assignee 2 hrs before, you 1 hr before."
+ *  With `prefilled`, the Add Task form already lists them as rows, so the note just says where they come from. */
+export function AutoReminderNote({ priority, recurring, prefilled }: { priority: TaskPriority; recurring?: boolean; prefilled?: boolean }) {
   const [rules, setRules] = useState<ReminderRule[]>([])
   useEffect(() => { loadReminderRules().then(setRules) }, [])
   if (recurring) return <p className="muted small rem-note">Recurring tasks don't have reminders.</p>
   const text = ruleText(rules.find((r) => r.priority === priority), 'you')
+  if (prefilled) {
+    return (
+      <p className="muted small rem-note">
+        <AlarmClock size={13} /> {text
+          ? <>Reminders marked <b>Auto</b> are added for {PRIORITY_LABELS[priority].toLowerCase()} tasks. Remove any you don't need, or add more.</>
+          : <>{PRIORITY_LABELS[priority]} tasks have no automatic reminders. You can add your own.</>}
+        {' '}The deadline is the task's end time, or 7:00 pm if it has no time.
+      </p>
+    )
+  }
   return (
     <p className="muted small rem-note">
       <AlarmClock size={13} /> {text
@@ -58,17 +69,39 @@ export function AutoReminderNote({ priority, recurring }: { priority: TaskPriori
   )
 }
 
+/** An automatic reminder shown in the Add Task form (from Settings → Reminders). The database adds it when the task is created. */
+export type AutoKey = 'assignee' | 'assigner'
+export interface AutoDraft extends DraftReminder { key: AutoKey }
+
+/** The automatic reminders a new task will get for this priority (assigner's one skipped for a task you give yourself). */
+export function autoDrafts(rule: ReminderRule | undefined, assigneeIsMe: boolean): AutoDraft[] {
+  if (!rule) return []
+  const list: AutoDraft[] = []
+  if (rule.assignee_minutes) list.push({ key: 'assignee', who: 'assignee', minutes: rule.assignee_minutes, at: null })
+  if (rule.assigner_minutes && !assigneeIsMe) list.push({ key: 'assigner', who: 'me', minutes: rule.assigner_minutes, at: null })
+  return list
+}
+
 /** Reminders added in the Add Task form (saved right after the task is created). */
-export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigneeIsMe, hasDue }: {
+export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigneeIsMe, hasDue, auto = [], onRemoveAuto }: {
   drafts: DraftReminder[]; onChange: (d: DraftReminder[]) => void
   canRemindAssignee: boolean; assigneeIsMe: boolean; hasDue: boolean
+  auto?: AutoDraft[]; onRemoveAuto?: (k: AutoKey) => void
 }) {
+  const who = (d: DraftReminder) => d.who === 'me' ? 'You' : assigneeIsMe ? 'You (assignee)' : 'Assignee'
   return (
     <div className="rem-box">
+      {auto.map((d) => (
+        <div key={d.key} className="rem-row">
+          <AlarmClock size={15} />
+          <span className="rem-what"><b>{who(d)}</b> · {minutesLabel(d.minutes ?? 0)} before the deadline <span className="tag">Auto</span></span>
+          <button type="button" className="icon" onClick={() => onRemoveAuto?.(d.key)} aria-label="Remove reminder" title="Remove reminder"><X size={15} /></button>
+        </div>
+      ))}
       {drafts.map((d, i) => (
         <div key={i} className="rem-row">
           <AlarmClock size={15} />
-          <span className="rem-what"><b>{d.who === 'me' ? 'You' : 'Assignee'}</b> · {d.minutes ? `${minutesLabel(d.minutes)} before the deadline` : whenText(d.at ? new Date(d.at) : null)}</span>
+          <span className="rem-what"><b>{who(d)}</b> · {d.minutes ? `${minutesLabel(d.minutes)} before the deadline` : whenText(d.at ? new Date(d.at) : null)}</span>
           <button type="button" className="icon" onClick={() => onChange(drafts.filter((_, j) => j !== i))} aria-label="Remove reminder"><X size={15} /></button>
         </div>
       ))}
@@ -86,6 +119,16 @@ export async function saveDraftReminders(taskId: string, meId: string, drafts: D
     minutes_before: d.minutes, remind_at: d.at,
   })))
   return error?.message ?? null
+}
+
+/** Remove the automatic reminders the user took out in the Add Task form (the database added them with the task). */
+export async function dropAutoReminders(taskId: string, assignerId: string, keys: AutoKey[]) {
+  for (const k of keys) {
+    const q = supabase.from('task_reminders').delete().eq('task_id', taskId).eq('auto', true)
+    const { error } = k === 'assignee' ? await q.eq('target', 'assignee') : await q.eq('target', 'person').eq('person_id', assignerId)
+    if (error) return error.message
+  }
+  return null
 }
 
 /** Task details → Reminders: list, add and remove. */

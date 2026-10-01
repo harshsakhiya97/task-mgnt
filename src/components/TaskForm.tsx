@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { todayStr, uploadAttachment, PRIORITY_LABELS, type Task, type TaskPriority, type TaskType } from '../lib/tasks'
@@ -8,7 +8,8 @@ import { Field } from './Fields'
 import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
 import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRangeInput'
-import { AutoReminderNote, DraftReminderList, saveDraftReminders, type DraftReminder } from './Reminders'
+import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, type AutoKey, type DraftReminder } from './Reminders'
+import { loadReminderRules, type ReminderRule } from '../lib/reminders'
 
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
@@ -37,9 +38,16 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const [endDate, setEndDate] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [reminders, setReminders] = useState<DraftReminder[]>([])
+  // Automatic reminders (Settings → Reminders) are shown as rows in the form; the ones taken out are removed after saving.
+  const [rules, setRules] = useState<ReminderRule[]>([])
+  const [removedAuto, setRemovedAuto] = useState<AutoKey[]>([])
+  useEffect(() => { if (!task) loadReminderRules(true).then(setRules) }, [task])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const creatingRecurring = !task && type === 'recurring'
+  const assigneeIsMe = assignedTo === profile?.id
+  const autoAll = !task && !creatingRecurring && dueDate ? autoDrafts(rules.find((r) => r.priority === priority), assigneeIsMe) : []
+  const autoShown = autoAll.filter((d) => !removedAuto.includes(d.key))
 
   const submit = async () => {
     if (!profile) return
@@ -75,6 +83,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       for (const f of files) await uploadAttachment(id!, profile.id, f)
       if (!task) {
         const err = await saveDraftReminders(id!, profile.id, reminders)
+          ?? await dropAutoReminders(id!, profile.id, autoAll.filter((d) => removedAuto.includes(d.key)).map((d) => d.key))
         if (err) throw new Error(`Task created, but a reminder couldn't be saved: ${err}`)
       }
       onSaved({ taskId: id })
@@ -118,7 +127,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </select>
         </Field>
         <Field label="Priority">
-          <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
+          <select value={priority} onChange={(e) => { setPriority(e.target.value as TaskPriority); setRemovedAuto([]) }}>
             {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </Field>
@@ -150,11 +159,12 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       {!creatingRecurring && task?.task_type !== 'recurring' && (
         <>
           <div className="form-section">Reminders</div>
-          <AutoReminderNote priority={priority} />
+          <AutoReminderNote priority={priority} prefilled={!task} />
           {task
             ? <p className="muted small">Add or remove this task's reminders in its details.</p>
             : <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
-                assigneeIsMe={assignedTo === profile?.id} hasDue={!!dueDate} />}
+                assigneeIsMe={assigneeIsMe} hasDue={!!dueDate}
+                auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />}
         </>
       )}
       {!task && !creatingRecurring && (

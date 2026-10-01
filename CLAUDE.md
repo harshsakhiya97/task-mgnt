@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.3.1**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.3.2**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -64,6 +64,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 
 **1.3 (30 Sep)** — **Reminders** (see §7). Notifications page split into **Notifications** / **Reminders** tabs.
 **1.3.1 (1 Oct)** — Perisclaw: a Task No in the sheet is trusted only if the app linked that task to a Perisclaw row (Perisclaw sometimes writes its own guess); otherwise the row is a new task and the cell is corrected.
+**1.3.2 (1 Oct)** — Add Task lists the priority's automatic reminders as removable "Auto" rows (removed ones are deleted after insert via `dropAutoReminders`).
 
 ---
 

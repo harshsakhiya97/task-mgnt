@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.3.2',
+    date: '2026-10-01',
+    title: 'Automatic reminders you can change',
+    summary: 'When you add an urgent or high priority task, its automatic reminders are listed in the form, so you can remove them or add more before saving.',
+    changes: [
+      { type: 'improved', text: 'Add Task shows the automatic reminders for the chosen priority as rows marked "Auto". Remove any you don\'t need, or add your own.' },
+    ],
+  },
+  {
     version: '1.3.1',
     date: '2026-10-01',
     title: 'Perisclaw task number fix',
