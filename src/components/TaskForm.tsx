@@ -163,7 +163,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           {task
             ? <p className="muted small">Add or remove this task's reminders in its details.</p>
             : <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
-                assigneeIsMe={assigneeIsMe} hasDue={!!dueDate}
+                assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate}
                 auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />}
         </>
       )}

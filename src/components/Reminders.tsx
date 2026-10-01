@@ -14,8 +14,8 @@ export interface DraftReminder { who: 'me' | 'assignee'; minutes: number | null;
 const localNow = () => { const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000); return d.toISOString().slice(0, 16) }
 
 /** One line to add a reminder: [Remind me/assignee] [2 hrs before / at a time] [Add]. */
-export function ReminderAdder({ canRemindAssignee, assigneeIsMe, hasDue, onAdd, busy }: {
-  canRemindAssignee: boolean; assigneeIsMe?: boolean; hasDue: boolean; busy?: boolean
+export function ReminderAdder({ canRemindAssignee, assigneeIsMe, assigneeName, hasDue, onAdd, busy }: {
+  canRemindAssignee: boolean; assigneeIsMe?: boolean; assigneeName?: string; hasDue: boolean; busy?: boolean
   onAdd: (d: DraftReminder) => void
 }) {
   const [who, setWho] = useState<'me' | 'assignee'>('me')
@@ -30,7 +30,7 @@ export function ReminderAdder({ canRemindAssignee, assigneeIsMe, hasDue, onAdd, 
     <div className="rem-adder">
       <select value={who} onChange={(e) => setWho(e.target.value as 'me' | 'assignee')} aria-label="Who gets the reminder">
         <option value="me">Remind me</option>
-        {canRemindAssignee && !assigneeIsMe && <option value="assignee">Remind the assignee</option>}
+        {canRemindAssignee && !assigneeIsMe && <option value="assignee">{assigneeName ? `Remind ${assigneeName}` : 'Remind the assignee'}</option>}
       </select>
       <select value={when} onChange={(e) => setWhen(e.target.value)} aria-label="When">
         {hasDue && REMINDER_PRESETS.map((m) => <option key={m} value={m}>{minutesLabel(m)} before the deadline</option>)}
@@ -85,12 +85,12 @@ export function autoDrafts(rule: ReminderRule | undefined, assigneeIsMe: boolean
 }
 
 /** Reminders added in the Add Task form (saved right after the task is created). */
-export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigneeIsMe, hasDue, auto = [], onRemoveAuto }: {
+export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigneeIsMe, assigneeName, hasDue, auto = [], onRemoveAuto }: {
   drafts: DraftReminder[]; onChange: (d: DraftReminder[]) => void
-  canRemindAssignee: boolean; assigneeIsMe: boolean; hasDue: boolean
+  canRemindAssignee: boolean; assigneeIsMe: boolean; assigneeName?: string; hasDue: boolean
   auto?: AutoDraft[]; onRemoveAuto?: (k: AutoKey) => void
 }) {
-  const who = (d: DraftReminder) => d.who === 'me' ? 'You' : assigneeIsMe ? 'You (assignee)' : 'Assignee'
+  const who = (d: DraftReminder) => d.who === 'me' ? 'You' : assigneeIsMe ? 'You (assignee)' : assigneeName ?? 'Assignee'
   return (
     <div className="rem-box">
       {auto.map((d) => (
@@ -107,7 +107,7 @@ export function DraftReminderList({ drafts, onChange, canRemindAssignee, assigne
           <button type="button" className="icon" onClick={() => onChange(drafts.filter((_, j) => j !== i))} aria-label="Remove reminder"><X size={15} /></button>
         </div>
       ))}
-      <ReminderAdder canRemindAssignee={canRemindAssignee} assigneeIsMe={assigneeIsMe} hasDue={hasDue}
+      <ReminderAdder canRemindAssignee={canRemindAssignee} assigneeIsMe={assigneeIsMe} assigneeName={assigneeName} hasDue={hasDue}
         onAdd={(d) => onChange([...drafts, d])} />
     </div>
   )
@@ -163,7 +163,7 @@ export function TaskReminders({ task, onError }: { task: Task; onError: (m: stri
   }
   const canRemove = (r: Reminder) => !!me && (isAdmin || r.created_by === me || r.person_id === me || me === task.assigned_by || me === task.created_by)
   const who = (r: Reminder) => r.target === 'assignee'
-    ? (task.assigned_to === me ? 'You (assignee)' : `Assignee${task.assignee ? ` (${task.assignee.full_name})` : ''}`)
+    ? (task.assigned_to === me ? 'You (assignee)' : task.assignee?.full_name ?? 'Assignee')
     : r.person_id === me ? 'You' : r.person?.full_name ?? 'Someone'
 
   return (
@@ -194,6 +194,7 @@ export function TaskReminders({ task, onError }: { task: Task; onError: (m: stri
         })}
         {task.status !== 'done' && (
           <ReminderAdder canRemindAssignee={canRemindAssignee && !!task.assigned_to} assigneeIsMe={task.assigned_to === me}
+            assigneeName={task.assignee?.full_name}
             hasDue={!!task.due_date} onAdd={add} busy={busy} />
         )}
       </div>
