@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.5.3**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 1.5.4**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -76,6 +76,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.5.1 (1 Oct)** — Tasks page: admins default to (and see first) the All Tasks tab. Reminders can be N min **before/after** the task's **start or end** (`direction`, `anchor`; start-based need a start time).
 **1.5.2 (1 Oct)** — Template Messages tab count fixed (4); add-reminder line in 4 equal columns.
 **1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
+**1.5.4 (1 Oct)** — iPhone: date/time inputs no longer widen forms (no sideways slide); 16px fields on phones.
 
 ---
 
@@ -150,7 +151,7 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 - **Deploy only when the owner says "deploy"**: merge into `main`, then fast-forward `deploy` and push → GitHub Actions (`deploy.yml`) builds with Node 20 and uploads changed files to cPanel over FTPS (secrets `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 - Database migrations and Edge Functions are applied/deployed directly to Supabase when built (they're live before the frontend deploy — keep frontend and DB compatible).
 - **Every release:** bump `package.json` (+ lockfile) version, add a section to `CHANGELOG.md`, add a user-facing entry at the top of `src/lib/changelog.ts` (What's New; `admin: true` for admin-only items), tag `vX.Y(.Z)`. Version label shows `major.minor` plus patch when ≠ 0.
-- Owner's Mac repo: `/Users/harshsakhiya/Documents/Projects/Task Mgnt/Repo` (on `main`, tags v1.0 … v1.5.2 local). Sync from the cloud session by `git bundle` → copy to the Mac → `git fetch`/`merge --ff-only`.
+- Owner's Mac repo: `/Users/harshsakhiya/Documents/Projects/Task Mgnt/Repo` (on `main`, tags v1.0 … v1.5.3 local). Sync from the cloud session by `git bundle` → copy to the Mac → `git fetch`/`merge --ff-only`.
 - Working style: discuss first when the owner is exploring an idea; build when they say start/go. Test DB changes with rollback blocks; verify live behaviour; don't paste or ask for secrets in chat (owner adds them in Supabase/GitHub or in the app).
 
 ---

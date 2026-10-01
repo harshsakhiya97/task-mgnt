@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5.4',
+    date: '2026-10-01',
+    title: 'iPhone form fix',
+    summary: 'On iPhone, Add Task and Edit Task no longer slide sideways or zoom when you tap the date or time.',
+    changes: [
+      { type: 'fixed', text: 'iPhone: the date and time boxes fit the screen, so the Add / Edit Task form no longer slides sideways, and tapping a field no longer zooms in.' },
+    ],
+  },
+  {
     version: '1.5.3',
     date: '2026-10-01',
     title: 'No zooming on phones',

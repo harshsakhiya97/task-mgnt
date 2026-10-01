@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 1.5.4 — 1 Oct 2026
+
+- iPhone forms: native date/time inputs have an intrinsic min-width that made drawers wider than the screen (the form slid sideways — looked like zoom). Date/time inputs: `appearance: none`, `min-width: 0`, `max-width: 100%`; drawers clip horizontal overflow; html/body `overflow-x: clip` on phones; form fields 16px on phones (no focus-zoom on iOS).
+
 ## Version 1.5.3 — 1 Oct 2026
 
 - No zoom on phones / installed app: viewport `maximum-scale=1, user-scalable=no`; `html { touch-action: pan-x pan-y }` + `touch-action: manipulation` on controls (no pinch / double-tap zoom); iOS `gesturestart`/`gesturechange` and multi-touch `touchmove` are cancelled (lib/install.ts), since iOS Safari ignores `user-scalable=no`.
