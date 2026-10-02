@@ -7,6 +7,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 
 - Reports → 📅 Meetings sub-tab (`components/MeetingReport.tsx`, `?view=meetings`), RPC `report_meetings(from, to, team)` (admin; migration `20261003120000_report_meetings.sql`): one row per meeting with people (organiser + attendees, team) and action items (`tasks.meeting_id`: assignee, status, expired). Team filter = meetings with someone from that team; person cards only for that team.
 - Cards: Total Meetings, Meeting Hours, People Hours (length × people; "Organised / Invited" when a person is picked), With Notes, Action Items, Items Done, Items Open (+ expired). Card per person (meetings, hours, organised, invited, their action items done / open, expired badge) → modal with chips (All / Organised / Invited / With notes / No notes / Open action items) and the meeting list. Excel: People + Meetings sheets.
+- Reports → Tasks redone like Reels / Meetings (`components/TaskReport.tsx`; Reports.tsx now only holds the date / team filters): Everyone/person filter + Export Excel in the toolbar, 8 count cards, a card per person (assigned, completed, on time, late, expired, pending + completion / on-time meters; people without tasks dimmed, last) → modal with chips (All / Completed / On time / Late / Expired / Pending) and the task list with result badges and Open. Task list / export leave meetings out (`kind <> 'meeting'`).
 - Report modals (Reels too) no longer run off the screen on phones; the table scrolls sideways.
 
 ## Version 2.2.1 — 2 Oct 2026

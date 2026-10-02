@@ -1082,3 +1082,9 @@ textarea.mt-notes { width: 100%; margin-bottom: 8px; }
 @media (max-width: 800px) { .att-names, .att-names > div { display: inline; } .att-names > div + div::before { content: ', '; } }
 .rr-num.bad b { color: var(--danger); }
 .rr-modal { min-width: 0; max-width: calc(100vw - 24px); box-sizing: border-box; } .rr-modal > * { min-width: 0; max-width: 100%; }
+.tr-meters { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; }
+.rr-card.rr-idle { opacity: .7; }
+.rr-badge.warn { color: var(--warn); background: #fff4e0; }
+@media (min-width: 1100px) { .stats.rr-stats.tr-stats { grid-template-columns: repeat(8, 1fr); } }
+.rr-badge:not(.ok):not(.bad):not(.warn) { background: var(--panel); color: var(--muted); }
+.rr-table td:nth-child(2) { white-space: normal; min-width: 200px; max-width: 360px; }

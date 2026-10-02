@@ -13,10 +13,11 @@ export const RELEASES: Release[] = [
   {
     version: '2.3.0',
     date: '2026-10-02',
-    title: 'Meetings report',
+    title: 'Meetings report, new Tasks report layout',
     summary: 'Reports has a new Meetings tab: time spent in meetings, notes written and the action items meetings produced, overall and per person.',
     changes: [
       { type: 'new', admin: true, text: 'Reports → Meetings: total meetings, meeting hours, people hours, meetings with notes, and action items done / open / expired. A card per person (meetings organised and invited to, hours, their action items) — click it to see their meetings, with filters and an Open button. Export to Excel.' },
+      { type: 'improved', admin: true, text: 'Reports → Tasks looks like the Reels and Meetings reports: a person filter, a card per person (assigned, completed, on time, late, expired, pending, completion and on-time bars) — click it to see that person\'s tasks with filters and an Open button.' },
       { type: 'fixed', admin: true, text: 'Report pop-ups (person reels / meetings) fit the screen on phones.' },
     ],
   },
