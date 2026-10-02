@@ -50,7 +50,7 @@ export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, o
   const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? (copyFrom?.reel?.upload_date && copyFrom.reel.upload_date >= todayStr() ? copyFrom.reel.upload_date : ''))
   const [subType, setSubType] = useState(src?.reel?.sub_type ?? '')
   const [title, setTitle] = useState(src?.title ?? '')
-  const [description, setDescription] = useState(src?.description ?? (actionFor ? `Action item from meeting ${taskCode(actionFor.task_no)} – ${actionFor.title}` : ''))
+  const [description, setDescription] = useState(src?.description ?? '')
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
   const [assignedTo, setAssignedTo] = useState(task ? task.assigned_to ?? '' : copyFrom?.assigned_to ?? initial?.assignTo ?? profile?.id ?? '')
   const wasUnassigned = !!task && !task.assigned_to
@@ -65,7 +65,7 @@ export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, o
   const [reminders, setReminders] = useState<DraftReminder[]>([])
   // Optional sections start closed (open if editing a task that already has them).
   const [opened, setOpened] = useState<Extra[]>(() => [
-    ...(src?.description || actionFor ? ['desc' as const] : []),
+    ...(src?.description ? ['desc' as const] : []),
     ...(src?.reel?.caption ? ['caption' as const] : []),
     ...(src?.start_time || initial?.from ? ['time' as const] : []),
   ])
@@ -180,17 +180,14 @@ export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, o
   const closedExtras = extras.filter((x) => x.show && !isOpen(x.key))
 
   return (
-    <Drawer wide title={task ? (task.kind === 'meeting' ? 'Edit Meeting' : 'Edit Task') : copyFrom ? `Copy ${taskCode(copyFrom.task_no)}` : actionFor ? 'Add Action Item' : 'Add Task'} onClose={onClose} onSubmit={submit}
+    <Drawer wide title={task ? (task.kind === 'meeting' ? 'Edit Meeting' : 'Edit Task') : copyFrom ? `Copy ${taskCode(copyFrom.task_no)}` : 'Add Task'} onClose={onClose} onSubmit={submit}
       submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : isMeeting ? 'Create Meeting' : 'Create Task'} busy={busy}>
-      {!task && !actionFor && (
+      {!task && (
         <div className="segmented type-picker" role="tablist" aria-label="Task type">
           {([['adhoc', 'One-time'], ['recurring', '↻ Recurring'], ['reel', '🎬 Reel'], ['meeting', '📅 Meeting']] as [Mode, string][]).map(([m, l]) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>{l}</button>
           ))}
         </div>
-      )}
-      {actionFor && (
-        <div className="hint-box">An action item from the meeting <b>{taskCode(actionFor.task_no)} – {actionFor.title}</b>. It shows in the meeting's Notes tab.</div>
       )}
       {copyFrom && (
         <div className="hint-box">A copy of <b>{taskCode(copyFrom.task_no)}</b>. Change anything you need, then create it. Comments, attachments, reminders and timer time aren't copied.</div>
@@ -274,7 +271,7 @@ export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, o
 
       {isOpen('desc') && (
         <Field label={isReel ? 'Brief / Instructions' : isMeeting ? 'Agenda' : 'Description'}>
-          <textarea rows={4} autoFocus={!task && !actionFor} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : isMeeting ? 'What will you discuss?' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea rows={4} autoFocus={!task} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : isMeeting ? 'What will you discuss?' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
       )}
       {isReel && isOpen('caption') && (
