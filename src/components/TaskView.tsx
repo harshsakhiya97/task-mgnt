@@ -20,7 +20,6 @@ import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
 import { ReelPanel, ReelTimer } from './Reel'
 import type { TimeEntry } from '../lib/reels'
-import { CopyButton } from './CopyButton'
 
 type Tab = 'overview' | 'reel' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
 
@@ -216,12 +215,6 @@ function Overview({ task, onShowDetails, onReassign, timer }: { task: Task; onSh
       {timer}
       <div className="form-section">{reel ? 'Brief / Instructions' : 'Description'}</div>
       {task.description ? <div className="desc">{task.description}</div> : <p className="muted">{reel ? 'No brief.' : 'No description.'}</p>}
-      {reel && (
-        <>
-          <div className="form-section with-action">Caption {task.reel?.caption && <CopyButton text={task.reel.caption} />}</div>
-          {task.reel?.caption ? <div className="desc">{task.reel.caption}</div> : <p className="muted">No caption yet (add it in the Reel tab).</p>}
-        </>
-      )}
       <div className="ov-actions">
         <button type="button" className="secondary" onClick={onShowDetails}>Show details <ChevronRight size={16} /></button>
         {onReassign && <button type="button" onClick={onReassign}><Forward size={16} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
