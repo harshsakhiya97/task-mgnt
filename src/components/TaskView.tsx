@@ -190,11 +190,13 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
   return (
     <>
       <div className="fgrid">
+        {task.kind !== 'meeting' && <>
         <Cell label="Assigned By" span={3}>
           {task.assigner?.full_name ?? '—'}
           {task.created_by !== task.assigned_by && task.creator && <small className="muted"> · created by {task.creator.full_name}</small>}
         </Cell>
         <Cell label="Assigned To" span={3}><AssigneeName task={task} /></Cell>
+        </>}
 
         <Cell label="Created Date" span={3}>
           {formatDate(task.created_at)} <small className="muted">({timeAgo(task.created_at)})</small>
@@ -310,7 +312,7 @@ function DateTimeEditor({ task, editable, schedule, onChanged, onError }: {
 
   return (
     <>
-      <Cell label={recurring ? 'Due Date (this day)' : 'Due Date'} span={recurring ? 2 : 6}>
+      <Cell label={recurring ? 'Due Date (this day)' : task.kind === 'meeting' ? 'Date' : 'Due Date'} span={recurring ? 2 : 6}>
         <div className="inline-edit">
           {editable
             ? <input type="date" value={date} onChange={(e) => changeDate(e.target.value)} aria-label="Due date" />
