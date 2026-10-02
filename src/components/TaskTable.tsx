@@ -36,7 +36,7 @@ export function TaskTable({ tasks, offset = 0, person, onOpen, onStatus, onDelet
               <div className="task-title" title={t.title}>
                 {isNewFor(t, profile?.id) && <span className="new-badge">New</span>}
                 {t.title}
-                <TypeChip type={t.task_type} />
+                <TypeChip task={t} />
               </div>
               {t.reassigned && t.assigned_to === profile?.id && t.assigner && (
                 <div className="reassigned-tag">↪ Reassigned by {t.assigner.full_name} · {timeAgo(t.assigned_at)}</div>

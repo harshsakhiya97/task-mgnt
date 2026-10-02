@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, ClipboardList, Clock3, Download, Gauge, Hourglass, Target, Timer } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clapperboard, ClipboardList, Clock3, Download, Gauge, Hourglass, Target, Timer } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { StatCard } from '../components/StatCard'
+import { SubTabs, useSubView } from '../components/SubTabs'
+import { ReelReport } from '../components/ReelReport'
 import { supabase } from '../lib/supabase'
 import {
-  addDays, formatDate, formatTimeRange, PRIORITY_LABELS, STATUS_LABELS, TASK_SELECT, taskCode, todayStr, TYPE_LABELS, type Task,
+  addDays, formatDate, formatTimeRange, PRIORITY_LABELS, STATUS_LABELS, TASK_SELECT, taskCode, todayStr, typeLabel, type Task,
 } from '../lib/tasks'
 import type { Team } from '../lib/types'
 
@@ -35,6 +38,8 @@ function resultOf(t: Task): 'On time' | 'Late' | 'Expired' | 'Pending' {
 }
 
 export function Reports() {
+  const [view, setView] = useSubView(['tasks', 'reels'] as const, 'tasks')
+  const navigate = useNavigate()
   const [preset, setPreset] = useState<Preset>('month')
   const [[from, to], setRange] = useState<[string, string]>(() => rangeFor('month'))
   const [teams, setTeams] = useState<Team[]>([])
@@ -96,7 +101,7 @@ export function Reports() {
         head(['Task No.', 'Title', 'Assigned To', 'Assigned By', 'Type', 'Priority', 'Due Date', 'Time', 'Status', 'Result', 'Completed At']),
         ...tasks.map((t) => [
           { value: taskCode(t.task_no) }, { value: t.title }, { value: t.assignee?.full_name ?? '' }, { value: t.assigner?.full_name ?? '' },
-          { value: TYPE_LABELS[t.task_type] }, { value: PRIORITY_LABELS[t.priority] }, { value: formatDate(t.due_date) },
+          { value: typeLabel(t) }, { value: PRIORITY_LABELS[t.priority] }, { value: formatDate(t.due_date) },
           { value: t.start_time ? formatTimeRange(t.start_time, t.end_time) : '' }, { value: STATUS_LABELS[t.status] },
           { value: resultOf(t) }, { value: t.completed_at ? new Date(t.completed_at).toLocaleString('en-IN') : '' },
         ]),
@@ -121,12 +126,21 @@ export function Reports() {
       <div className="page-head">
         <div>
           <h2>Reports</h2>
-          <p>Completion and on-time numbers per person, for tasks due in the chosen dates. A task is on time when it's marked Done by its end time (or by the end of its due date).</p>
+          <p>{view === 'reels'
+            ? 'Reels due in the chosen dates: expected vs actual views (24 hours after posting) and expected vs actual edit time, per editor and per reel.'
+            : 'Completion and on-time numbers per person, for tasks due in the chosen dates. A task is on time when it\'s marked Done by its end time (or by the end of its due date).'}</p>
         </div>
-        <div className="head-actions">
-          <button onClick={exportExcel} disabled={exporting || loading || !rows.length}><Download size={17} /> {exporting ? 'Preparing…' : 'Export Excel'}</button>
-        </div>
+        {view === 'tasks' && (
+          <div className="head-actions">
+            <button onClick={exportExcel} disabled={exporting || loading || !rows.length}><Download size={17} /> {exporting ? 'Preparing…' : 'Export Excel'}</button>
+          </div>
+        )}
       </div>
+
+      <SubTabs value={view} onChange={setView} options={[
+        { value: 'tasks', label: 'Tasks', icon: ClipboardList },
+        { value: 'reels', label: 'Reels', icon: Clapperboard },
+      ]} />
 
       {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
 
@@ -144,6 +158,7 @@ export function Reports() {
         </select>
       </div>
 
+      {view === 'reels' ? <ReelReport from={from} to={to} teamId={teamId} onOpen={(id) => navigate(`/tasks?task=${id}`)} /> : <>
       <div className="stats tab-stats">
         <StatCard icon={ClipboardList} tone="navy" value={total.assigned} label="Assigned" />
         <StatCard icon={CheckCircle2} tone="green" value={total.completed} label="Completed" />
@@ -191,6 +206,7 @@ export function Reports() {
         </div>
       </div>
       <p className="muted small-note">Completion = completed ÷ assigned. On-time = on time ÷ completed. Dates are {formatDate(from)} to {formatDate(to)}.</p>
+      </>}
     </>
   )
 }

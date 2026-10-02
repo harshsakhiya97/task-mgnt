@@ -10,7 +10,7 @@ import { TaskForm, type TaskSaved } from '../components/TaskForm'
 import { TaskTable, type PersonColumn } from '../components/TaskTable'
 import { TaskView } from '../components/TaskView'
 import { supabase } from '../lib/supabase'
-import { addDays, dueTag, fetchTasks, isGivenBy, isNewFor, PRIORITY_LABELS, STATUS_LABELS, taskCode, todayStr, TYPE_LABELS, type Task, type TaskPriority, type TaskStatus, type TaskType } from '../lib/tasks'
+import { addDays, dueTag, fetchTasks, isGivenBy, isNewFor, matchesType, PRIORITY_LABELS, STATUS_LABELS, taskCode, todayStr, TYPE_FILTER_LABELS, type Task, type TaskPriority, type TaskStatus, type TypeFilter } from '../lib/tasks'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 
@@ -39,7 +39,7 @@ export function Tasks() {
   const [priority, setPriority] = useState<'' | TaskPriority>('')
   const [due, setDue] = useState<Due>((params.get('due') as Due) || '')
   const [person, setPerson] = useState('')
-  const [type, setType] = useState<'' | TaskType>('')
+  const [type, setType] = useState<'' | TypeFilter>((params.get('type') as TypeFilter) || '')
   const [recurringKey, setRecurringKey] = useState(0)
   const [recurringCount, setRecurringCount] = useState(0)
   const [recurringCounts, setRecurringCounts] = useState<RecurringCounts>({ total: 0, active: 0, paused: 0, ended: 0 })
@@ -88,7 +88,7 @@ export function Tasks() {
     if (status && status !== 'open' && t.status !== status) return false
     if (priority && t.priority !== priority) return false
     if ((due === 'ongoing' || due === 'expired' || due === 'completed') && dueTag(t) !== due) return false
-    if (type && t.task_type !== type) return false
+    if (!matchesType(t, type)) return false
     if (due === 'today' && t.due_date !== today) return false
     if (due === 'week' && !(t.due_date && t.due_date >= today && t.due_date <= weekEnd)) return false
     if (person) {
@@ -99,7 +99,7 @@ export function Tasks() {
     }
     const q = search.trim().toLowerCase()
     return !q || t.title.toLowerCase().includes(q) || taskCode(t.task_no).toLowerCase().includes(q)
-      || (t.description ?? '').toLowerCase().includes(q)
+      || (t.description ?? '').toLowerCase().includes(q) || (t.reel?.caption ?? '').toLowerCase().includes(q)
   })
 
   // Newest first (by when the task was added). In "Assigned to Me", unopened (New) tasks stay on top.
@@ -205,9 +205,9 @@ export function Tasks() {
             <option value="today">Due Today</option>
             <option value="week">Due This Week</option>
           </select>
-          <select className="pill-select" value={type} onChange={(e) => setType(e.target.value as TaskType | '')}>
+          <select className="pill-select" value={type} onChange={(e) => setType(e.target.value as TypeFilter | '')}>
             <option value="">All Types</option>
-            {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {Object.entries(TYPE_FILTER_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <select className="pill-select" value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority | '')}>
             <option value="">Select Priority</option>

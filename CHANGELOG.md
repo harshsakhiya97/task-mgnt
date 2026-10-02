@@ -3,6 +3,16 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.0.0 — 2 Oct 2026
+
+- Task kinds: `tasks.kind` (`task` | `reel` | `meeting` — meeting reserved for 2.1). Add Task has One-time / Recurring / 🎬 Reel. Reels are one-time tasks.
+- `task_reels` (1 row per reel, made by trigger `tasks_reel_row`): caption, instagram_url, youtube_url, posted_at (set on the first link), expected_views, expected_minutes. RLS: read/update if the user can see the task; trigger `task_reels_guard` lets only the creator / assigner / admin change the expected numbers.
+- `reel_views`: manual counts per platform (`source` manual now, `auto` later for 2.3). "Views at 24 h" = the count closest to posted_at + 24 h within 18–48 h (`private.reel_views_24h`), Instagram + YouTube summed.
+- `task_time_entries` + RPC `task_timer(task, 'start'|'pause'|'stop')`: start = assignee only (→ In Progress; pauses their other running timer; one running timer per person via a partial unique index); pause/stop = assignee or admin; stop → Done. Done or reassign stops running timers (trigger `tasks_stop_timers`). Cron `pause-running-timers` 29 18 * * * (23:59 IST). Manual blocks (own, finished, ≤ 24 h) and deleting own finished blocks allowed. Timer actions logged in `task_activity` (`timer`).
+- RPC `report_reels(from, to, team)` (admin): per reel task due in range. Reports page has Tasks / Reels sub-tabs (`?view=reels`); Reels: stat cards, per-editor and per-reel tables, Excel export (Editors + Reels sheets).
+- UI: TaskView Overview shows the timer card + caption for reels; new 🎬 Reel tab (Reel.tsx). Team Board shows 🎬 and "● Editing" (running timers). TASK_SELECT embeds `reel:task_reels(*)`.
+- Migration `20261002100000_reels.sql`.
+
 ## Version 1.5.4 — 1 Oct 2026
 
 - iPhone forms: native date/time inputs have an intrinsic min-width that made drawers wider than the screen (the form slid sideways — looked like zoom). Date/time inputs: `appearance: none`, `min-width: 0`, `max-width: 100%`; drawers clip horizontal overflow; html/body `overflow-x: clip` on phones; form fields 16px on phones (no focus-zoom on iOS).

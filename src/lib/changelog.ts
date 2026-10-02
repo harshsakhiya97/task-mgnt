@@ -11,6 +11,20 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '2.0.0',
+    date: '2026-10-02',
+    title: 'Reels',
+    summary: 'A new task type for the reel editors: video title, caption, expected views and edit time, a Start / Pause / Stop edit timer, post links and view counts, plus a Reels report.',
+    changes: [
+      { type: 'new', text: 'Add Task → 🎬 Reel: video title, brief, caption, expected views (24 hours after posting) and expected edit time.' },
+      { type: 'new', text: 'Edit timer on the reel (Overview tab): the editor taps Start (the reel moves to In Progress), Pause for breaks, and Stop when editing is finished (it moves to Done). Every Start → Pause counts as a block of edit time. A timer left running is paused at 11:59 pm.' },
+      { type: 'new', text: '🎬 Reel tab: caption (with Copy), Instagram and YouTube links, posted time, view counts typed in by hand (views at 24 hours and latest), and the list of edit-time blocks. Forgot the timer? Add the time by hand.' },
+      { type: 'new', text: 'Reels show a 🎬 Reel tag in the task list, and the Type filter has "Reels".' },
+      { type: 'new', admin: true, text: 'Reports → Reels: expected vs actual views at 24 hours and expected vs actual edit time, per editor and per reel, with Excel export.' },
+      { type: 'new', admin: true, text: 'Team Board: reels have a 🎬 tag, and "● Editing" shows whose edit timer is running right now.' },
+    ],
+  },
+  {
     version: '1.5.4',
     date: '2026-10-01',
     title: 'iPhone form fix',

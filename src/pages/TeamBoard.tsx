@@ -45,6 +45,7 @@ export function TeamBoard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [started, setStarted] = useState<Record<string, string>>({})   // task id → when it went In Progress
+  const [timing, setTiming] = useState<Set<string>>(new Set())         // tasks with a running edit timer (2.0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [status, setStatus] = useState<StatusFilter>('open')
@@ -70,6 +71,8 @@ export function TeamBoard() {
         for (const r of (data ?? []) as { task_id: string; created_at: string }[]) map[r.task_id] = r.created_at
         setStarted(map)
       } else setStarted({})
+      const { data: run } = await supabase.from('task_time_entries').select('task_id').is('ended_at', null)
+      setTiming(new Set(((run ?? []) as { task_id: string }[]).map((r) => r.task_id)))
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
     setLoading(false)
   }, [])
@@ -178,6 +181,8 @@ export function TeamBoard() {
           <span className="tb-no">{taskCode(t.task_no)}</span>
           <PriorityBadge priority={t.priority} />
           {t.task_type === 'recurring' && <span className="tb-chip"><Repeat size={11} /> Daily</span>}
+          {t.kind === 'reel' && <span className="tb-chip reel">🎬 Reel</span>}
+          {timing.has(t.id) && <span className="tb-live" title="Edit timer running"><span className="live-dot" /> Editing</span>}
         </div>
         <div className="tb-meta">
           {t.due_date && <span className={`tb-due ${late ? 'late' : ''}`}><AlarmClock size={13} /> {shortDate(t.due_date)}</span>}

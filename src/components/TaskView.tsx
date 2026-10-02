@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { initials } from '../lib/initials'
 import { supabase } from '../lib/supabase'
 import {
-  canReassign, canSetTime, type RecurringTask, formatDate, formatTime, formatSize, isOverdue, TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS, TASK_SELECT, taskCode, timeAgo, uploadAttachment,
+  canReassign, canSetTime, type RecurringTask, formatDate, formatTime, formatSize, isOverdue, typeLabel, PRIORITY_LABELS, STATUS_LABELS, TASK_SELECT, taskCode, timeAgo, uploadAttachment,
   type Task, type TaskActivity, type TaskAttachment, type TaskComment, type TaskPriority, type TaskStatus,
 } from '../lib/tasks'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -18,8 +18,11 @@ import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
+import { ReelPanel, ReelTimer } from './Reel'
+import type { ReelViews, TimeEntry } from '../lib/reels'
+import { CopyButton } from './CopyButton'
 
-type Tab = 'overview' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
+type Tab = 'overview' | 'reel' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
 
 /** Slide-over showing one task with Overview (title + description) / Details / Comments / Attachments / Reminders / Activity tabs. */
 export function TaskView({ taskId, onClose, onEdit, onChanged }: {
@@ -39,15 +42,19 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reassigning, setReassigning] = useState(false)
   const [reminderCount, setReminderCount] = useState(0)
+  const [entries, setEntries] = useState<TimeEntry[]>([])
+  const [views, setViews] = useState<ReelViews[]>([])
   const users = useActiveUsers()
 
   const load = useCallback(async () => {
-    const [t, c, f, a, r] = await Promise.all([
+    const [t, c, f, a, r, te, rv] = await Promise.all([
       supabase.from('tasks').select(TASK_SELECT).eq('id', taskId).maybeSingle(),
       supabase.from('task_comments').select('*, author:profiles(id, full_name)').eq('task_id', taskId).order('created_at'),
       supabase.from('task_attachments').select('*, uploader:profiles(id, full_name)').eq('task_id', taskId).order('created_at'),
       supabase.from('task_activity').select('*, actor:profiles(id, full_name)').eq('task_id', taskId).order('created_at', { ascending: false }),
       supabase.from('task_reminders').select('id', { count: 'exact', head: true }).eq('task_id', taskId),
+      supabase.from('task_time_entries').select('*, person:profiles(id, full_name)').eq('task_id', taskId).order('started_at'),
+      supabase.from('reel_views').select('*, recorder:profiles(id, full_name)').eq('task_id', taskId).order('counted_at'),
     ])
     if (t.error) setError(t.error.message)
     setTask((t.data as Task) ?? null)
@@ -55,6 +62,8 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
     setFiles((f.data as TaskAttachment[]) ?? [])
     setActivity((a.data as TaskActivity[]) ?? [])
     setReminderCount(r.count ?? 0)
+    setEntries((te.data as TimeEntry[]) ?? [])
+    setViews((rv.data as ReelViews[]) ?? [])
   }, [taskId])
 
   useEffect(() => { load() }, [load])
@@ -103,6 +112,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
         </div>
         <div className="tabs">
           <button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>Overview</button>
+          {task?.kind === 'reel' && <button className={tab === 'reel' ? 'active' : ''} onClick={() => setTab('reel')}>🎬 Reel</button>}
           <button className={tab === 'details' ? 'active' : ''} onClick={() => setTab('details')}>Details</button>
           <button className={tab === 'comments' ? 'active' : ''} onClick={() => setTab('comments')}>Comments <span className="tab-count">{comments.length}</span></button>
           <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>Attachments <span className="tab-count">{files.length}</span></button>
@@ -117,7 +127,11 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
             <>
               {tab === 'overview' && (
                 <Overview task={task} onShowDetails={() => setTab('details')}
-                  onReassign={mayReassign ? () => setReassigning(true) : undefined} />
+                  onReassign={mayReassign ? () => setReassigning(true) : undefined}
+                  timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} /> : null} />
+              )}
+              {tab === 'reel' && task.kind === 'reel' && (
+                <ReelPanel task={task} entries={entries} views={views} onChanged={refresh} onError={setError} />
               )}
               {tab === 'details' && (
                 <Details task={task} onStatus={setStatus}
@@ -176,7 +190,7 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
             : <span className="muted">Not completed yet</span>}
         </Cell>
 
-        <Cell label="Type" span={2}>{task.task_type === 'recurring' ? '↻ Recurring' : TYPE_LABELS[task.task_type]}</Cell>
+        <Cell label="Type" span={2}>{task.kind === 'reel' ? '🎬 Reel' : task.task_type === 'recurring' ? '↻ Recurring' : typeLabel(task)}</Cell>
         <Cell label="Priority" span={2}><PriorityBadge priority={task.priority} /></Cell>
         <Cell label="Status" span={2}><StatusSelect value={task.status} onChange={onStatus} /></Cell>
 
@@ -187,14 +201,22 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
 }
 
 /** Overview tab: just the title and the description (+ on phones, "Show details" and Assign / Reassign below). */
-function Overview({ task, onShowDetails, onReassign }: { task: Task; onShowDetails: () => void; onReassign?: () => void }) {
+function Overview({ task, onShowDetails, onReassign, timer }: { task: Task; onShowDetails: () => void; onReassign?: () => void; timer?: React.ReactNode }) {
+  const reel = task.kind === 'reel'
   return (
     <>
       <div className="fgrid">
-        <Cell label="Task Title" span={6}><span className="fcell-title">{task.title}</span></Cell>
+        <Cell label={reel ? 'Video Title' : 'Task Title'} span={6}><span className="fcell-title">{task.title}</span></Cell>
       </div>
-      <div className="form-section">Description</div>
-      {task.description ? <div className="desc">{task.description}</div> : <p className="muted">No description.</p>}
+      {timer}
+      <div className="form-section">{reel ? 'Brief / Instructions' : 'Description'}</div>
+      {task.description ? <div className="desc">{task.description}</div> : <p className="muted">{reel ? 'No brief.' : 'No description.'}</p>}
+      {reel && (
+        <>
+          <div className="form-section with-action">Caption {task.reel?.caption && <CopyButton text={task.reel.caption} />}</div>
+          {task.reel?.caption ? <div className="desc">{task.reel.caption}</div> : <p className="muted">No caption yet (add it in the Reel tab).</p>}
+        </>
+      )}
       <div className="ov-actions">
         <button type="button" className="secondary" onClick={onShowDetails}>Show details <ChevronRight size={16} /></button>
         {onReassign && <button type="button" onClick={onReassign}><Forward size={16} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}
@@ -444,6 +466,9 @@ function describe(a: TaskActivity) {
     case 'comment': return <><b>{who}</b> commented: “{a.new_value}”</>
     case 'attachment': return <><b>{who}</b> attached <b>{a.new_value}</b></>
     case 'comment_deleted': return <><b>{who}</b> deleted a comment: <span className="muted">“{a.old_value}”</span></>
+    case 'timer':
+      if (a.new_value === 'auto_paused') return <><b>{who}</b>'s edit timer was paused automatically at 11:59 pm</>
+      return <><b>{who}</b> {a.new_value === 'started' ? 'started the edit timer' : a.new_value === 'paused' ? 'paused the edit timer' : 'finished editing (timer stopped)'}</>
     case 'attachment_deleted': return <><b>{who}</b> deleted the attachment <b>{a.old_value}</b></>
     default: return <><b>{who}</b> {a.action}</>
   }

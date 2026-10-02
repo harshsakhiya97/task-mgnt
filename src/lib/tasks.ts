@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { ReelInfo, TaskKind } from './reels'
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -12,6 +13,13 @@ export const PRIORITY_LABELS: Record<TaskPriority, string> = {
 
 export type TaskType = 'adhoc' | 'recurring'
 export const TYPE_LABELS: Record<TaskType, string> = { adhoc: 'Ad hoc', recurring: 'Recurring' }
+
+/** Type filter / label that also knows reels: "Ad hoc" · "Recurring" · "Reel". */
+export type TypeFilter = TaskType | 'reel'
+export const TYPE_FILTER_LABELS: Record<TypeFilter, string> = { adhoc: 'Ad hoc', recurring: 'Recurring', reel: 'Reels' }
+export const typeLabel = (t: Pick<Task, 'task_type' | 'kind'>) => (t.kind === 'reel' ? 'Reel' : TYPE_LABELS[t.task_type])
+export const matchesType = (t: Pick<Task, 'task_type' | 'kind'>, f: TypeFilter | '') =>
+  !f || (f === 'reel' ? t.kind === 'reel' : t.task_type === f && t.kind !== 'reel')
 
 /** Due-date tag: Ongoing (not done, not past due), Expired (not done, past due), Completed (done). */
 export type DueTag = 'ongoing' | 'expired' | 'completed'
@@ -64,6 +72,8 @@ export interface Task {
   reassigned: boolean            // current assignee got it via a handover
   seen_at: string | null         // when the current assignee first opened it (null = New)
   task_type: TaskType            // adhoc = one-off; recurring = one day's copy of a recurring task
+  kind: TaskKind                 // task (normal) | reel (video edit) | meeting (2.1)
+  reel?: ReelInfo | null         // reel details (kind = reel)
   recurring_id: string | null
   occurrence_date: string | null
   due_date: string | null        // YYYY-MM-DD
@@ -84,7 +94,7 @@ export interface TaskAttachment { id: string; task_id: string; uploaded_by: stri
 export interface TaskActivity { id: number; task_id: string; actor_id: string | null; action: string; old_value: string | null; new_value: string | null; created_at: string; actor: PersonRef | null }
 
 export const TASK_SELECT =
-  '*, assignee:profiles!tasks_assigned_to_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), creator:profiles!tasks_created_by_fkey(id, full_name)'
+  '*, assignee:profiles!tasks_assigned_to_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), creator:profiles!tasks_created_by_fkey(id, full_name), reel:task_reels(*)'
 
 /** "Assigned by Me": I created it or passed it on, and it's now with someone else. */
 export const isGivenBy = (t: Task, userId?: string) =>

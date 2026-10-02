@@ -11,6 +11,8 @@ import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRange
 import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, TaskReminders, type AutoKey, type AutoPreview, type DraftReminder } from './Reminders'
 import { loadReminderRules, type ReminderRule } from '../lib/reminders'
 
+type Mode = TaskType | 'reel'
+
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
 /** Create a new task (ad hoc or recurring), or edit the details of an existing one (creator/admin only). */
@@ -23,7 +25,14 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   onSaved: (r: TaskSaved) => void
 }) {
   const { profile } = useAuth()
-  const [type, setType] = useState<TaskType>(task?.task_type ?? 'adhoc')
+  const [mode, setMode] = useState<Mode>(task ? (task.kind === 'reel' ? 'reel' : task.task_type) : 'adhoc')
+  const type: TaskType = mode === 'recurring' ? 'recurring' : 'adhoc'
+  const isReel = mode === 'reel'
+  // Reel details (2.0): caption, expected views, expected edit time.
+  const [caption, setCaption] = useState(task?.reel?.caption ?? '')
+  const [expViews, setExpViews] = useState(task?.reel?.expected_views != null ? String(task.reel.expected_views) : '')
+  const [expH, setExpH] = useState(task?.reel?.expected_minutes ? String(Math.floor(task.reel.expected_minutes / 60)) : '')
+  const [expM, setExpM] = useState(task?.reel?.expected_minutes ? String(task.reel.expected_minutes % 60) : '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
@@ -67,6 +76,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     if (!creatingRecurring && task?.task_type !== 'recurring' && !dueDate) return setError('Ad hoc tasks need a due date')
     const timeErr = timePairError(from, to)
     if (timeErr) return setError(timeErr)
+    const expMinutes = (Number(expH) || 0) * 60 + (Number(expM) || 0)
+    if (isReel && (Number(expH) < 0 || Number(expM) < 0 || Number(expViews) < 0)) return setError('Expected views and time can\'t be negative')
+    const reelFields = { caption: caption.trim() || null, expected_views: expViews === '' ? null : Math.round(Number(expViews)), expected_minutes: expMinutes || null }
     setBusy(true)
     try {
       if (creatingRecurring) {
@@ -91,9 +103,19 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
         const err = dropped.length ? await dropAutoReminders(task.id, task.assigned_by, dropped) : null
         if (err) throw new Error(`Task updated, but a reminder couldn't be removed: ${err}`)
       } else {
-        const { data, error } = await supabase.from('tasks').insert({ ...fields, task_type: 'adhoc', assigned_by: profile.id }).select('id').single()
+        const { data, error } = await supabase.from('tasks')
+          .insert({ ...fields, task_type: 'adhoc', kind: isReel ? 'reel' : 'task', assigned_by: profile.id }).select('id').single()
         if (error) throw new Error(error.message)
         id = data.id as string
+      }
+      if (isReel) {
+        // The reel's details row is made with the task; fill it in (only what changed when editing).
+        const r = task?.reel
+        const changed = !r || r.caption !== reelFields.caption || r.expected_views !== reelFields.expected_views || r.expected_minutes !== reelFields.expected_minutes
+        if (changed) {
+          const { error } = await supabase.from('task_reels').update(reelFields).eq('task_id', id!)
+          if (error) throw new Error(`${task ? 'Task updated' : 'Reel created'}, but its details couldn't be saved: ${error.message}`)
+        }
       }
       for (const f of files) await uploadAttachment(id!, profile.id, f)
       if (!task) {
@@ -116,23 +138,42 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
 
   return (
     <Drawer title={task ? 'Edit Task' : 'Add Task'} onClose={onClose} onSubmit={submit}
-      submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : 'Create Task'} busy={busy}>
+      submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : 'Create Task'} busy={busy}>
       {!task && (
-        <div className="segmented" role="tablist" aria-label="Task type">
-          <button type="button" role="tab" aria-selected={type === 'adhoc'} className={type === 'adhoc' ? 'on' : ''} onClick={() => setType('adhoc')}>Ad hoc (one-time)</button>
-          <button type="button" role="tab" aria-selected={type === 'recurring'} className={type === 'recurring' ? 'on' : ''} onClick={() => setType('recurring')}>↻ Recurring</button>
+        <div className="segmented type-picker" role="tablist" aria-label="Task type">
+          {([['adhoc', 'One-time'], ['recurring', '↻ Recurring'], ['reel', '🎬 Reel']] as [Mode, string][]).map(([m, l]) => (
+            <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>{l}</button>
+          ))}
         </div>
       )}
       {task?.task_type === 'recurring' && (
         <div className="hint-box">This is one day's copy of a recurring task. Changes here affect only this day. To change the schedule, edit it under <b>Tasks → Recurring</b>.</div>
       )}
-      <div className="form-section">Task Details</div>
-      <Field label="Title" required>
-        <input required autoFocus placeholder="What needs to be done?" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="form-section">{isReel ? 'Reel Details' : 'Task Details'}</div>
+      <Field label={isReel ? 'Video Title' : 'Title'} required>
+        <input required autoFocus placeholder={isReel ? 'e.g. 5 tips for Class 10 boards' : 'What needs to be done?'} value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
-      <Field label="Description">
-        <textarea rows={4} placeholder="Add details, links or instructions" value={description} onChange={(e) => setDescription(e.target.value)} />
+      <Field label={isReel ? 'Brief / Instructions' : 'Description'}>
+        <textarea rows={isReel ? 3 : 4} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
       </Field>
+      {isReel && (
+        <>
+          <Field label="Caption" hint="The editor can change it later in the reel's details.">
+            <textarea rows={3} placeholder="Caption for the post (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
+          </Field>
+          <div className="form-grid">
+            <Field label="Expected Views" hint="Views you expect 24 hours after posting.">
+              <input type="number" inputMode="numeric" min={0} step={100} placeholder="e.g. 10000" value={expViews} onChange={(e) => setExpViews(e.target.value)} />
+            </Field>
+            <Field label="Expected Edit Time" hint="How long the edit should take.">
+              <div className="duration-input">
+                <input type="number" inputMode="numeric" min={0} max={168} placeholder="0" value={expH} onChange={(e) => setExpH(e.target.value)} aria-label="Hours" /><span>h</span>
+                <input type="number" inputMode="numeric" min={0} max={59} step={5} placeholder="0" value={expM} onChange={(e) => setExpM(e.target.value)} aria-label="Minutes" /><span>m</span>
+              </div>
+            </Field>
+          </div>
+        </>
+      )}
       <div className="form-section">Assignment</div>
       <div className="form-grid">
         <Field label="Assign To" required={!wasUnassigned}>
