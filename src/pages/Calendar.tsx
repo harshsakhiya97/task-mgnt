@@ -213,13 +213,17 @@ export function Calendar() {
 
   const renderEvent = (arg: EventContentArg) => {
     const who = arg.event.extendedProps.who as string
+    const t = arg.event.extendedProps.task as Task | undefined
+    // Reels get the same tag as in the task list ("🎬 Thumbnail Design" / "🎬 Reel").
+    const tag = t?.kind === 'reel' ? `🎬 ${t.reel?.sub_type ?? 'Reel'}` : ''
     if (arg.event.allDay) {
-      return <div className="ev-due" title={`${arg.event.title} · ${who}`}>{arg.event.title}<span className="ev-who-inline"> · {who}</span></div>
+      return <div className="ev-due" title={`${arg.event.title} · ${who}`}>{tag && <span className="ev-tag">{tag}</span>}{arg.event.title}<span className="ev-who-inline"> · {who}</span></div>
     }
     return (
       <div className="ev-block" title={`${arg.event.title} · ${who}`}>
         <div className="ev-time">{arg.timeText}</div>
         <div className="ev-title">{arg.event.title}</div>
+        {tag && <span className="ev-tag">{tag}</span>}
         <div className="ev-who"><UserRound size={11} /> {who}</div>
       </div>
     )

@@ -6,6 +6,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 ## Version 2.1.0 — (in progress)
 
 - Copy task: `TaskTable` `onCopy` (Copy icon next to View) → `TaskForm copyFrom={task}` ("Copy TM-n"): new task prefilled with title, description, assignee, priority, due date (today if it was in the past), time; reels also sub-type, caption, upload date (dropped if past). Not copied: comments, attachments, reminders, timer, links, views. Recurring copies become one-time tasks.
+- Calendar events show the reel tag (`.ev-tag`, sub-type or "Reel"). Reel Edit Time Save only shown to the editor.
 
 ## Version 2.0.0 — 2 Oct 2026
 
