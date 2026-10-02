@@ -1080,3 +1080,5 @@ textarea.mt-notes { width: 100%; margin-bottom: 8px; }
 .att-chip .att-tag { font-size: 10.5px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: .3px; }
 .att-names { display: flex; flex-direction: column; gap: 2px; }
 @media (max-width: 800px) { .att-names, .att-names > div { display: inline; } .att-names > div + div::before { content: ', '; } }
+.rr-num.bad b { color: var(--danger); }
+.rr-modal { min-width: 0; max-width: calc(100vw - 24px); box-sizing: border-box; } .rr-modal > * { min-width: 0; max-width: 100%; }

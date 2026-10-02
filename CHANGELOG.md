@@ -3,6 +3,12 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.3.0 — 2 Oct 2026
+
+- Reports → 📅 Meetings sub-tab (`components/MeetingReport.tsx`, `?view=meetings`), RPC `report_meetings(from, to, team)` (admin; migration `20261003120000_report_meetings.sql`): one row per meeting with people (organiser + attendees, team) and action items (`tasks.meeting_id`: assignee, status, expired). Team filter = meetings with someone from that team; person cards only for that team.
+- Cards: Total Meetings, Meeting Hours, People Hours (length × people; "Organised / Invited" when a person is picked), With Notes, Action Items, Items Done, Items Open (+ expired). Card per person (meetings, hours, organised, invited, their action items done / open, expired badge) → modal with chips (All / Organised / Invited / With notes / No notes / Open action items) and the meeting list. Excel: People + Meetings sheets.
+- Report modals (Reels too) no longer run off the screen on phones; the table scrolls sideways.
+
 ## Version 2.2.1 — 2 Oct 2026
 
 - Task list: for meetings the Assigned To column lists the attendees (one per line on desktop, comma-separated on phone cards); Assigned By shows the organiser.

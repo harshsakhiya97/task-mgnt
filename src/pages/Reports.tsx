@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clapperboard, ClipboardList, Clock3, Download, Gauge, Hourglass, Target, Timer } from 'lucide-react'
+import { AlertTriangle, CalendarClock, CheckCircle2, Clapperboard, ClipboardList, Clock3, Download, Gauge, Hourglass, Target, Timer } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { StatCard } from '../components/StatCard'
 import { SubTabs, useSubView } from '../components/SubTabs'
 import { ReelReport } from '../components/ReelReport'
+import { MeetingReport } from '../components/MeetingReport'
 import { supabase } from '../lib/supabase'
 import {
   addDays, formatDate, formatTimeRange, PRIORITY_LABELS, STATUS_LABELS, TASK_SELECT, taskCode, todayStr, typeLabel, type Task,
@@ -38,7 +39,7 @@ function resultOf(t: Task): 'On time' | 'Late' | 'Expired' | 'Pending' {
 }
 
 export function Reports() {
-  const [view, setView] = useSubView(['tasks', 'reels'] as const, 'tasks')
+  const [view, setView] = useSubView(['tasks', 'reels', 'meetings'] as const, 'tasks')
   const navigate = useNavigate()
   const [preset, setPreset] = useState<Preset>('month')
   const [[from, to], setRange] = useState<[string, string]>(() => rangeFor('month'))
@@ -126,7 +127,9 @@ export function Reports() {
       <div className="page-head">
         <div>
           <h2>Reports</h2>
-          <p>{view === 'reels'
+          <p>{view === 'meetings'
+            ? 'Meetings in the chosen dates: time spent in meetings, notes written and the action items they produced, overall and per person.'
+            : view === 'reels'
             ? 'Reels due in the chosen dates: expected vs actual views (24 hours after posting) and expected vs actual edit time, per editor and per reel.'
             : 'Completion and on-time numbers per person, for tasks due in the chosen dates. A task is on time when it\'s marked Done by its end time (or by the end of its due date).'}</p>
         </div>
@@ -140,6 +143,7 @@ export function Reports() {
       <SubTabs value={view} onChange={setView} options={[
         { value: 'tasks', label: 'Tasks', icon: ClipboardList },
         { value: 'reels', label: 'Reels', icon: Clapperboard },
+        { value: 'meetings', label: 'Meetings', icon: CalendarClock },
       ]} />
 
       {error && <div className="alert error" onClick={() => setError('')}>{error}</div>}
@@ -158,7 +162,8 @@ export function Reports() {
         </select>
       </div>
 
-      {view === 'reels' ? <ReelReport from={from} to={to} teamId={teamId} onOpen={(id) => navigate(`/tasks?task=${id}`)} /> : <>
+      {view === 'meetings' ? <MeetingReport from={from} to={to} teamId={teamId} onOpen={(id) => navigate(`/tasks?task=${id}`)} />
+        : view === 'reels' ? <ReelReport from={from} to={to} teamId={teamId} onOpen={(id) => navigate(`/tasks?task=${id}`)} /> : <>
       <div className="stats tab-stats">
         <StatCard icon={ClipboardList} tone="navy" value={total.assigned} label="Assigned" />
         <StatCard icon={CheckCircle2} tone="green" value={total.completed} label="Completed" />
