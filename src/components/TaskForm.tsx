@@ -51,6 +51,8 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   useEffect(() => { loadReminderRules(true).then(setRules) }, [])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // If the task was created but a later step failed, "Create" again finishes that task instead of adding a copy.
+  const [createdId, setCreatedId] = useState<string | null>(null)
   const creatingRecurring = !task && type === 'recurring'
   const assigneeIsMe = assignedTo === profile?.id
   const autoAll = !task && !creatingRecurring && dueDate ? autoDrafts(rules.find((r) => r.priority === priority), assigneeIsMe) : []
@@ -98,11 +100,16 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
         const dropped = editAuto.filter((d) => removedAuto.includes(d.key)).map((d) => d.key)
         const err = dropped.length ? await dropAutoReminders(task.id, task.assigned_by, dropped) : null
         if (err) throw new Error(`Task updated, but a reminder couldn't be removed: ${err}`)
+      } else if (createdId) {
+        const { error } = await supabase.from('tasks').update(fields).eq('id', createdId)
+        if (error) throw new Error(error.message)
+        id = createdId
       } else {
         const { data, error } = await supabase.from('tasks')
           .insert({ ...fields, task_type: 'adhoc', kind: isReel ? 'reel' : 'task', assigned_by: profile.id }).select('id').single()
         if (error) throw new Error(error.message)
         id = data.id as string
+        setCreatedId(id)
       }
       if (isReel) {
         // The reel's details row is made with the task; fill it in (only what changed when editing).

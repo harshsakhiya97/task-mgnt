@@ -12,7 +12,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 - RPC `report_reels(from, to, team)` (admin): per reel task due in range. Reports page has Tasks / Reels sub-tabs (`?view=reels`); Reels: stat cards, per-editor and per-reel tables, Excel export (Editors + Reels sheets).
 - UI: TaskView Overview shows the timer card + caption for reels; new 🎬 Reel tab (Reel.tsx). Team Board shows 🎬 and "● Editing" (running timers). TASK_SELECT embeds `reel:task_reels(*)`.
 - Migration `20261002100000_reels.sql`.
-- Owner feedback: Add Task for reels has caption + **upload date** (`task_reels.upload_date`, creator/assigner/admin) and no reminders/attachments; expected views / edit time moved to the Reel tab ("Expected" section) — set by the editor (assignee), creator/assigner or admin; locked for non-admins once Done. Reels get no auto reminders and none can be added (`tasks_auto_reminders`, `task_reminders_before`). Reports → Reels shows Upload Date (read from task_reels) and flags posts after it. Migration `20261002110000_reels_editor_targets.sql`.
+- Owner feedback: Add Task for reels has caption + **upload date** (`task_reels.upload_date`, creator/assigner/admin) and no reminders/attachments; expected views / edit time moved to the Reel tab ("Expected" section) — set by the editor (assignee), creator/assigner or admin; locked for non-admins once Done. Reels get no reminders: `task_reminders_before` silently skips automatic ones (trigger depth > 1) and refuses manual ones; open reminders on existing reels marked skipped. Reports → Reels shows Upload Date (read from task_reels) and flags posts after it. Migration `20261002110000_reels_editor_targets.sql`.
 
 ## Version 1.5.4 — 1 Oct 2026
 

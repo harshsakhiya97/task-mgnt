@@ -4,7 +4,7 @@
 --     Editor, the person who gave it, or an admin may set them; once the reel is Done only an admin can change them.
 --   * New "upload date" (the day the reel should go up), set by whoever gives the reel (or an admin).
 
-alter table public.task_reels add column upload_date date;
+alter table public.task_reels add column if not exists upload_date date;
 
 create or replace function private.task_reels_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
@@ -36,30 +36,7 @@ begin
   return new;
 end $$;
 
--- No automatic reminders for reels.
-create or replace function private.tasks_auto_reminders() returns trigger
-language plpgsql security definer set search_path = '' as $$
-declare r record;
-begin
-  if new.recurring_id is not null or new.due_date is null or new.kind = 'reel' then return new; end if;
-  if tg_op = 'UPDATE' then
-    if new.priority is not distinct from old.priority then return new; end if;
-    delete from public.task_reminders where task_id = new.id and auto and sent_at is null and skipped is null;
-  end if;
-  select * into r from public.reminder_rules where priority = new.priority;
-  if not found then return new; end if;
-  if r.assignee_minutes is not null then
-    insert into public.task_reminders (task_id, target, minutes_before, direction, anchor, auto)
-    values (new.id, 'assignee', r.assignee_minutes, r.assignee_direction, r.assignee_anchor, true);
-  end if;
-  if r.assigner_minutes is not null and new.assigned_by is distinct from new.assigned_to then
-    insert into public.task_reminders (task_id, target, person_id, minutes_before, direction, anchor, auto)
-    values (new.id, 'person', new.assigned_by, r.assigner_minutes, r.assigner_direction, r.assigner_anchor, true);
-  end if;
-  return new;
-end $$;
-
--- …and none can be added by hand.
+-- Reels: automatic reminders (inserted by tasks_auto_reminders) are quietly skipped; adding one by hand is refused.
 create or replace function private.task_reminders_before() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -69,7 +46,10 @@ begin
   select id, recurring_id, kind, due_date, assigned_by, assigned_to, created_by into t from public.tasks where id = new.task_id;
   if not found then raise exception 'Task not found'; end if;
   if t.recurring_id is not null then raise exception 'Recurring tasks don''t have reminders'; end if;
-  if t.kind = 'reel' then raise exception 'Reels don''t have reminders'; end if;
+  if t.kind = 'reel' then
+    if pg_trigger_depth() > 1 then return null; end if;
+    raise exception 'Reels don''t have reminders';
+  end if;
   if new.minutes_before is not null and t.due_date is null then raise exception 'This task has no due date, so pick an exact time'; end if;
   if new.remind_at is not null then new.direction := 'before'; new.anchor := 'end'; end if;
   new.sent_at := null; new.skipped := null;
@@ -91,3 +71,7 @@ begin
 end $$;
 
 -- (The Reels report reads upload_date from task_reels directly, so report_reels stays as it is.)
+
+-- Reels created before this change: their open reminders are marked skipped.
+update public.task_reminders rm set skipped = 'Reels don''t have reminders'
+  from public.tasks t where t.id = rm.task_id and t.kind = 'reel' and rm.sent_at is null and rm.skipped is null;
