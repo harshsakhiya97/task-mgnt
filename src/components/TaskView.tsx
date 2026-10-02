@@ -127,7 +127,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
               {tab === 'overview' && (
                 <Overview task={task} onShowDetails={() => setTab('details')}
                   onReassign={mayReassign ? () => setReassigning(true) : undefined}
-                  timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} onOpenReel={() => setTab('reel')} /> : null} />
+                  timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} /> : null} />
               )}
               {tab === 'reel' && task.kind === 'reel' && (
                 <ReelPanel task={task} entries={entries} onChanged={refresh} onError={setError} />
