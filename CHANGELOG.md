@@ -13,6 +13,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 - UI: TaskView Overview shows the timer card + caption for reels; new 🎬 Reel tab (Reel.tsx). Team Board shows 🎬 and "● Editing" (running timers). TASK_SELECT embeds `reel:task_reels(*)`.
 - Migration `20261002100000_reels.sql`.
 - Owner feedback: Add Task for reels has caption + **upload date** (`task_reels.upload_date`, creator/assigner/admin) and no reminders/attachments; expected views / edit time moved to the Reel tab ("Expected" section) — set by the editor (assignee), creator/assigner or admin; locked for non-admins once Done. Reels get no reminders: `task_reminders_before` silently skips automatic ones (trigger depth > 1) and refuses manual ones; open reminders on existing reels marked skipped. Reports → Reels shows Upload Date (read from task_reels) and flags posts after it. Migration `20261002110000_reels_editor_targets.sql`.
+- One view count per reel: `task_reels.actual_views` (+ `views_counted_at` / `views_counted_by`, set by the guard trigger); the Reel tab has a single "Actual views" box instead of the count list. `report_reels` returns it as views_24h/latest_views (same signature); report labels say "Actual Views". `reel_views` kept, unused, for automatic counts later. Migration `20261002120000_reel_single_views.sql`.
 
 ## Version 1.5.4 — 1 Oct 2026
 

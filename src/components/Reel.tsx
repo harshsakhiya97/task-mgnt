@@ -4,13 +4,10 @@ import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { formatDate, timeAgo, type Task } from '../lib/tasks'
 import {
-  durationText, latestViews, minutesText, PLATFORM_LABELS, timer, totalSeconds, viewsAt24h, viewsText,
-  type Platform, type ReelViews, type TimeEntry,
+  durationText, minutesText, timer, totalSeconds, viewsText, type TimeEntry,
 } from '../lib/reels'
 import { ConfirmDialog } from './ConfirmDialog'
 import { CopyButton } from './CopyButton'
-
-const PLATFORMS: Platform[] = ['instagram', 'youtube']
 
 /** Re-render every second while `on` (for a running timer). */
 function useSecondTick(on: boolean) {
@@ -115,8 +112,8 @@ export function ReelTimer({ task, entries, onChanged, onError, onOpenReel }: {
 }
 
 /** The Reel tab: caption, post links, views (at 24 h and latest) and the edit-time blocks. */
-export function ReelPanel({ task, entries, views, onChanged, onError }: {
-  task: Task; entries: TimeEntry[]; views: ReelViews[]; onChanged: () => void; onError: (m: string) => void
+export function ReelPanel({ task, entries, onChanged, onError }: {
+  task: Task; entries: TimeEntry[]; onChanged: () => void; onError: (m: string) => void
 }) {
   const reel = task.reel
   if (!reel) return <p className="muted">Reel details are loading…</p>
@@ -124,7 +121,7 @@ export function ReelPanel({ task, entries, views, onChanged, onError }: {
     <>
       <Targets task={task} onChanged={onChanged} onError={onError} />
       <PostDetails task={task} onChanged={onChanged} onError={onError} />
-      <ViewsSection task={task} views={views} onChanged={onChanged} onError={onError} />
+      <ViewsSection task={task} onChanged={onChanged} onError={onError} />
       <TimeSection task={task} entries={entries} onChanged={onChanged} onError={onError} />
     </>
   )
@@ -169,7 +166,7 @@ function Targets({ task, onChanged, onError }: { task: Task; onChanged: () => vo
       {canEdit ? (
         <div className="reel-add-views">
           <label className="reel-field">
-            <span>Expected views (at 24 h)</span>
+            <span>Expected views</span>
             <input type="number" inputMode="numeric" min={0} step={100} placeholder="e.g. 10000" value={views} onChange={(e) => setViews(e.target.value)} />
           </label>
           <label className="reel-field">
@@ -244,7 +241,7 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
         <label className="reel-field">
           <span>Posted at</span>
           <input type="datetime-local" value={posted} onChange={(e) => setPosted(e.target.value)} />
-          <small className="muted">Set automatically when the first link is added. Views at 24 h are counted from this time.</small>
+          <small className="muted">Set automatically when the first link is added.</small>
         </label>
         <div className="inline-edit">
           <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
@@ -255,98 +252,52 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
   )
 }
 
-function ViewsSection({ task, views, onChanged, onError }: {
-  task: Task; views: ReelViews[]; onChanged: () => void; onError: (m: string) => void
-}) {
-  const { profile } = useAuth()
+/** One view count per reel (typed in once, ~24 hours after posting), compared with the expected views. */
+function ViewsSection({ task, onChanged, onError }: { task: Task; onChanged: () => void; onError: (m: string) => void }) {
   const reel = task.reel!
-  const [counts, setCounts] = useState<Record<Platform, string>>({ instagram: '', youtube: '' })
-  const [at, setAt] = useState('')
+  const [value, setValue] = useState(reel.actual_views != null ? String(reel.actual_views) : '')
   const [busy, setBusy] = useState(false)
-  const [showAll, setShowAll] = useState(false)
-  // Platforms with a link (or both when none is added yet).
-  const shown = PLATFORMS.filter((p) => (p === 'instagram' ? reel.instagram_url : reel.youtube_url))
-  const platforms = shown.length ? shown : PLATFORMS
-
-  const at24 = platforms.map((p) => viewsAt24h(views, p, reel.posted_at))
-  const latest = platforms.map((p) => latestViews(views, p))
-  const sum = (xs: (ReelViews | null)[]) => (xs.some(Boolean) ? xs.reduce((s, x) => s + (x?.views ?? 0), 0) : null)
-  const total24 = sum(at24), totalLatest = sum(latest)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => { setValue(reel.actual_views != null ? String(reel.actual_views) : '') }, [reel.actual_views])
   const exp = reel.expected_views
+  const actual = reel.actual_views
+  const next = value.trim() === '' ? null : Math.round(Number(value))
+  const dirty = next !== actual
   const hoursSincePost = reel.posted_at ? (Date.now() - new Date(reel.posted_at).getTime()) / 3600e3 : null
 
-  const add = async () => {
-    const rows = platforms.filter((p) => counts[p].trim() !== '').map((p) => ({
-      task_id: task.id, platform: p, views: Math.round(Number(counts[p])), counted_at: fromLocalInput(at) ?? new Date().toISOString(),
-    }))
-    if (!rows.length) return onError('Type the view count first')
-    if (rows.some((r) => !Number.isFinite(r.views) || r.views < 0)) return onError('Views should be a number')
+  const save = async () => {
+    if (next != null && (!Number.isFinite(next) || next < 0)) return onError('Views should be a number')
     setBusy(true)
-    const { error } = await supabase.from('reel_views').insert(rows)
+    const { error } = await supabase.from('task_reels').update({ actual_views: next }).eq('task_id', task.id)
     setBusy(false)
     if (error) return onError(error.message)
-    setCounts({ instagram: '', youtube: '' }); setAt('')
+    setSaved(true); window.setTimeout(() => setSaved(false), 1500)
     onChanged()
   }
-
-  const remove = async (id: number) => {
-    const { error } = await supabase.from('reel_views').delete().eq('id', id)
-    if (error) onError(error.message); else onChanged()
-  }
-
-  const list = [...views].sort((a, b) => b.counted_at.localeCompare(a.counted_at))
 
   return (
     <>
       <div className="form-section">Views</div>
-      <div className="reel-stats">
+      <div className="reel-stats two">
         <div><span>Expected</span><b>{viewsText(exp)}</b></div>
         <div>
-          <span>At 24 hours</span>
-          <b>{viewsText(total24)}</b>
-          {total24 != null && exp ? <small className={total24 >= exp ? 'ok-text' : 'overdue-text'}>{Math.round((total24 / exp) * 100)}% of expected</small>
-            : !reel.posted_at ? <small className="muted">Add the post link first</small>
-            : hoursSincePost != null && hoursSincePost < 18 ? <small className="muted">Count it {durationText((24 - hoursSincePost) * 3600)} from now</small>
-            : total24 == null ? <small className="muted">No count between 18–48 h</small> : null}
+          <span>Actual</span>
+          <b>{viewsText(actual)}</b>
+          {actual != null && exp ? <small className={actual >= exp ? 'ok-text' : 'overdue-text'}>{Math.round((actual / exp) * 100)}% of expected</small>
+            : actual != null && reel.views_counted_at ? <small className="muted">counted {timeAgo(reel.views_counted_at)}</small>
+            : hoursSincePost != null && hoursSincePost < 24 ? <small className="muted">Add it {durationText((24 - hoursSincePost) * 3600)} from now</small>
+            : null}
         </div>
-        <div><span>Latest</span><b>{viewsText(totalLatest)}</b>{latest.some(Boolean) && <small className="muted">{timeAgo(latest.filter(Boolean).map((x) => x!.counted_at).sort().pop()!)}</small>}</div>
       </div>
-      {platforms.length > 1 && (at24.some(Boolean) || latest.some(Boolean)) && (
-        <div className="muted small reel-split">
-          {platforms.map((p, i) => <span key={p}>{PLATFORM_LABELS[p]}: {viewsText(at24[i]?.views)} at 24 h · {viewsText(latest[i]?.views)} latest</span>)}
-        </div>
-      )}
-
       <div className="reel-add-views">
-        {platforms.map((p) => (
-          <label key={p} className="reel-field">
-            <span>{PLATFORM_LABELS[p]} views</span>
-            <input type="number" inputMode="numeric" min={0} placeholder="e.g. 12500" value={counts[p]}
-              onChange={(e) => setCounts((c) => ({ ...c, [p]: e.target.value }))} />
-          </label>
-        ))}
         <label className="reel-field">
-          <span>Counted at</span>
-          <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+          <span>Actual views {reel.instagram_url && reel.youtube_url ? '(Instagram + YouTube)' : ''}</span>
+          <input type="number" inputMode="numeric" min={0} placeholder="e.g. 12500" value={value} onChange={(e) => setValue(e.target.value)} />
         </label>
-        <button type="button" disabled={busy} onClick={add}><Plus size={16} /> Add count</button>
+        <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+        {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}
       </div>
-      <p className="muted small">Leave "Counted at" empty to use the current time. Views at 24 h = the count recorded closest to 24 hours after posting.</p>
-
-      {list.length > 0 && (
-        <ul className="reel-history">
-          {(showAll ? list : list.slice(0, 4)).map((v) => (
-            <li key={v.id}>
-              <b>{v.views.toLocaleString('en-IN')}</b> <span className="muted">on {PLATFORM_LABELS[v.platform]}</span>
-              <small className="muted">{dateTime(v.counted_at)}{v.source === 'auto' ? ' · auto' : v.recorder ? ` · ${v.recorder.full_name}` : ''}</small>
-              {(v.recorded_by === profile?.id || profile?.role === 'admin') && (
-                <button className="icon" title="Delete" onClick={() => remove(v.id)}><Trash2 size={15} /></button>
-              )}
-            </li>
-          ))}
-          {list.length > 4 && <li><button type="button" className="link" onClick={() => setShowAll((s) => !s)}>{showAll ? 'Show less' : `Show all ${list.length}`}</button></li>}
-        </ul>
-      )}
+      <p className="muted small">Add the views once, 24 hours after posting{actual != null && reel.views_counted_at ? ` · last saved ${dateTime(reel.views_counted_at)}` : ''}.</p>
     </>
   )
 }

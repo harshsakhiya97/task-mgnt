@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            36 SQL files, applied in order (timestamps 20260925… → 20261002100000)
+  migrations/            38 SQL files, applied in order (timestamps 20260925… → 20261002120000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -81,7 +81,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` reserved for 2.1). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
 Reel = one-time task + `task_reels` row (caption, upload_date — set in Add Task by whoever gives it, instagram_url, youtube_url, posted_at — auto-set on first link, expected_views, expected_minutes — set by the **editor** in the Reel tab, locked for non-admins once Done). Reels have no reminders (DB blocks them) and no attachments section in Add Task.
 Edit timer (`components/Reel.tsx` `ReelTimer`, RPC `task_timer`): Start (assignee only → In Progress, pauses their other running timer) / Pause / **Stop = editing finished → Done** (assignee or admin). Blocks in `task_time_entries`; manual "add time" + delete own blocks; running timers paused 23:59 IST (cron `pause-running-timers`).
-🎬 Reel tab (`ReelPanel`): caption/links/posted time, manual view counts (`reel_views`, per platform), time blocks. Views at 24 h = count closest to posted+24 h within 18–48 h (`private.reel_views_24h`, same rule in lib/reels.ts).
+🎬 Reel tab (`ReelPanel`): Expected (editor), caption/links/posted time, **one** view count `task_reels.actual_views` (owner: "we will add only 1 count", typed ~24 h after posting), time blocks. `reel_views` + `private.reel_views_24h` exist but are unused (kept for auto views in 2.3).
 Reports → Reels sub-tab (`components/ReelReport.tsx`, RPC `report_reels`, admin): per editor + per reel, expected vs actual views at 24 h and edit time, Excel. Team Board: 🎬 chip + "● Editing" for running timers.
 
 ---

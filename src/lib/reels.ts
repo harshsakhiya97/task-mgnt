@@ -16,6 +16,9 @@ export interface ReelInfo {
   upload_date: string | null       // day the reel should go up (set by whoever gives it)
   expected_views: number | null
   expected_minutes: number | null
+  actual_views: number | null        // the one view count (typed in ~24 h after posting)
+  views_counted_at: string | null
+  views_counted_by: string | null
   updated_at: string
 }
 

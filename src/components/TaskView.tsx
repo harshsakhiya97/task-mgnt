@@ -19,7 +19,7 @@ import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
 import { ReelPanel, ReelTimer } from './Reel'
-import type { ReelViews, TimeEntry } from '../lib/reels'
+import type { TimeEntry } from '../lib/reels'
 import { CopyButton } from './CopyButton'
 
 type Tab = 'overview' | 'reel' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
@@ -43,18 +43,16 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   const [reassigning, setReassigning] = useState(false)
   const [reminderCount, setReminderCount] = useState(0)
   const [entries, setEntries] = useState<TimeEntry[]>([])
-  const [views, setViews] = useState<ReelViews[]>([])
   const users = useActiveUsers()
 
   const load = useCallback(async () => {
-    const [t, c, f, a, r, te, rv] = await Promise.all([
+    const [t, c, f, a, r, te] = await Promise.all([
       supabase.from('tasks').select(TASK_SELECT).eq('id', taskId).maybeSingle(),
       supabase.from('task_comments').select('*, author:profiles(id, full_name)').eq('task_id', taskId).order('created_at'),
       supabase.from('task_attachments').select('*, uploader:profiles(id, full_name)').eq('task_id', taskId).order('created_at'),
       supabase.from('task_activity').select('*, actor:profiles(id, full_name)').eq('task_id', taskId).order('created_at', { ascending: false }),
       supabase.from('task_reminders').select('id', { count: 'exact', head: true }).eq('task_id', taskId),
       supabase.from('task_time_entries').select('*, person:profiles(id, full_name)').eq('task_id', taskId).order('started_at'),
-      supabase.from('reel_views').select('*, recorder:profiles(id, full_name)').eq('task_id', taskId).order('counted_at'),
     ])
     if (t.error) setError(t.error.message)
     setTask((t.data as Task) ?? null)
@@ -63,7 +61,6 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
     setActivity((a.data as TaskActivity[]) ?? [])
     setReminderCount(r.count ?? 0)
     setEntries((te.data as TimeEntry[]) ?? [])
-    setViews((rv.data as ReelViews[]) ?? [])
   }, [taskId])
 
   useEffect(() => { load() }, [load])
@@ -133,7 +130,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
                   timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} onOpenReel={() => setTab('reel')} /> : null} />
               )}
               {tab === 'reel' && task.kind === 'reel' && (
-                <ReelPanel task={task} entries={entries} views={views} onChanged={refresh} onError={setError} />
+                <ReelPanel task={task} entries={entries} onChanged={refresh} onError={setError} />
               )}
               {tab === 'details' && (
                 <Details task={task} onStatus={setStatus}

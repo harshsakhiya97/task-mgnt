@@ -9,12 +9,12 @@ const pct = (a: number | null, b: number | null) => (a == null || !b ? null : Ma
 
 interface EditorRow {
   id: string; name: string; reels: number; done: number; posted: number
-  expViews: number; views24: number; counted: number   // counted = reels with both an expected and a 24 h count
+  expViews: number; views24: number; counted: number   // counted = reels with both an expected and an actual count
   expMin: number; actMin: number; timed: number          // timed = reels with an expected time and some actual time
 }
 
 /**
- * Reports → Reels (admin): expected vs actual views (at 24 h after posting) and expected vs actual edit time,
+ * Reports → Reels (admin): expected vs actual views and expected vs actual edit time,
  * per editor and per reel, for reels due in the chosen dates.
  */
 export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: string; teamId: string; onOpen?: (taskId: string) => void }) {
@@ -40,7 +40,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
   }, [from, to, teamId])
   useEffect(() => { load() }, [load])
 
-  // Ratios only compare reels that have both numbers (a reel without a 24 h count doesn't pull the % down).
+  // Ratios only compare reels that have both numbers (a reel without an actual count doesn't pull the % down).
   const editors = useMemo(() => {
     const m = new Map<string, EditorRow>()
     for (const r of rows) {
@@ -68,22 +68,22 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
       const head = (labels: string[]) => labels.map((value) => ({ value, fontWeight: 'bold' as const, backgroundColor: '#E8EAF6' }))
       const num = (v: number | null | undefined) => ({ value: v ?? undefined })
       const summary = [
-        head(['Editor', 'Reels', 'Done', 'Posted', 'Expected views*', 'Views at 24 h*', 'Views %', 'Expected time (min)**', 'Actual time (min)**', 'Time %']),
+        head(['Editor', 'Reels', 'Done', 'Posted', 'Expected views*', 'Actual views*', 'Views %', 'Expected time (min)**', 'Actual time (min)**', 'Time %']),
         ...editors.map((e) => [
           { value: e.name }, num(e.reels), num(e.done), num(e.posted), num(e.counted ? e.expViews : null), num(e.counted ? e.views24 : null),
           num(pct(e.views24, e.expViews)), num(e.timed ? e.expMin : null), num(e.timed ? e.actMin : null), num(pct(e.actMin, e.expMin)),
         ]),
         [],
-        [{ value: '* Only reels with both an expected count and a count at 24 h. ** Only reels with an expected time and some timed work.' }],
+        [{ value: '* Only reels with both an expected and an actual view count. ** Only reels with an expected time and some timed work.' }],
       ]
       const detail = [
-        head(['Task No.', 'Video Title', 'Editor', 'Due Date', 'Upload Date', 'Status', 'Posted At', 'Instagram', 'YouTube', 'Expected Views', 'Views at 24 h', 'Views %', 'Latest Views', 'Expected Time (min)', 'Actual Time (min)', 'Time %']),
+        head(['Task No.', 'Video Title', 'Editor', 'Due Date', 'Upload Date', 'Status', 'Posted At', 'Instagram', 'YouTube', 'Expected Views', 'Actual Views', 'Views %', 'Expected Time (min)', 'Actual Time (min)', 'Time %']),
         ...rows.map((r) => [
           { value: taskCode(r.task_no) }, { value: r.title }, { value: r.editor_name ?? '' }, { value: formatDate(r.due_date) }, { value: r.upload_date ? formatDate(r.upload_date) : '' },
           { value: STATUS_LABELS[r.status as TaskStatus] ?? r.status },
           { value: r.posted_at ? new Date(r.posted_at).toLocaleString('en-IN') : '' },
           { value: r.instagram_url ?? '' }, { value: r.youtube_url ?? '' },
-          num(r.expected_views), num(r.views_24h), num(pct(r.views_24h, r.expected_views)), num(r.latest_views),
+          num(r.expected_views), num(r.views_24h), num(pct(r.views_24h, r.expected_views)),
           num(r.expected_minutes), num(r.actual_minutes || null), num(r.actual_minutes ? pct(r.actual_minutes, r.expected_minutes) : null),
         ]),
       ]
@@ -112,7 +112,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
         <StatCard icon={Clapperboard} tone="navy" value={total.reels} label="Reels" />
         <StatCard icon={Send} tone="green" value={total.posted} label="Posted" />
         <StatCard icon={Target} tone="teal" value={total.counted ? viewsText(total.expViews) : '—'} label="Expected Views" />
-        <StatCard icon={Eye} tone="blue" value={total.counted ? viewsText(total.views24) : '—'} label="Views at 24 h" />
+        <StatCard icon={Eye} tone="blue" value={total.counted ? viewsText(total.views24) : '—'} label="Actual Views" />
         <StatCard icon={Gauge} tone="purple" value={viewsPct == null ? '—' : `${viewsPct}%`} label="Views vs Expected" />
         <StatCard icon={Clock3} tone="yellow" value={total.timed ? minutesText(total.expMin) : '—'} label="Expected Time" />
         <StatCard icon={Timer} tone="orange" value={total.timed ? minutesText(total.actMin) : '—'} label="Actual Time" />
@@ -131,7 +131,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
           ) : (
             <table>
               <thead>
-                <tr><th>Editor</th><th>Reels</th><th>Done</th><th>Posted</th><th>Expected Views</th><th>Views at 24 h</th><th>Views</th><th>Expected Time</th><th>Actual Time</th><th>Time</th></tr>
+                <tr><th>Editor</th><th>Reels</th><th>Done</th><th>Posted</th><th>Expected Views</th><th>Actual Views</th><th>Views</th><th>Expected Time</th><th>Actual Time</th><th>Time</th></tr>
               </thead>
               <tbody>
                 {editors.map((e) => (
@@ -155,7 +155,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
           <div className="table-scroll">
             <table>
               <thead>
-                <tr><th>Task No.</th><th>Video Title</th><th>Editor</th><th>Status</th><th>Upload Date</th><th>Posted</th><th>Expected Views</th><th>At 24 h</th><th>Latest</th><th>Expected Time</th><th>Actual Time</th></tr>
+                <tr><th>Task No.</th><th>Video Title</th><th>Editor</th><th>Status</th><th>Upload Date</th><th>Posted</th><th>Expected Views</th><th>Actual Views</th><th>Expected Time</th><th>Actual Time</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
@@ -172,7 +172,6 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
                         {r.posted_at && r.upload_date && todayStr(new Date(r.posted_at)) > r.upload_date && <div className="small overdue-text">after upload date</div>}</td>
                       <td>{viewsText(r.expected_views)}</td>
                       <td>{viewsText(r.views_24h)}{vp != null && <div className={`small ${vp >= 100 ? 'ok-text' : 'overdue-text'}`}>{vp}%</div>}</td>
-                      <td>{viewsText(r.latest_views)}</td>
                       <td>{minutesText(r.expected_minutes)}</td>
                       <td>{r.actual_minutes ? minutesText(r.actual_minutes) : '—'}{tp != null && <div className={`small ${tp <= 100 ? 'ok-text' : 'overdue-text'}`}>{tp}%</div>}</td>
                     </tr>
@@ -184,8 +183,8 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
         </div>
       )}
       <p className="muted small-note">
-        Views at 24 h = the count recorded closest to 24 hours after posting (between 18 and 48 hours), Instagram + YouTube together.
-        Views % = views at 24 h ÷ expected; time % = actual edit time ÷ expected (under 100% is faster than planned).
+        Actual views = the one count the editor adds about 24 hours after posting (Instagram + YouTube together).
+        Views % = actual views ÷ expected; time % = actual edit time ÷ expected (under 100% is faster than planned).
         Totals and % only use reels that have both numbers. Dates are {formatDate(from)} to {formatDate(to)} (by due date).
       </p>
     </>
