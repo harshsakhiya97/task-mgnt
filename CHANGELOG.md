@@ -3,7 +3,7 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
-## Version 2.1.0 — (in progress)
+## Version 2.1.0 — 2 Oct 2026
 
 - Copy task: `TaskTable` `onCopy` (Copy icon next to View) → `TaskForm copyFrom={task}` ("Copy TM-n"): new task prefilled with title, description, assignee, priority, due date (today if it was in the past), time; reels also sub-type, caption, upload date (dropped if past). Not copied: comments, attachments, reminders, timer, links, views. Recurring copies become one-time tasks.
 - WhatsApp for task_assigned / task_comment turned off: triggers `tasks_whatsapp` and `task_comments_whatsapp` **disabled** (not dropped), queued rows skipped (migration `20261002200000_whatsapp_assigned_comment_off.sql`); `WA_ACTIVE_KINDS` = daily_task_report, task_unassigned. whatsapp-sender unchanged (nothing new of those kinds gets queued).

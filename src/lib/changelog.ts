@@ -13,8 +13,8 @@ export const RELEASES: Release[] = [
   {
     version: '2.1.0',
     date: '2026-10-02',
-    title: 'Copy a task',
-    summary: 'A Copy button on every task in the list opens Add Task with the same details filled in.',
+    title: 'Copy tasks, Reels report, no WhatsApp for new tasks',
+    summary: 'Copy a task from the list, a new Reels report by person, reel tags on the calendar, and "task assigned" / comment alerts now come only as phone notifications and in the bell.',
     changes: [
       { type: 'improved', admin: true, text: 'Reports → Reels works like the old Results panel: totals for estimate given / no estimate, result in / pending, uploaded / not uploaded, a card per person (actual vs estimated views and edit time), and a click on a person lists their reels with the same filters.' },
       { type: 'removed', text: 'No more WhatsApp messages for "task assigned to you" and new comments: those come as phone notifications and in the bell. The day-end report and "unassigned task" alerts stay on WhatsApp.' },
