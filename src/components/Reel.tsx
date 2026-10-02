@@ -114,7 +114,6 @@ export function ReelPanel({ task, entries, onChanged, onError }: {
   if (!reel) return <p className="muted">Reel details are loading…</p>
   return (
     <>
-      <SubTypePicker task={task} onChanged={onChanged} onError={onError} />
       <PostDetails task={task} onChanged={onChanged} onError={onError} />
       <ViewsSection task={task} onChanged={onChanged} onError={onError} />
       <TimeSection task={task} entries={entries} onChanged={onChanged} onError={onError} />
@@ -136,16 +135,15 @@ function SubTypePicker({ task, onChanged, onError }: { task: Task; onChanged: ()
     onChanged()
   }
   return (
-    <div className="reel-subtype">
-      <label className="reel-field">
+    <label className="reel-field">
         <span>Sub-type {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}</span>
         <select value={value} onChange={(e) => change(e.target.value)}>
           <option value="">Select…</option>
           {REEL_SUB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           {value && !(REEL_SUB_TYPES as readonly string[]).includes(value) && <option value={value}>{value}</option>}
         </select>
+        <small className="muted">Saved as soon as you pick one.</small>
       </label>
-    </div>
   )
 }
 
@@ -202,11 +200,14 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
           </label>
         </div>
         {reel.upload_date && <div className="small">Upload date: <b>{formatDate(reel.upload_date)}</b></div>}
-        <label className="reel-field">
-          <span>Posted at</span>
-          <input type="datetime-local" value={posted} onChange={(e) => setPosted(e.target.value)} />
-          <small className="muted">Set automatically when the first link is added.</small>
-        </label>
+        <div className="form-grid">
+          <SubTypePicker task={task} onChanged={onChanged} onError={onError} />
+          <label className="reel-field">
+            <span>Posted at</span>
+            <input type="datetime-local" value={posted} onChange={(e) => setPosted(e.target.value)} />
+            <small className="muted">Set automatically when the first link is added.</small>
+          </label>
+        </div>
         <div className="inline-edit">
           <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
           {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}
