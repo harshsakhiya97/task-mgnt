@@ -999,3 +999,6 @@ p.muted.small + .form-section { margin-top: 22px; }
 .form-grid.three { grid-template-columns: repeat(3, 1fr); gap: 0 16px; }
 @media (max-width: 800px) { .form-grid.three { grid-template-columns: 1fr; gap: 12px; } }
 .reel-subtype { max-width: 360px; margin-bottom: 18px; }
+/* Number boxes: no up/down arrows (scrolling over them doesn't change the value either — see main.tsx). */
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
