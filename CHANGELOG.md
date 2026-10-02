@@ -3,7 +3,7 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
-## Version 2.2.0 — 3 Oct 2026
+## Version 2.2.0 — 2 Oct 2026
 
 - **Meetings** (`tasks.kind = 'meeting'`). Organiser = creator (`assigned_to` = organiser). Add Task → 📅 Meeting: title, date, time (required), attendees (`AttendeePicker`, "Add everyone"), meeting link, "Remind everyone" (default 10 min before), agenda (= description), attachments.
 - Tables `task_meetings` (meeting_link, notes, notes_updated_at/by, remind_minutes, reminded_at; row made by trigger `tasks_meeting_row`) and `task_attendees` (task_id, user_id, added_by; `response` column exists but is unused — owner: no RSVP). RLS: organiser/admin add/remove attendees and change link/reminder; anyone in the meeting edits notes. `tasks.participants` for meetings = organiser + attendees (recomputed in `tasks_before_write`); only the organiser/admin changes a meeting's status. `tasks.meeting_id` links action items to their meeting.

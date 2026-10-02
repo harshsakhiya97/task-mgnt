@@ -12,7 +12,7 @@ export interface Release { version: string; date: string; title: string; summary
 export const RELEASES: Release[] = [
   {
     version: '2.2.0',
-    date: '2026-10-03',
+    date: '2026-10-02',
     title: 'Meetings',
     summary: 'Create meetings with attendees and a Zoom / Meet link. Everyone gets a notification, sees it on their calendar and gets a reminder before it starts; notes and action items stay with the meeting.',
     changes: [
