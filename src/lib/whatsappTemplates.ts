@@ -92,4 +92,5 @@ export const WA_SAMPLES: Record<string, Record<string, string>> = {
 
 /** The templates the app sends today (shown in Settings → WhatsApp → Template Messages and checked in WATI).
  *  task_reminder is no longer sent: reminders are phone notifications since 1.4. */
-export const WA_ACTIVE_KINDS = ['task_assigned', 'task_comment', 'daily_task_report', 'task_unassigned'] as const
+/** Templates the app still sends (2.1: "task assigned" and "comment" are phone notifications + bell only). */
+export const WA_ACTIVE_KINDS = ['daily_task_report', 'task_unassigned'] as const

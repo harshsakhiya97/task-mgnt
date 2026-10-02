@@ -6,6 +6,8 @@ To release a new version: bump it there, add a section below, add the user-facin
 ## Version 2.1.0 — (in progress)
 
 - Copy task: `TaskTable` `onCopy` (Copy icon next to View) → `TaskForm copyFrom={task}` ("Copy TM-n"): new task prefilled with title, description, assignee, priority, due date (today if it was in the past), time; reels also sub-type, caption, upload date (dropped if past). Not copied: comments, attachments, reminders, timer, links, views. Recurring copies become one-time tasks.
+- WhatsApp for task_assigned / task_comment turned off: triggers `tasks_whatsapp` and `task_comments_whatsapp` **disabled** (not dropped), queued rows skipped (migration `20261002200000_whatsapp_assigned_comment_off.sql`); `WA_ACTIVE_KINDS` = daily_task_report, task_unassigned. whatsapp-sender unchanged (nothing new of those kinds gets queued).
+- Team Board status filter is a dropdown.
 - Calendar events show the reel tag (`.ev-tag`, sub-type or "Reel"). Reel Edit Time Save only shown to the editor.
 
 ## Version 2.0.0 — 2 Oct 2026

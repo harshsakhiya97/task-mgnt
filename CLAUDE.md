@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            45 SQL files, applied in order (timestamps 20260925… → 20261002190000)
+  migrations/            46 SQL files, applied in order (timestamps 20260925… → 20261002200000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -78,7 +78,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
 **1.5.4 (1 Oct)** — iPhone: date/time inputs no longer widen forms (no sideways slide); 16px fields on phones.
 
-**2.1 (in progress, branch `v2.1`)** — Copy button in the task list → Add Task prefilled from that task (`TaskForm copyFrom`).
+**2.1 (in progress, branch `v2.1`)** — Copy button in the task list → Add Task prefilled from that task (`TaskForm copyFrom`); reel tag on calendar; Team Board status dropdown; WhatsApp for assigned/comment off.
 **2.0 also:** Add/Edit Task is wide (720px) with optional sections behind "+" buttons (Description, Time, Reminders, Attachments; reel: Brief, Caption, Time); automatic reminders removed.
 **2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` reserved for 2.1). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
 Reel = one-time task + `task_reels` row (sub_type — dropdown `REEL_SUB_TYPES`, caption, upload_date — set in Add Task by whoever gives it, instagram_url, youtube_url, drive_url (not a post link), posted_at — auto-set on first link, expected_views, expected_minutes — the **editor's own estimate**, only the assignee sets them (not assigner/admin), any time — owner doesn't want locks or a 'before Start' rule). Reels have no reminders (DB blocks them) and no attachments section in Add Task.
@@ -166,14 +166,7 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 
 ## 10. Known follow-ups / ideas
 
-- **Pending decision (1 Oct): turn off WhatsApp for "task assigned" and "comment"** (they're phone notifications + bell now). Not applied — owner wants to wait until the team has phone notifications on. When told, apply (and add as a migration):
-  ```sql
-  drop trigger if exists tasks_whatsapp on public.tasks;
-  drop trigger if exists task_comments_whatsapp on public.task_comments;
-  update public.whatsapp_outbox set status = 'skipped', last_error = 'WhatsApp for new tasks/comments turned off'
-   where kind in ('task_assigned', 'task_comment') and status in ('queued', 'sending');
-  ```
-  Then drop `task_assigned` / `task_comment` from `WA_ACTIVE_KINDS` (src/lib/whatsappTemplates.ts) and from `KINDS` in whatsapp-sender. Undo = recreate the two triggers (functions `private.wa_task_assigned` / `private.wa_task_comment` still exist).
+- **WhatsApp for "task assigned" and "comment" is OFF since 2.1 (2 Oct)**: triggers `tasks_whatsapp` / `task_comments_whatsapp` are disabled (undo: `alter table public.tasks enable trigger tasks_whatsapp; alter table public.task_comments enable trigger task_comments_whatsapp;` and add the kinds back to `WA_ACTIVE_KINDS`). Bell + phone notifications still cover them. whatsapp-sender still knows the kinds (harmless).
 - **v2 roadmap** (agreed 2 Oct): 2.1 Meetings (kind `meeting`: attendees, Zoom link, agenda; reminders + push + calendar for all attendees). 2.2 Zoom integration (auto link; cloud recording → transcript → summary → action items via Gemini, organiser approves before tasks are created — recommended). 2.3 Auto views (YouTube Data API, Instagram Graph API; hourly `reel_views` rows with `source='auto'`). Open questions to the owner: Zoom plan / cloud recording / Zoom admin; Instagram accounts Business/Creator linked to FB Pages?; confirm Stop = Done (default taken) vs a separate "Posted" step.
 - **Reel stages were tried and reverted (2 Oct, owner's call):** Scripting → Editing → Review → Posted with Done by hand (migration 20261002150000, code in commit 93b3620). Reverted by 20261002160000 + commit d7a9d9b; columns `task_reels.stage` / `upload_time` and trigger `task_reels_log_stage` (now a no-op) remain unused. Revisit only if the owner asks.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).

@@ -16,6 +16,8 @@ export const RELEASES: Release[] = [
     title: 'Copy a task',
     summary: 'A Copy button on every task in the list opens Add Task with the same details filled in.',
     changes: [
+      { type: 'removed', text: 'No more WhatsApp messages for "task assigned to you" and new comments: those come as phone notifications and in the bell. The day-end report and "unassigned task" alerts stay on WhatsApp.' },
+      { type: 'improved', text: 'Team Board: the status filter is a dropdown, like on the Tasks page.', admin: true },
       { type: 'improved', text: 'Calendar: reels show their 🎬 tag (sub-type) on the calendar too.' },
       { type: 'new', text: 'Tasks list: the new Copy button (next to View) opens Add Task filled with that task\'s title, description, person, priority, due date, time — and for reels the sub-type, caption and upload date. Change what you need and create it. Comments, attachments, reminders and timer time aren\'t copied; a past due date becomes today.' },
     ],
