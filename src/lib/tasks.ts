@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { ReelInfo, TaskKind } from './reels'
+import type { Attendee, MeetingInfo } from './meetings'
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -15,11 +16,11 @@ export type TaskType = 'adhoc' | 'recurring'
 export const TYPE_LABELS: Record<TaskType, string> = { adhoc: 'Ad hoc', recurring: 'Recurring' }
 
 /** Type filter / label that also knows reels: "Ad hoc" · "Recurring" · "Reel". */
-export type TypeFilter = TaskType | 'reel'
-export const TYPE_FILTER_LABELS: Record<TypeFilter, string> = { adhoc: 'Ad hoc', recurring: 'Recurring', reel: 'Reels' }
-export const typeLabel = (t: Pick<Task, 'task_type' | 'kind'>) => (t.kind === 'reel' ? 'Reel' : TYPE_LABELS[t.task_type])
+export type TypeFilter = TaskType | 'reel' | 'meeting'
+export const TYPE_FILTER_LABELS: Record<TypeFilter, string> = { adhoc: 'Ad hoc', recurring: 'Recurring', reel: 'Reels', meeting: 'Meetings' }
+export const typeLabel = (t: Pick<Task, 'task_type' | 'kind'>) => (t.kind === 'reel' ? 'Reel' : t.kind === 'meeting' ? 'Meeting' : TYPE_LABELS[t.task_type])
 export const matchesType = (t: Pick<Task, 'task_type' | 'kind'>, f: TypeFilter | '') =>
-  !f || (f === 'reel' ? t.kind === 'reel' : t.task_type === f && t.kind !== 'reel')
+  !f || (f === 'reel' || f === 'meeting' ? t.kind === f : t.task_type === f && t.kind !== 'reel' && t.kind !== 'meeting')
 
 /** Due-date tag: Ongoing (not done, not past due), Expired (not done, past due), Completed (done). */
 export type DueTag = 'ongoing' | 'expired' | 'completed'
@@ -74,6 +75,9 @@ export interface Task {
   task_type: TaskType            // adhoc = one-off; recurring = one day's copy of a recurring task
   kind: TaskKind                 // task (normal) | reel (video edit) | meeting (2.1)
   reel?: ReelInfo | null         // reel details (kind = reel)
+  meeting?: MeetingInfo | null   // meeting details (kind = meeting)
+  attendees?: Attendee[]         // meeting attendees (the organiser is assigned_to)
+  meeting_id?: string | null     // action item: the meeting it came from
   recurring_id: string | null
   occurrence_date: string | null
   due_date: string | null        // YYYY-MM-DD
@@ -94,14 +98,20 @@ export interface TaskAttachment { id: string; task_id: string; uploaded_by: stri
 export interface TaskActivity { id: number; task_id: string; actor_id: string | null; action: string; old_value: string | null; new_value: string | null; created_at: string; actor: PersonRef | null }
 
 export const TASK_SELECT =
-  '*, assignee:profiles!tasks_assigned_to_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), creator:profiles!tasks_created_by_fkey(id, full_name), reel:task_reels(*)'
+  '*, assignee:profiles!tasks_assigned_to_fkey(id, full_name), assigner:profiles!tasks_assigned_by_fkey(id, full_name), creator:profiles!tasks_created_by_fkey(id, full_name), reel:task_reels(*), meeting:task_meetings(*), attendees:task_attendees(user_id, response, person:profiles!task_attendees_user_id_fkey(id, full_name))'
 
 /** "Assigned by Me": I created it or passed it on, and it's now with someone else. */
 export const isGivenBy = (t: Task, userId?: string) =>
-  !!userId && t.assigned_to !== userId && (t.participants ?? []).includes(userId)
+  !!userId && t.kind !== 'meeting' && t.assigned_to !== userId && (t.participants ?? []).includes(userId)
 
 /** Unopened by me, and currently with me. */
 export const isNewFor = (t: Task, userId?: string) => !!userId && t.assigned_to === userId && !t.seen_at
+
+/** Meetings I'm invited to (not as the organiser). */
+export const isAttendee = (t: Pick<Task, 'kind' | 'attendees'>, userId?: string) =>
+  !!userId && t.kind === 'meeting' && (t.attendees ?? []).some((a) => a.user_id === userId)
+/** "Mine": assigned to me, or a meeting I'm invited to. */
+export const isMine = (t: Task, userId?: string) => !!userId && (t.assigned_to === userId || isAttendee(t, userId))
 
 /** Who may pass a task on: current assignee, whoever assigned it to them, the creator, or an admin. */
 export const canReassign = (t: Task, userId?: string, isAdmin?: boolean) =>
@@ -134,8 +144,8 @@ function nowTimeStr(d = new Date()) {
  * The deadline is the task's end time on its due date; without an end time,
  * the whole due date counts (it expires once that day is over).
  */
-export const isOverdue = (t: Pick<Task, 'due_date' | 'status'> & { end_time?: string | null }) => {
-  if (t.status === 'done' || !t.due_date) return false
+export const isOverdue = (t: Pick<Task, 'due_date' | 'status'> & { end_time?: string | null; kind?: string }) => {
+  if (t.status === 'done' || !t.due_date || t.kind === 'meeting') return false   // a meeting doesn't "expire"
   const today = todayStr()
   if (t.due_date < today) return true
   if (t.due_date > today || !t.end_time) return false
@@ -143,8 +153,11 @@ export const isOverdue = (t: Pick<Task, 'due_date' | 'status'> & { end_time?: st
   return end <= nowTimeStr()
 }
 
-export const dueTag = (t: Pick<Task, 'due_date' | 'status'> & { end_time?: string | null }): DueTag =>
-  t.status === 'done' ? 'completed' : isOverdue(t) ? 'expired' : 'ongoing'
+export const dueTag = (t: Pick<Task, 'due_date' | 'status'> & { end_time?: string | null; kind?: string }): DueTag =>
+  t.status === 'done' ? 'completed'
+    // A meeting that has ended counts as completed (it never "expires").
+    : t.kind === 'meeting' ? (isOverdue({ ...t, kind: undefined }) ? 'completed' : 'ongoing')
+    : isOverdue(t) ? 'expired' : 'ongoing'
 
 export const taskCode = (n: number) => `TM-${n}`
 

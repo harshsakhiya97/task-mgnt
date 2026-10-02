@@ -10,7 +10,7 @@ import { TaskForm, type TaskSaved } from '../components/TaskForm'
 import { TaskTable, type PersonColumn } from '../components/TaskTable'
 import { TaskView } from '../components/TaskView'
 import { supabase } from '../lib/supabase'
-import { addDays, dueTag, fetchTasks, isGivenBy, isNewFor, matchesType, PRIORITY_LABELS, STATUS_LABELS, taskCode, todayStr, TYPE_FILTER_LABELS, type Task, type TaskPriority, type TaskStatus, type TypeFilter } from '../lib/tasks'
+import { addDays, dueTag, fetchTasks, isGivenBy, isMine, isNewFor, matchesType, PRIORITY_LABELS, STATUS_LABELS, taskCode, todayStr, TYPE_FILTER_LABELS, type Task, type TaskPriority, type TaskStatus, type TypeFilter } from '../lib/tasks'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 
@@ -65,7 +65,7 @@ export function Tasks() {
   const setView = (v: View) => { setParams(v === defaultView ? {} : { view: v }); setPerson('') }
 
   const inView = useMemo(() => tasks.filter((t) =>
-    view === 'mine' ? t.assigned_to === profile?.id : view === 'given' ? isGivenBy(t, profile?.id) : true,
+    view === 'mine' ? isMine(t, profile?.id) : view === 'given' ? isGivenBy(t, profile?.id) : true,
   ), [tasks, view, profile?.id])
 
   const newCount = tasks.filter((t) => isNewFor(t, profile?.id)).length

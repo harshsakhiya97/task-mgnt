@@ -11,18 +11,22 @@ import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
 import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRangeInput'
 import { DraftReminderList, saveDraftReminders, TaskReminders, type DraftReminder } from './Reminders'
+import { AttendeePicker } from './AttendeePicker'
+import { MEETING_REMIND_OPTIONS } from '../lib/meetings'
 
-type Mode = TaskType | 'reel'
+type Mode = TaskType | 'reel' | 'meeting'
 /** Optional parts of the form, opened with "+ …" buttons so the form starts short. */
 type Extra = 'desc' | 'caption' | 'time' | 'reminders' | 'files'
 
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
 /** Create a new task (ad hoc or recurring), or edit the details of an existing one (creator/admin only). */
-export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
+export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, onSaved }: {
   task?: Task
   /** "Copy": a new task prefilled with this task's details. */
   copyFrom?: Task
+  /** "Add action item": a new one-time task linked to this meeting. */
+  actionFor?: Task
   users: Profile[]
   /** Prefill for a new task, e.g. from a slot picked on the calendar. */
   initial?: { dueDate?: string; from?: string; to?: string; assignTo?: string }
@@ -32,15 +36,21 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
   const { profile } = useAuth()
   // Prefill from the task being edited, or from the one being copied (a copy is always a new one-time task / reel).
   const src = task ?? copyFrom
-  const [mode, setMode] = useState<Mode>(task ? (task.kind === 'reel' ? 'reel' : task.task_type) : copyFrom?.kind === 'reel' ? 'reel' : 'adhoc')
+  const [mode, setMode] = useState<Mode>(task ? (task.kind === 'reel' || task.kind === 'meeting' ? task.kind : task.task_type)
+    : copyFrom?.kind === 'reel' || copyFrom?.kind === 'meeting' ? copyFrom.kind : 'adhoc')
   const type: TaskType = mode === 'recurring' ? 'recurring' : 'adhoc'
   const isReel = mode === 'reel'
+  const isMeeting = mode === 'meeting'
+  // Meeting (2.2): attendees, link, "remind everyone". The organiser is whoever creates it.
+  const [attendees, setAttendees] = useState<string[]>((src?.attendees ?? []).map((a) => a.user_id))
+  const [link, setLink] = useState(src?.meeting?.meeting_link ?? '')
+  const [remind, setRemind] = useState<number | null>(src ? src.meeting?.remind_minutes ?? null : 10)
   // Reel details (2.0): caption and upload date. (Expected views / edit time are set by the editor in the reel's Reel tab.)
   const [caption, setCaption] = useState(src?.reel?.caption ?? '')
   const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? (copyFrom?.reel?.upload_date && copyFrom.reel.upload_date >= todayStr() ? copyFrom.reel.upload_date : ''))
   const [subType, setSubType] = useState(src?.reel?.sub_type ?? '')
   const [title, setTitle] = useState(src?.title ?? '')
-  const [description, setDescription] = useState(src?.description ?? '')
+  const [description, setDescription] = useState(src?.description ?? (actionFor ? `Action item from meeting ${taskCode(actionFor.task_no)} – ${actionFor.title}` : ''))
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
   const [assignedTo, setAssignedTo] = useState(task ? task.assigned_to ?? '' : copyFrom?.assigned_to ?? initial?.assignTo ?? profile?.id ?? '')
   const wasUnassigned = !!task && !task.assigned_to
@@ -55,7 +65,7 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
   const [reminders, setReminders] = useState<DraftReminder[]>([])
   // Optional sections start closed (open if editing a task that already has them).
   const [opened, setOpened] = useState<Extra[]>(() => [
-    ...(src?.description ? ['desc' as const] : []),
+    ...(src?.description || actionFor ? ['desc' as const] : []),
     ...(src?.reel?.caption ? ['caption' as const] : []),
     ...(src?.start_time || initial?.from ? ['time' as const] : []),
   ])
@@ -74,6 +84,8 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
     if (!creatingRecurring && task?.task_type !== 'recurring' && !dueDate) return setError('Ad hoc tasks need a due date')
     const timeErr = timePairError(from, to)
     if (timeErr) return setError(timeErr)
+    if (isMeeting && (!from || !to)) return setError('Pick the meeting\'s start and end time')
+    if (isMeeting && link.trim() && !/^https?:\/\/\S+$/i.test(link.trim())) return setError('The meeting link should start with https://')
     const reelFields = { caption: caption.trim() || null, upload_date: uploadDate || null, sub_type: subType || null }
     setBusy(true)
     try {
@@ -87,7 +99,9 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
         return onSaved({ recurring: true })
       }
       const fields = {
-        title: title.trim(), description: description.trim() || null, assigned_to: assignedTo || null,
+        title: title.trim(), description: description.trim() || null,
+        // A meeting is the organiser's own (the attendees are listed separately).
+        assigned_to: isMeeting ? (task ? task.assigned_to : profile.id) : assignedTo || null,
         due_date: dueDate || null, priority, start_time: toDbTime(from), end_time: toDbTime(to),
       }
       let id = task?.id
@@ -100,7 +114,8 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
         id = createdId
       } else {
         const { data, error } = await supabase.from('tasks')
-          .insert({ ...fields, task_type: 'adhoc', kind: isReel ? 'reel' : 'task', assigned_by: profile.id }).select('id').single()
+          .insert({ ...fields, task_type: 'adhoc', kind: isReel ? 'reel' : isMeeting ? 'meeting' : 'task', assigned_by: profile.id,
+            meeting_id: actionFor?.id ?? null }).select('id').single()
         if (error) throw new Error(error.message)
         id = data.id as string
         setCreatedId(id)
@@ -114,8 +129,28 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
           if (error) throw new Error(`${task ? 'Task updated' : 'Reel created'}, but its details couldn't be saved: ${error.message}`)
         }
       }
+      if (isMeeting) {
+        const m = task?.meeting
+        const linkVal = link.trim() || null
+        if (!m || (m.meeting_link ?? null) !== linkVal || (m.remind_minutes ?? null) !== remind) {
+          const { error } = await supabase.from('task_meetings').update({ meeting_link: linkVal, remind_minutes: remind }).eq('task_id', id!)
+          if (error) throw new Error(`Meeting saved, but its link / reminder couldn't be saved: ${error.message}`)
+        }
+        const before = (task?.attendees ?? []).map((a) => a.user_id)
+        const add = attendees.filter((u) => !before.includes(u))
+        const remove = before.filter((u) => !attendees.includes(u))
+        if (add.length) {
+          const { error } = await supabase.from('task_attendees')
+            .upsert(add.map((user_id) => ({ task_id: id!, user_id })), { onConflict: 'task_id,user_id', ignoreDuplicates: true })
+          if (error) throw new Error(`Meeting saved, but the attendees couldn't be invited: ${error.message}`)
+        }
+        if (remove.length) {
+          const { error } = await supabase.from('task_attendees').delete().eq('task_id', id!).in('user_id', remove)
+          if (error) throw new Error(`Meeting saved, but an attendee couldn't be removed: ${error.message}`)
+        }
+      }
       for (const f of files) await uploadAttachment(id!, profile.id, f)
-      if (!task && !isReel) {
+      if (!task && !isReel && !isMeeting) {
         const err = await saveDraftReminders(id!, profile.id, reminders)
         if (err) throw new Error(`Task created, but a reminder couldn't be saved: ${err}`)
       }
@@ -133,26 +168,29 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
     : users
 
   const isOpen = (x: Extra) => opened.includes(x)
-  const canReminders = !creatingRecurring && !isReel && task?.task_type !== 'recurring' && task?.kind !== 'reel'
+  const canReminders = !creatingRecurring && !isReel && !isMeeting && task?.task_type !== 'recurring' && task?.kind !== 'reel'
   const canFiles = !task && !creatingRecurring && !isReel
   const extras: { key: Extra; label: string; icon: typeof Plus; show: boolean }[] = [
-    { key: 'desc', label: isReel ? 'Brief' : 'Description', icon: FileText, show: true },
+    { key: 'desc', label: isReel ? 'Brief' : isMeeting ? 'Agenda' : 'Description', icon: FileText, show: true },
     { key: 'caption', label: 'Caption', icon: MessageSquareText, show: isReel },
-    { key: 'time', label: 'Time', icon: Clock, show: true },
+    { key: 'time', label: 'Time', icon: Clock, show: !isMeeting },
     { key: 'reminders', label: 'Reminders', icon: AlarmClock, show: canReminders },
     { key: 'files', label: 'Attachments', icon: Paperclip, show: canFiles },
   ]
   const closedExtras = extras.filter((x) => x.show && !isOpen(x.key))
 
   return (
-    <Drawer wide title={task ? 'Edit Task' : copyFrom ? `Copy ${taskCode(copyFrom.task_no)}` : 'Add Task'} onClose={onClose} onSubmit={submit}
-      submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : 'Create Task'} busy={busy}>
-      {!task && (
+    <Drawer wide title={task ? (task.kind === 'meeting' ? 'Edit Meeting' : 'Edit Task') : copyFrom ? `Copy ${taskCode(copyFrom.task_no)}` : actionFor ? 'Add Action Item' : 'Add Task'} onClose={onClose} onSubmit={submit}
+      submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : isMeeting ? 'Create Meeting' : 'Create Task'} busy={busy}>
+      {!task && !actionFor && (
         <div className="segmented type-picker" role="tablist" aria-label="Task type">
-          {([['adhoc', 'One-time'], ['recurring', '↻ Recurring'], ['reel', '🎬 Reel']] as [Mode, string][]).map(([m, l]) => (
+          {([['adhoc', 'One-time'], ['recurring', '↻ Recurring'], ['reel', '🎬 Reel'], ['meeting', '📅 Meeting']] as [Mode, string][]).map(([m, l]) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>{l}</button>
           ))}
         </div>
+      )}
+      {actionFor && (
+        <div className="hint-box">An action item from the meeting <b>{taskCode(actionFor.task_no)} – {actionFor.title}</b>. It shows in the meeting's Notes tab.</div>
       )}
       {copyFrom && (
         <div className="hint-box">A copy of <b>{taskCode(copyFrom.task_no)}</b>. Change anything you need, then create it. Comments, attachments, reminders and timer time aren't copied.</div>
@@ -160,8 +198,8 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
       {task?.task_type === 'recurring' && (
         <div className="hint-box">This is one day's copy of a recurring task. Changes here affect only this day. To change the schedule, edit it under <b>Tasks → Recurring</b>.</div>
       )}
-      <Field label={isReel ? 'Video Title' : 'Title'} required>
-        <input required autoFocus placeholder={isReel ? 'e.g. 5 tips for Class 10 boards' : 'What needs to be done?'} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <Field label={isReel ? 'Video Title' : isMeeting ? 'Meeting Title' : 'Title'} required>
+        <input required autoFocus placeholder={isReel ? 'e.g. 5 tips for Class 10 boards' : isMeeting ? 'e.g. Weekly content review' : 'What needs to be done?'} value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
       {isReel && (
         <Field label="Sub-type">
@@ -172,7 +210,30 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
           </select>
         </Field>
       )}
-      <div className="form-grid">
+      {isMeeting && (
+        <>
+          <div className="form-grid">
+            <Field label="Date" required>
+              <input type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </Field>
+            <Field label="Remind everyone">
+              <select value={remind ?? ''} onChange={(e) => setRemind(e.target.value === '' ? null : Number(e.target.value))}>
+                {MEETING_REMIND_OPTIONS.map(([v, l]) => <option key={l} value={v ?? ''}>{l}</option>)}
+              </select>
+            </Field>
+          </div>
+          <TimeRangeInput from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} label="Time *"
+            hint="Shows on everyone's calendar at this time." />
+          <Field label="Attendees" hint={task ? 'People you add get a notification. You (the organiser) are always in.' : 'Everyone you add gets a notification and the meeting on their calendar. You (the organiser) are always in.'}>
+            <AttendeePicker users={users} value={attendees} onChange={setAttendees} organiserId={task?.assigned_to ?? profile?.id}
+              extraNames={Object.fromEntries((src?.attendees ?? []).map((a) => [a.user_id, a.person?.full_name ?? 'Someone']))} />
+          </Field>
+          <Field label="Meeting Link" hint="Zoom / Google Meet link (optional).">
+            <input type="url" inputMode="url" placeholder="https://zoom.us/j/…" value={link} onChange={(e) => setLink(e.target.value)} />
+          </Field>
+        </>
+      )}
+      {!isMeeting && <div className="form-grid">
         <Field label="Assign To" required={!wasUnassigned}>
           <select required={!wasUnassigned} value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
             {wasUnassigned && <option value="">Unassigned (pick a person)</option>}
@@ -194,7 +255,7 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
             <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
           </Field>
         )}
-      </div>
+      </div>}
       {creatingRecurring && (
         <>
           <Field label="Repeat On" required hint="A copy of the task is created for the assignee on each chosen day, due the same day.">
@@ -212,8 +273,8 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
       )}
 
       {isOpen('desc') && (
-        <Field label={isReel ? 'Brief / Instructions' : 'Description'}>
-          <textarea rows={4} autoFocus={!task} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Field label={isReel ? 'Brief / Instructions' : isMeeting ? 'Agenda' : 'Description'}>
+          <textarea rows={4} autoFocus={!task && !actionFor} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : isMeeting ? 'What will you discuss?' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
       )}
       {isReel && isOpen('caption') && (
@@ -221,7 +282,7 @@ export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
           <textarea rows={3} autoFocus={!task} placeholder="Caption for the post" value={caption} onChange={(e) => setCaption(e.target.value)} />
         </Field>
       )}
-      {isOpen('time') && (
+      {!isMeeting && isOpen('time') && (
         <TimeRangeInput from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }}
           label={creatingRecurring ? 'Time (each day)' : 'Time'}
           hint={creatingRecurring ? 'e.g. 10:00 – 11:00 am. Each day\'s copy gets this time.' : 'Shows the task at this time on the calendar.'} />

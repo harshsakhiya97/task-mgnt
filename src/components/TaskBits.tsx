@@ -11,6 +11,7 @@ export function DueTagBadge({ task }: { task: Pick<Task, 'status' | 'due_date'> 
 }
 
 export function TypeChip({ task }: { task: Pick<Task, 'task_type' | 'kind' | 'reel'> }) {
+  if (task.kind === 'meeting') return <span className="type-chip meeting">📅 Meeting</span>
   if (task.kind === 'reel') return <span className="type-chip reel">🎬 {task.reel?.sub_type ?? 'Reel'}</span>
   return task.task_type === 'recurring' ? <span className="type-chip">↻ Recurring</span> : null
 }

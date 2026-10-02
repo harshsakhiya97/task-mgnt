@@ -60,7 +60,7 @@ export function TeamBoard() {
 
   const load = useCallback(async () => {
     try {
-      const all = await fetchTasks()
+      const all = (await fetchTasks()).filter((t) => t.kind !== 'meeting')   // meetings aren't work items
       setTasks(all)
       // When did each task in progress start? (latest move to In Progress in its activity log)
       const ids = all.filter((t) => t.status === 'in_progress').map((t) => t.id)

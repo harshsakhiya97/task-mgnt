@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowRightLeft, CheckCircle2, ClipboardPlus, MessageSquare, Paperclip, PencilLine, UserX } from 'lucide-react'
+import { AlarmClock, CalendarClock, ArrowRightLeft, CheckCircle2, ClipboardPlus, MessageSquare, Paperclip, PencilLine, UserX } from 'lucide-react'
 
 const MAP = {
   assigned: { Icon: ClipboardPlus, tone: 'tone-blue' },
@@ -9,6 +9,7 @@ const MAP = {
   updated: { Icon: PencilLine, tone: 'tone-yellow' },
   unassigned: { Icon: UserX, tone: 'tone-orange' },
   reminder: { Icon: AlarmClock, tone: 'tone-purple' },
+  meeting: { Icon: CalendarClock, tone: 'tone-teal' },
 } as const
 
 export function NotificationIcon({ type }: { type: string }) {

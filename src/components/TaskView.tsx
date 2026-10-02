@@ -19,9 +19,12 @@ import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
 import { ReelPanel, ReelTimer } from './Reel'
+import { MeetingNotes, MeetingOverview } from './Meeting'
+import { TaskForm } from './TaskForm'
+import { useNavigate } from 'react-router-dom'
 import type { TimeEntry } from '../lib/reels'
 
-type Tab = 'overview' | 'reel' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
+type Tab = 'overview' | 'reel' | 'notes' | 'details' | 'comments' | 'files' | 'reminders' | 'activity'
 
 /** Slide-over showing one task with Overview (title + description) / Details / Comments / Attachments / Reminders / Activity tabs. */
 export function TaskView({ taskId, onClose, onEdit, onChanged }: {
@@ -43,6 +46,9 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
   const [reminderCount, setReminderCount] = useState(0)
   const [entries, setEntries] = useState<TimeEntry[]>([])
   const users = useActiveUsers()
+  const navigate = useNavigate()
+  const [addingAction, setAddingAction] = useState(false)
+  const [actionsKey, setActionsKey] = useState(0)
 
   const load = useCallback(async () => {
     const [t, c, f, a, r, te] = await Promise.all([
@@ -79,7 +85,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
 
   const refresh = async () => { await load(); onChanged() }
   const canEdit = !!task && !!profile && (task.created_by === profile.id || profile.role === 'admin')
-  const mayReassign = !!task && canReassign(task, profile?.id, profile?.role === 'admin')
+  const mayReassign = !!task && task.kind !== 'meeting' && canReassign(task, profile?.id, profile?.role === 'admin')
 
   const setStatus = async (s: TaskStatus) => {
     const { error } = await supabase.from('tasks').update({ status: s }).eq('id', taskId)
@@ -109,12 +115,13 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
         <div className="tabs">
           <button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>Overview</button>
           {task?.kind === 'reel' && <button className={tab === 'reel' ? 'active' : ''} onClick={() => setTab('reel')}>🎬 Reel</button>}
+          {task?.kind === 'meeting' && <button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}>📝 Notes</button>}
           <button className={tab === 'details' ? 'active' : ''} onClick={() => setTab('details')}>Details</button>
           <button className={tab === 'comments' ? 'active' : ''} onClick={() => setTab('comments')}>Comments <span className="tab-count">{comments.length}</span></button>
           {(task?.kind !== 'reel' || files.length > 0) && (
             <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>Attachments <span className="tab-count">{files.length}</span></button>
           )}
-          {!task?.recurring_id && task?.kind !== 'reel' && (
+          {!task?.recurring_id && task?.kind !== 'reel' && task?.kind !== 'meeting' && (
             <button className={tab === 'reminders' ? 'active' : ''} onClick={() => setTab('reminders')}>Reminders <span className="tab-count">{reminderCount}</span></button>
           )}
           <button className={tab === 'activity' ? 'active' : ''} onClick={() => setTab('activity')}>Activity</button>
@@ -126,10 +133,16 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
               {tab === 'overview' && (
                 <Overview task={task} onShowDetails={() => setTab('details')}
                   onReassign={mayReassign ? () => setReassigning(true) : undefined}
-                  timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} /> : null} />
+                  timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} />
+                    : task.kind === 'meeting' ? <MeetingOverview task={task} onChanged={refresh} onError={setError} /> : null} />
               )}
               {tab === 'reel' && task.kind === 'reel' && (
                 <ReelPanel task={task} entries={entries} onChanged={refresh} onError={setError} />
+              )}
+              {tab === 'notes' && task.kind === 'meeting' && (
+                <MeetingNotes task={task} onChanged={refresh} onError={setError} reloadKey={actionsKey}
+                  onAddAction={() => setAddingAction(true)}
+                  onOpenTask={(id) => { onClose(); navigate(`/tasks?task=${id}`) }} />
               )}
               {tab === 'details' && (
                 <Details task={task} onStatus={setStatus}
@@ -144,6 +157,10 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
           )}
         </div>
       </div>
+      {addingAction && task && (
+        <TaskForm actionFor={task} users={users} onClose={() => setAddingAction(false)}
+          onSaved={() => { setAddingAction(false); setActionsKey((k) => k + 1); onChanged() }} />
+      )}
       {reassigning && task && (
         <ReassignForm task={task} users={users} onClose={() => setReassigning(false)}
           onSaved={() => { setReassigning(false); refresh() }} />
@@ -188,7 +205,7 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
             : <span className="muted">Not completed yet</span>}
         </Cell>
 
-        <Cell label="Type" span={2}>{task.kind === 'reel' ? '🎬 Reel' : task.task_type === 'recurring' ? '↻ Recurring' : typeLabel(task)}</Cell>
+        <Cell label="Type" span={2}>{task.kind === 'reel' ? '🎬 Reel' : task.kind === 'meeting' ? '📅 Meeting' : task.task_type === 'recurring' ? '↻ Recurring' : typeLabel(task)}</Cell>
         <Cell label="Priority" span={2}><PriorityBadge priority={task.priority} /></Cell>
         <Cell label="Status" span={2}><StatusSelect value={task.status} onChange={onStatus} /></Cell>
 
@@ -201,10 +218,11 @@ function Details({ task, onStatus, canPlan, onChanged, onError }: {
 /** Overview tab: just the title and the description (+ on phones, "Show details" and Assign / Reassign below). */
 function Overview({ task, onShowDetails, onReassign, timer }: { task: Task; onShowDetails: () => void; onReassign?: () => void; timer?: React.ReactNode }) {
   const reel = task.kind === 'reel'
+  const meeting = task.kind === 'meeting'
   return (
     <>
       <div className="fgrid">
-        <Cell label={reel ? 'Video Title' : 'Task Title'} span={6}><span className="fcell-title">{task.title}</span></Cell>
+        <Cell label={reel ? 'Video Title' : meeting ? 'Meeting Title' : 'Task Title'} span={6}><span className="fcell-title">{task.title}</span></Cell>
         {reel && (
           <>
             <Cell label="Sub-type" span={2}>{task.reel?.sub_type ?? <span className="muted">Not set</span>}</Cell>
@@ -214,8 +232,8 @@ function Overview({ task, onShowDetails, onReassign, timer }: { task: Task; onSh
         )}
       </div>
       {timer}
-      <div className="form-section">{reel ? 'Brief / Instructions' : 'Description'}</div>
-      {task.description ? <div className="desc">{task.description}</div> : <p className="muted">{reel ? 'No brief.' : 'No description.'}</p>}
+      <div className="form-section">{reel ? 'Brief / Instructions' : meeting ? 'Agenda' : 'Description'}</div>
+      {task.description ? <div className="desc">{task.description}</div> : <p className="muted">{reel ? 'No brief.' : meeting ? 'No agenda.' : 'No description.'}</p>}
       <div className="ov-actions">
         <button type="button" className="secondary" onClick={onShowDetails}>Show details <ChevronRight size={16} /></button>
         {onReassign && <button type="button" onClick={onReassign}><Forward size={16} /> {task.assigned_to ? 'Reassign' : 'Assign'}</button>}

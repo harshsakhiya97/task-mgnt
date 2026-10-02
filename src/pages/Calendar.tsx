@@ -14,7 +14,7 @@ import { applyTimeEveryDay, applyTimeOneFutureDay } from '../lib/recurringScope'
 import { TaskForm } from '../components/TaskForm'
 import { TaskView } from '../components/TaskView'
 import { supabase } from '../lib/supabase'
-import { addDays, canSetTime, dueTag, fetchTasks, RECURRING_SELECT, taskCode, todayStr, type RecurringTask, type Task } from '../lib/tasks'
+import { addDays, canSetTime, dueTag, fetchTasks, isMine as mineFor, RECURRING_SELECT, taskCode, todayStr, type RecurringTask, type Task } from '../lib/tasks'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 
@@ -69,7 +69,7 @@ export function Calendar() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  const personTasks = useMemo(() => tasks.filter((t) => t.due_date && (showAll || t.assigned_to === userId)), [tasks, userId, showAll])
+  const personTasks = useMemo(() => tasks.filter((t) => t.due_date && (showAll || mineFor(t, userId))), [tasks, userId, showAll])
 
   // Future days of recurring tasks: shown as "scheduled" until the real copy is created that day.
   const plannedEvents: EventInput[] = useMemo(() => {
@@ -110,8 +110,8 @@ export function Calendar() {
       end: timed ? `${t.due_date}T${t.end_time}` : undefined,
       allDay: !timed,
       editable: canSetTime(t, profile?.id, isAdmin),
-      classNames: [timed ? 'tk-timed' : 'due', `due-${dueTag(t)}`, t.status === 'done' ? 'tk-done' : ''],
-      extendedProps: { task: t, who: t.assignee?.full_name ?? '' },
+      classNames: [timed ? 'tk-timed' : 'due', `due-${dueTag(t)}`, t.status === 'done' ? 'tk-done' : '', t.kind === 'meeting' ? 'tk-meeting' : ''],
+      extendedProps: { task: t, who: t.kind === 'meeting' ? `${(t.attendees?.length ?? 0) + 1} people` : t.assignee?.full_name ?? '' },
     }
   })], [plannedEvents, personTasks, profile?.id, isAdmin, tick])
 
@@ -215,7 +215,7 @@ export function Calendar() {
     const who = arg.event.extendedProps.who as string
     const t = arg.event.extendedProps.task as Task | undefined
     // Reels get the same tag as in the task list ("🎬 Thumbnail Design" / "🎬 Reel").
-    const tag = t?.kind === 'reel' ? `🎬 ${t.reel?.sub_type ?? 'Reel'}` : ''
+    const tag = t?.kind === 'reel' ? `🎬 ${t.reel?.sub_type ?? 'Reel'}` : t?.kind === 'meeting' ? '📅 Meeting' : ''
     if (arg.event.allDay) {
       return <div className="ev-due" title={`${arg.event.title} · ${who}`}>{tag && <span className="ev-tag">{tag}</span>}{arg.event.title}<span className="ev-who-inline"> · {who}</span></div>
     }

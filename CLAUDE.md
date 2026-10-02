@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 2.1.0**, released 2 Oct 2026 (deployed; tag v2.1 on the Mac). Live at **https://pride.viralsakhiya.com**.
+**Current version: 2.2.0** (branch `v2.2`, built 3 Oct 2026 — not deployed until the owner says "deploy"; 2.1 is live, tag v2.1). Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            46 SQL files, applied in order (timestamps 20260925… → 20261002200000)
+  migrations/            48 SQL files, applied in order (timestamps 20260925… → 20261003110000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -78,9 +78,10 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
 **1.5.4 (1 Oct)** — iPhone: date/time inputs no longer widen forms (no sideways slide); 16px fields on phones.
 
+**2.2 (3 Oct) — Meetings.** `tasks.kind='meeting'`; organiser = creator = `assigned_to`. Add Task → 📅 Meeting (title, date, time required, attendees via `AttendeePicker` + "Add everyone", link, "Remind everyone" default 10 min, agenda = description, attachments). `task_meetings` (meeting_link, notes, notes_updated_at/by, remind_minutes, reminded_at; made by trigger `tasks_meeting_row`) + `task_attendees` (response pending/going/declined). Participants = organiser + attendees (recomputed in `tasks_before_write`); only organiser/admin change link, reminder, attendees, status. Invite → bell + push (type `meeting`); "can't make it" → bell to organiser; `tasks_notify` skips meetings. Cron `meeting-reminders` (every min) → bell + push to everyone not declined; cron `finish-ended-meetings` (*/5) marks Done after the end time. TaskView: meeting card in Overview (Join, Going / Can't make it, attendee answers) + Agenda; 📝 Notes tab (shared notes + action items = normal tasks with `tasks.meeting_id`, made via TaskForm `actionFor`); no Reminders tab / Reassign. Calendar: teal `tk-meeting`, 📅 tag, "N people", on every attendee's calendar (`isMine` in lib/tasks.ts). Excluded from `report_by_person`, day-end WhatsApp, Team Board, Dashboard counts (Dashboard "Today" lists today's meetings until they end). Files: `components/Meeting.tsx`, `components/AttendeePicker.tsx`, `lib/meetings.ts`.
 **2.1 (2 Oct)** — Copy button in the task list → Add Task prefilled from that task (`TaskForm copyFrom`); reel tag on calendar; Team Board status dropdown; WhatsApp for assigned/comment off; Reports → Reels redone like the old Results panel (count cards, card per person, person modal).
 **2.0 also:** Add/Edit Task is wide (720px) with optional sections behind "+" buttons (Description, Time, Reminders, Attachments; reel: Brief, Caption, Time); automatic reminders removed.
-**2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` reserved for 2.1). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
+**2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` since 2.2). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
 Reel = one-time task + `task_reels` row (sub_type — dropdown `REEL_SUB_TYPES`, caption, upload_date — set in Add Task by whoever gives it, instagram_url, youtube_url, drive_url (not a post link), posted_at — auto-set on first link, expected_views, expected_minutes — the **editor's own estimate**, only the assignee sets them (not assigner/admin), any time — owner doesn't want locks or a 'before Start' rule). Reels have no reminders (DB blocks them) and no attachments section in Add Task.
 Edit timer (`components/Reel.tsx` `ReelTimer`, RPC `task_timer`): Start (assignee only, no other condition → In Progress, pauses their other running timer) / Pause / **Stop = editing finished → Done** (assignee or admin). Blocks in `task_time_entries` (not listed in the UI any more; no manual add); running timers paused 23:59 IST (cron `pause-running-timers`).
 🎬 Reel tab (`ReelPanel`): Expected (editor), caption/links/posted time, **one** view count `task_reels.actual_views` (owner: "we will add only 1 count", typed ~24 h after posting), time blocks. `reel_views` + `private.reel_views_24h` exist but are unused (kept for auto views in 2.3).
@@ -90,7 +91,7 @@ Reports → Reels sub-tab (`components/ReelReport.tsx`, RPC `report_reels`, admi
 
 ## 4. Database (schema `public`, RLS on everything)
 
-Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, team_id, is_active), `roles`, `teams`, `tasks`, `recurring_tasks`, `task_comments`, `task_attachments`, `task_activity`, `notifications`, `whatsapp_outbox`, `perisclaw_settings` (single row id=1), `perisclaw_entries`, `task_reminders`, `reminder_rules`, `push_subscriptions` (one per device; own rows), `push_outbox`, `task_reels`, `reel_views`, `task_time_entries`, `health_check` (legacy).
+Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, team_id, is_active), `roles`, `teams`, `tasks`, `recurring_tasks`, `task_comments`, `task_attachments`, `task_activity`, `notifications`, `whatsapp_outbox`, `perisclaw_settings` (single row id=1), `perisclaw_entries`, `task_reminders`, `reminder_rules`, `push_subscriptions` (one per device; own rows), `push_outbox`, `task_reels`, `reel_views`, `task_time_entries`, `task_meetings`, `task_attendees`, `health_check` (legacy).
 
 Key `tasks` columns: `task_no` (shown as `TM-<n>`), title, description, `assigned_by`, `assigned_to` (nullable), `created_by`, `participants uuid[]` (drives RLS read/update), due_date, start_time, end_time, priority, status, task_type (`adhoc`/`recurring`), `recurring_id`, `occurrence_date`, `seen_at`, `reassigned`, `completed_at`.
 
@@ -100,7 +101,7 @@ Other: `notifications_push` (assigned→assignee / comment → push_outbox), `ta
 Helpers in schema `private` (security definer): `is_admin()`, `can_see_task()`, `person_name()`, `active_admins()`, `today_ist()`, `task_deadline()`, `reminder_deadline()` (end time or 19:00 IST), `setting(key)` (from `private.app_settings`, e.g. `app_url`), `wa_enqueue()`, `wa_text()`, `wa_due_text()`, `notify()`, `send_due_reminders()`, `perisclaw_kick()`, `wa_kick()`.
 Public RPCs: `report_by_person`, `report_reels` (admin), `task_timer`, `plan_recurring_day`, `sync_app_url` (admin; keeps `app_url` in sync with where admins open the app, ignores localhost), `whatsapp_claim_batch` / `whatsapp_mark` (service role), `whatsapp_retry` (admin), `whatsapp_set_config` / `whatsapp_config_status` (admin), `whatsapp_get_config` (service role only), `push_subscribe` / `push_public_key` / `push_test` (users), `push_claim_batch` / `push_mark` / `push_get_keys` / `push_set_keys` (service role). VAPID keys: private in Vault `vapid_private_key`, public in `private.app_settings.vapid_public_key` (created once by push-sender; never replace — devices are tied to it).
 
-pg_cron jobs (UTC): `generate-recurring-tasks` 35 18 * * * (00:05 IST) + retry 35 0 * * *; `whatsapp-sender` every minute; `whatsapp-daily-report` 45 15 * * * (21:15 IST); `perisclaw-sync` every 2 min; `task-reminders` every minute; `push-sender` every minute (`private.push_kick()`; reminders also kick it instantly); `pause-running-timers` 29 18 * * * (23:59 IST).
+pg_cron jobs (UTC): `generate-recurring-tasks` 35 18 * * * (00:05 IST) + retry 35 0 * * *; `whatsapp-sender` every minute; `whatsapp-daily-report` 45 15 * * * (21:15 IST); `perisclaw-sync` every 2 min; `task-reminders` every minute; `push-sender` every minute (`private.push_kick()`; reminders also kick it instantly); `pause-running-timers` 29 18 * * * (23:59 IST); `meeting-reminders` every minute (`private.send_meeting_reminders()`); `finish-ended-meetings` */5 (`private.finish_ended_meetings()`).
 
 Timezone: everything user-facing is IST (Asia/Kolkata).
 
@@ -167,7 +168,7 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 ## 10. Known follow-ups / ideas
 
 - **WhatsApp for "task assigned" and "comment" is OFF since 2.1 (2 Oct)**: triggers `tasks_whatsapp` / `task_comments_whatsapp` are disabled (undo: `alter table public.tasks enable trigger tasks_whatsapp; alter table public.task_comments enable trigger task_comments_whatsapp;` and add the kinds back to `WA_ACTIVE_KINDS`). Bell + phone notifications still cover them. whatsapp-sender still knows the kinds (harmless).
-- **v2 roadmap** (re-set by the owner 2 Oct, after 2.1 shipped): **2.2 Meetings** (kind `meeting`: title, agenda, date/time, several attendees, Zoom/meet link pasted by hand; on every attendee's calendar + task list; bell + phone notification on invite; optional reminder to all; notes + "add action item" → normal task). **2.3 Zoom integration** (auto link; cloud recording → transcript → summary → action items via Gemini, organiser approves before tasks are created). **2.4 Auto views** (YouTube Data API, Instagram Graph API; `reel_views` rows with `source='auto'` → actual views). Open questions: who may create meetings (anyone vs admin/manager), can attendees decline; Zoom plan / cloud recording / Zoom admin; Instagram Business/Creator accounts linked to FB Pages?
+- **v2 roadmap** (re-set by the owner 2 Oct, after 2.1 shipped): **2.2 Meetings — built 3 Oct** (kind `meeting`: title, agenda, date/time, several attendees, Zoom/meet link pasted by hand; on every attendee's calendar + task list; bell + phone notification on invite; optional reminder to all; notes + "add action item" → normal task). **2.3 Zoom integration** (auto link; cloud recording → transcript → summary → action items via Gemini, organiser approves before tasks are created). **2.4 Auto views** (YouTube Data API, Instagram Graph API; `reel_views` rows with `source='auto'` → actual views). Decided for 2.2: anyone creates meetings; attendees answer Going / Can't make it. Open questions: Zoom plan / cloud recording / Zoom admin; Instagram Business/Creator accounts linked to FB Pages?
 - **Reel stages were tried and reverted (2 Oct, owner's call):** Scripting → Editing → Review → Posted with Done by hand (migration 20261002150000, code in commit 93b3620). Reverted by 20261002160000 + commit d7a9d9b; columns `task_reels.stage` / `upload_time` and trigger `task_reels_log_stage` (now a no-op) remain unused. Revisit only if the owner asks.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.

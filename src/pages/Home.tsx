@@ -10,7 +10,7 @@ import { TaskTable } from '../components/TaskTable'
 import { TaskView } from '../components/TaskView'
 import { TaskForm } from '../components/TaskForm'
 import { supabase } from '../lib/supabase'
-import { addDays, fetchTasks, isGivenBy, isNewFor, isOverdue, todayStr, type Task, type TaskStatus } from '../lib/tasks'
+import { addDays, dueTag, fetchTasks, isGivenBy, isNewFor, isOverdue, todayStr, type Task, type TaskStatus, isMine } from '../lib/tasks'
 import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 
@@ -20,7 +20,7 @@ export function Home() {
   const { profile } = useAuth()
   const tick = useMinuteTick()   // keeps Expired counts current
   const users = useActiveUsers()
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [allTasks, setTasks] = useState<Task[]>([])
   const [people, setPeople] = useState({ total: 0, active: 0, teams: 0, managers: 0 })
   const [viewing, setViewing] = useState<string | null>(null)
   const [editing, setEditing] = useState<Task | null>(null)
@@ -47,7 +47,10 @@ export function Home() {
   const today = todayStr()
   const weekAgo = addDays(today, -6)
   const stats = useMemo(() => {
-    const mine = tasks.filter((t) => t.assigned_to === profile?.id)
+    // Meetings aren't work items: they stay out of the counts and only show in today's list until they end.
+    const meetingsToday = allTasks.filter((t) => t.kind === 'meeting' && isMine(t, profile?.id) && t.due_date === today && dueTag(t) !== 'completed')
+    const tasks = allTasks.filter((t) => t.kind !== 'meeting')
+    const mine = tasks.filter((t) => isMine(t, profile?.id))
     const given = tasks.filter((t) => isGivenBy(t, profile?.id))
     const open = (l: Task[]) => l.filter((t) => t.status !== 'done')
     const doneWithDue = tasks.filter((t) => t.status === 'done' && t.due_date && t.completed_at)
@@ -66,11 +69,11 @@ export function Home() {
       doneWeek: tasks.filter((t) => t.completed_at && todayStr(new Date(t.completed_at)) >= weekAgo).length,
       onTime: pct(doneWithDue.filter((t) => todayStr(new Date(t.completed_at!)) <= t.due_date!).length, doneWithDue.length),
       completion: pct(tasks.filter((t) => t.status === 'done').length, tasks.length),
-      todayList: open(mine).filter((t) => isNewFor(t, profile?.id) || (t.due_date && t.due_date <= today))
+      todayList: [...meetingsToday.sort((x, y) => (x.start_time ?? '').localeCompare(y.start_time ?? '')), ...open(mine).filter((t) => isNewFor(t, profile?.id) || (t.due_date && t.due_date <= today))
         .sort((a, b) => Number(isNewFor(b, profile?.id)) - Number(isNewFor(a, profile?.id))
-          || (a.due_date ?? '9999') .localeCompare(b.due_date ?? '9999')),
+          || (a.due_date ?? '9999') .localeCompare(b.due_date ?? '9999'))],
     }
-  }, [tasks, profile?.id, today, weekAgo, tick])
+  }, [allTasks, profile?.id, today, weekAgo, tick])
 
   if (!profile) return null
   const hour = new Date().getHours()

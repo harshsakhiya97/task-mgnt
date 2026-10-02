@@ -3,6 +3,15 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.2.0 — 3 Oct 2026
+
+- **Meetings** (`tasks.kind = 'meeting'`). Organiser = creator (`assigned_to` = organiser). Add Task → 📅 Meeting: title, date, time (required), attendees (`AttendeePicker`, "Add everyone"), meeting link, "Remind everyone" (default 10 min before), agenda (= description), attachments.
+- Tables `task_meetings` (meeting_link, notes, notes_updated_at/by, remind_minutes, reminded_at; row made by trigger `tasks_meeting_row`) and `task_attendees` (task_id, user_id, response pending/going/declined, responded_at, added_by). RLS: organiser/admin add/remove attendees and change link/reminder; attendees answer for themselves; anyone in the meeting edits notes. `tasks.participants` for meetings = organiser + attendees (recomputed in `tasks_before_write`); only the organiser/admin changes a meeting's status. `tasks.meeting_id` links action items to their meeting.
+- Notifications: invite → bell + phone notification (type `meeting`, `notifications_push`); "can't make it" → bell to the organiser. `tasks_notify` skips meetings. Cron `meeting-reminders` (every minute, `private.send_meeting_reminders()`) sends one bell + push to the organiser and everyone not declined. Cron `finish-ended-meetings` (every 5 min) marks a meeting Done once its end time passes.
+- `report_by_person` and the WhatsApp day-end report exclude meetings; Team Board and Dashboard counts leave them out (Dashboard "Today" list shows today's meetings until they end).
+- UI: TaskView Overview → meeting card (when, Join, organiser, Going / Can't make it, attendee answers) + Agenda; new 📝 Notes tab (shared notes + action items; "+ Add action item" = TaskForm `actionFor`, a normal task with `meeting_id`). No Reminders tab / Reassign for meetings. Calendar: teal events, 📅 Meeting tag, "N people"; shows on every attendee's calendar (`isMine`). Type filter "Meetings", 📅 chip, bell icon.
+- Migrations `20261003100000_meetings.sql`, `20261003110000_meetings_auto_done.sql`.
+
 ## Version 2.1.0 — 2 Oct 2026
 
 - Copy task: `TaskTable` `onCopy` (Copy icon next to View) → `TaskForm copyFrom={task}` ("Copy TM-n"): new task prefilled with title, description, assignee, priority, due date (today if it was in the past), time; reels also sub-type, caption, upload date (dropped if past). Not copied: comments, attachments, reminders, timer, links, views. Recurring copies become one-time tasks.
