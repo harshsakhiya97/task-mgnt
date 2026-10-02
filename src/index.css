@@ -987,3 +987,8 @@ p.muted.small + .form-section { margin-top: 22px; }
 .reel-add-views + .reel-add-views { margin-top: 12px; }
 .reel-stats + .reel-add-views { margin-bottom: 4px; }
 .reel-field .duration-input input { width: 80px; flex: none; }
+
+/* ---------- Add / Edit Task: optional sections ---------- */
+.form-extras { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.extra-chip { background: #fff; color: var(--primary); border: 1px dashed #b9bde3; border-radius: 999px; padding: 7px 14px; font-size: 13px; gap: 4px; }
+.extra-chip:hover:not(:disabled) { background: var(--primary-softer); color: var(--primary); border-style: solid; }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AlarmClock, Clock, FileText, MessageSquareText, Paperclip, Plus } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { todayStr, uploadAttachment, PRIORITY_LABELS, type Task, type TaskPriority, type TaskType } from '../lib/tasks'
@@ -12,6 +13,8 @@ import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, sav
 import { loadReminderRules, type ReminderRule } from '../lib/reminders'
 
 type Mode = TaskType | 'reel'
+/** Optional parts of the form, opened with "+ …" buttons so the form starts short. */
+type Extra = 'desc' | 'caption' | 'time' | 'reminders' | 'files'
 
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
@@ -45,6 +48,13 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const [endDate, setEndDate] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [reminders, setReminders] = useState<DraftReminder[]>([])
+  // Optional sections start closed (open if editing a task that already has them).
+  const [opened, setOpened] = useState<Extra[]>(() => [
+    ...(task?.description ? ['desc' as const] : []),
+    ...(task?.reel?.caption ? ['caption' as const] : []),
+    ...(task?.start_time || initial?.from ? ['time' as const] : []),
+  ])
+  const open = (x: Extra) => setOpened((o) => (o.includes(x) ? o : [...o, x]))
   // Automatic reminders (Settings → Reminders) are shown as rows in the form; the ones taken out are removed after saving.
   const [rules, setRules] = useState<ReminderRule[]>([])
   const [removedAuto, setRemovedAuto] = useState<AutoKey[]>([])
@@ -139,8 +149,21 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     ? [...users, { id: task.assigned_to, full_name: `${task.assignee.full_name} (inactive)` } as Profile]
     : users
 
+  const isOpen = (x: Extra) => opened.includes(x) || (x === 'reminders' && priorityChanged)
+  const canReminders = !creatingRecurring && !isReel && task?.task_type !== 'recurring' && task?.kind !== 'reel'
+  const canFiles = !task && !creatingRecurring && !isReel
+  const autoCount = !task ? autoShown.length : 0
+  const extras: { key: Extra; label: string; icon: typeof Plus; show: boolean }[] = [
+    { key: 'desc', label: isReel ? 'Brief' : 'Description', icon: FileText, show: true },
+    { key: 'caption', label: 'Caption', icon: MessageSquareText, show: isReel },
+    { key: 'time', label: 'Time', icon: Clock, show: true },
+    { key: 'reminders', label: autoCount ? `Reminders (${autoCount} auto)` : 'Reminders', icon: AlarmClock, show: canReminders },
+    { key: 'files', label: 'Attachments', icon: Paperclip, show: canFiles },
+  ]
+  const closedExtras = extras.filter((x) => x.show && !isOpen(x.key))
+
   return (
-    <Drawer title={task ? 'Edit Task' : 'Add Task'} onClose={onClose} onSubmit={submit}
+    <Drawer wide title={task ? 'Edit Task' : 'Add Task'} onClose={onClose} onSubmit={submit}
       submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : 'Create Task'} busy={busy}>
       {!task && (
         <div className="segmented type-picker" role="tablist" aria-label="Task type">
@@ -152,24 +175,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       {task?.task_type === 'recurring' && (
         <div className="hint-box">This is one day's copy of a recurring task. Changes here affect only this day. To change the schedule, edit it under <b>Tasks → Recurring</b>.</div>
       )}
-      <div className="form-section">{isReel ? 'Reel Details' : 'Task Details'}</div>
       <Field label={isReel ? 'Video Title' : 'Title'} required>
         <input required autoFocus placeholder={isReel ? 'e.g. 5 tips for Class 10 boards' : 'What needs to be done?'} value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
-      <Field label={isReel ? 'Brief / Instructions' : 'Description'}>
-        <textarea rows={isReel ? 3 : 4} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
-      </Field>
-      {isReel && (
-        <>
-          <Field label="Caption" hint="The editor can change it later in the reel's details.">
-            <textarea rows={3} placeholder="Caption for the post (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
-          </Field>
-          <Field label="Upload Date" hint="The day the reel should go up on Instagram / YouTube. The editor sets the expected views and edit time.">
-            <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
-          </Field>
-        </>
-      )}
-      <div className="form-section">Assignment</div>
       <div className="form-grid">
         <Field label="Assign To" required={!wasUnassigned}>
           <select required={!wasUnassigned} value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
@@ -183,17 +191,18 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </select>
         </Field>
         {!creatingRecurring && (
-          <Field label={isReel ? 'Edit Due Date' : 'Due Date'} required={task?.task_type !== 'recurring'} hint={isReel ? 'When the edit should be finished.' : undefined}>
+          <Field label={isReel ? 'Edit Due Date' : 'Due Date'} required={task?.task_type !== 'recurring'}>
             <input type="date" required={task?.task_type !== 'recurring'} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </Field>
         )}
+        {isReel && (
+          <Field label="Upload Date">
+            <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
+          </Field>
+        )}
       </div>
-      <TimeRangeInput from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }}
-        label={creatingRecurring ? 'Time (optional, each day)' : 'Time (optional)'}
-        hint={creatingRecurring ? 'e.g. 10:00 – 11:00 am. Each day\'s copy gets this time.' : 'Shows the task at this time on the calendar.'} />
       {creatingRecurring && (
         <>
-          <div className="form-section">Schedule</div>
           <Field label="Repeat On" required hint="A copy of the task is created for the assignee on each chosen day, due the same day.">
             <WeekdayPicker value={weekdays} onChange={setWeekdays} />
           </Field>
@@ -207,13 +216,27 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </div>
         </>
       )}
-      {task && task.task_type !== 'recurring' && task.kind !== 'reel' && (
-        // Editing: the task's reminders, added / removed straight away (same as in its details).
-        <>
-          <TaskReminders task={task} onError={setError} preview={preview} />
-        </>
+
+      {isOpen('desc') && (
+        <Field label={isReel ? 'Brief / Instructions' : 'Description'}>
+          <textarea rows={4} autoFocus={!task} placeholder={isReel ? 'Raw footage link, style, music, what to cut…' : 'Add details, links or instructions'} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
       )}
-      {!creatingRecurring && !task && !isReel && (
+      {isReel && isOpen('caption') && (
+        <Field label="Caption" hint="The editor can change it later in the reel's details.">
+          <textarea rows={3} autoFocus={!task} placeholder="Caption for the post" value={caption} onChange={(e) => setCaption(e.target.value)} />
+        </Field>
+      )}
+      {isOpen('time') && (
+        <TimeRangeInput from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }}
+          label={creatingRecurring ? 'Time (each day)' : 'Time'}
+          hint={creatingRecurring ? 'e.g. 10:00 – 11:00 am. Each day\'s copy gets this time.' : 'Shows the task at this time on the calendar.'} />
+      )}
+      {canReminders && isOpen('reminders') && task && (
+        // Editing: the task's reminders, added / removed straight away (same as in its details).
+        <TaskReminders task={task} onError={setError} preview={preview} />
+      )}
+      {canReminders && isOpen('reminders') && !task && (
         <>
           <div className="form-section">Reminders</div>
           <AutoReminderNote priority={priority} prefilled />
@@ -222,11 +245,21 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
             auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />
         </>
       )}
-      {!task && !creatingRecurring && !isReel && (
+      {canFiles && isOpen('files') && (
         <>
           <div className="form-section">Attachments</div>
           <FilePicker files={files} onChange={setFiles} onError={setError} />
         </>
+      )}
+
+      {closedExtras.length > 0 && (
+        <div className="form-extras">
+          {closedExtras.map(({ key, label, icon: Icon }) => (
+            <button key={key} type="button" className="extra-chip" onClick={() => open(key)}>
+              <Plus size={14} /><Icon size={15} /> {label}
+            </button>
+          ))}
+        </div>
       )}
       {error && <div className="alert error" style={{ marginTop: 14 }}>{error}</div>}
     </Drawer>

@@ -16,6 +16,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 - One view count per reel: `task_reels.actual_views` (+ `views_counted_at` / `views_counted_by`, set by the guard trigger); the Reel tab has a single "Actual views" box instead of the count list. `report_reels` returns it as views_24h/latest_views (same signature); report labels say "Actual Views". `reel_views` kept, unused, for automatic counts later. Migration `20261002120000_reel_single_views.sql`.
 - Expected views / edit time inputs moved into the Views and Edit Time sections of the Reel tab; the timer can't Start a reel until both are set (UI + `task_timer`). Migration `20261002130000_reel_start_needs_targets.sql`.
 - Owner: expected views / edit time are the editor's own estimate — **only the assignee** sets them (not assigner/admin), and there's **no condition before Start** (reverted). The editor can change them any time (no locks). Migration `20261002140000_reel_targets_editor_only.sql`.
+- Add/Edit Task: `Drawer wide` (720px, like TaskView); optional sections (description/brief, caption, time, reminders, attachments) behind "+" chips (`form-extras`), open by default when editing a task that has them; the reminders chip shows the count of automatic ones (they're still added when the section stays closed).
 - (Reel stages were added in 20261002150000 and reverted the same day in 20261002160000: timer Stop → Done again; `stage` / `upload_time` columns left unused.)
 
 ## Version 1.5.4 — 1 Oct 2026

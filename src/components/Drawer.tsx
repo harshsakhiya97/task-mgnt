@@ -2,13 +2,15 @@ import { useEffect, type FormEvent, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
 /** Right-hand slide-over panel with a Cancel / primary action footer. */
-export function Drawer({ title, onClose, onSubmit, submitLabel, busy, children, hideSubmit }: {
+export function Drawer({ title, onClose, onSubmit, submitLabel, busy, children, hideSubmit, wide }: {
   title: string
   onClose: () => void
   onSubmit?: (e: FormEvent) => void
   submitLabel?: string
   busy?: boolean
   hideSubmit?: boolean
+  /** Same width as the task view. */
+  wide?: boolean
   children: ReactNode
 }) {
   useEffect(() => {
@@ -19,7 +21,7 @@ export function Drawer({ title, onClose, onSubmit, submitLabel, busy, children, 
 
   return (
     <div className="overlay" onMouseDown={(e) => { e.stopPropagation(); onClose() }}>
-      <form className="drawer" role="dialog" aria-label={title}
+      <form className={`drawer ${wide ? 'wide' : ''}`} role="dialog" aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
         onSubmit={(e) => { e.preventDefault(); onSubmit?.(e) }}>
         <div className="drawer-head">

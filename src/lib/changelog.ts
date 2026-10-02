@@ -16,6 +16,7 @@ export const RELEASES: Release[] = [
     title: 'Reels',
     summary: 'A new task type for the reel editors: video title, caption, expected views and edit time, a Start / Pause / Stop edit timer, post links and view counts, plus a Reels report.',
     changes: [
+      { type: 'improved', text: 'Add / Edit Task is wider (same as the task view) and shorter: just title, person, priority and due date. Description, time, reminders and attachments are added with the "+" buttons only when you need them.' },
       { type: 'new', text: 'Add Task → 🎬 Reel: video title, brief, caption, upload date (the day it should go up) and the edit due date. Reels have no reminders or attachments.' },
       { type: 'new', text: 'Only the editor sets the expected views and expected edit time (their own estimate), any time, in the reel\'s 🎬 Reel tab. Once the reel is Done, only an admin can change them.' },
       { type: 'new', text: 'Edit timer on the reel (Overview tab): the editor taps Start (the reel moves to In Progress), Pause for breaks, and Stop when editing is finished (it moves to Done). Every Start → Pause counts as a block of edit time. A timer left running is paused at 11:59 pm.' },
