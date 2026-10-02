@@ -310,7 +310,7 @@ export function Calendar() {
           expandRows
           nowIndicator
           allDayText="Due"
-          slotMinTime="06:00:00"
+          slotMinTime="08:00:00"
           slotMaxTime="24:00:00"
           slotDuration="00:30:00"
           snapDuration="00:05:00"
