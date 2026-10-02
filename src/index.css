@@ -979,3 +979,6 @@ input::-webkit-date-and-time-value { text-align: left; margin: 0; }
   .reel-timer-btns button { flex: 1; }
   .reel-history li small { margin-left: 0; width: 100%; }
 }
+.reel-nudge { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.reel-nudge .link { font-size: 12px; }
+.reel-stats.two { grid-template-columns: repeat(2, 1fr); }

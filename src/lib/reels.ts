@@ -13,6 +13,7 @@ export interface ReelInfo {
   instagram_url: string | null
   youtube_url: string | null
   posted_at: string | null
+  upload_date: string | null       // day the reel should go up (set by whoever gives it)
   expected_views: number | null
   expected_minutes: number | null
   updated_at: string
@@ -78,7 +79,7 @@ export function latestViews(rows: ReelViews[], platform: Platform) {
 /** One reel's row in the Reels report (report_reels RPC). */
 export interface ReelReportRow {
   task_id: string; task_no: number; title: string; editor_id: string | null; editor_name: string | null; team_name: string | null
-  status: string; due_date: string; completed_at: string | null; posted_at: string | null
+  status: string; due_date: string; upload_date?: string | null; completed_at: string | null; posted_at: string | null
   instagram_url: string | null; youtube_url: string | null
   expected_views: number | null; views_24h: number | null; latest_views: number | null; latest_at: string | null
   expected_minutes: number | null; actual_minutes: number; timer_running: boolean

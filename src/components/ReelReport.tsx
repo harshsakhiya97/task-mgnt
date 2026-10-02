@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Clapperboard, Clock3, Download, Eye, Gauge, Send, Target, Timer } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatDate, STATUS_LABELS, taskCode, type TaskStatus } from '../lib/tasks'
+import { formatDate, STATUS_LABELS, taskCode, todayStr, type TaskStatus } from '../lib/tasks'
 import { minutesText, viewsText, type ReelReportRow } from '../lib/reels'
 import { StatCard } from './StatCard'
 
@@ -28,7 +28,14 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
     setLoading(true)
     const { data, error } = await supabase.rpc('report_reels', { p_from: from, p_to: to, p_team: teamId || null })
     if (error) setError(error.message)
-    setRows((data as ReelReportRow[]) ?? [])
+    const list = (data as ReelReportRow[]) ?? []
+    // Upload dates live on task_reels (not in the RPC).
+    if (list.length) {
+      const { data: up } = await supabase.from('task_reels').select('task_id, upload_date').in('task_id', list.map((r) => r.task_id))
+      const map = new Map(((up ?? []) as { task_id: string; upload_date: string | null }[]).map((u) => [u.task_id, u.upload_date]))
+      for (const r of list) r.upload_date = map.get(r.task_id) ?? null
+    }
+    setRows(list)
     setLoading(false)
   }, [from, to, teamId])
   useEffect(() => { load() }, [load])
@@ -70,9 +77,9 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
         [{ value: '* Only reels with both an expected count and a count at 24 h. ** Only reels with an expected time and some timed work.' }],
       ]
       const detail = [
-        head(['Task No.', 'Video Title', 'Editor', 'Due Date', 'Status', 'Posted At', 'Instagram', 'YouTube', 'Expected Views', 'Views at 24 h', 'Views %', 'Latest Views', 'Expected Time (min)', 'Actual Time (min)', 'Time %']),
+        head(['Task No.', 'Video Title', 'Editor', 'Due Date', 'Upload Date', 'Status', 'Posted At', 'Instagram', 'YouTube', 'Expected Views', 'Views at 24 h', 'Views %', 'Latest Views', 'Expected Time (min)', 'Actual Time (min)', 'Time %']),
         ...rows.map((r) => [
-          { value: taskCode(r.task_no) }, { value: r.title }, { value: r.editor_name ?? '' }, { value: formatDate(r.due_date) },
+          { value: taskCode(r.task_no) }, { value: r.title }, { value: r.editor_name ?? '' }, { value: formatDate(r.due_date) }, { value: r.upload_date ? formatDate(r.upload_date) : '' },
           { value: STATUS_LABELS[r.status as TaskStatus] ?? r.status },
           { value: r.posted_at ? new Date(r.posted_at).toLocaleString('en-IN') : '' },
           { value: r.instagram_url ?? '' }, { value: r.youtube_url ?? '' },
@@ -84,7 +91,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
         sheets: ['Editors', 'Reels'],
         columns: [
           [{ width: 24 }, ...Array(9).fill({ width: 16 })],
-          [{ width: 10 }, { width: 36 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 20 }, { width: 30 }, { width: 30 }, ...Array(7).fill({ width: 14 })],
+          [{ width: 10 }, { width: 36 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 20 }, { width: 30 }, { width: 30 }, ...Array(7).fill({ width: 14 })],
         ],
         fileName: `Reels-Report_${from}_to_${to}.xlsx`,
       })
@@ -148,7 +155,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
           <div className="table-scroll">
             <table>
               <thead>
-                <tr><th>Task No.</th><th>Video Title</th><th>Editor</th><th>Status</th><th>Posted</th><th>Expected Views</th><th>At 24 h</th><th>Latest</th><th>Expected Time</th><th>Actual Time</th></tr>
+                <tr><th>Task No.</th><th>Video Title</th><th>Editor</th><th>Status</th><th>Upload Date</th><th>Posted</th><th>Expected Views</th><th>At 24 h</th><th>Latest</th><th>Expected Time</th><th>Actual Time</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
@@ -160,7 +167,9 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
                       <td><div className="task-title" title={r.title}>{r.title}</div></td>
                       <td>{r.editor_name ?? '—'}</td>
                       <td>{STATUS_LABELS[r.status as TaskStatus] ?? r.status}{r.timer_running && <div className="small ok-text">● editing now</div>}</td>
-                      <td>{r.posted_at ? formatDate(r.posted_at) : <span className="muted">Not yet</span>}</td>
+                      <td>{r.upload_date ? formatDate(r.upload_date) : '—'}</td>
+                      <td>{r.posted_at ? formatDate(r.posted_at) : <span className="muted">Not yet</span>}
+                        {r.posted_at && r.upload_date && todayStr(new Date(r.posted_at)) > r.upload_date && <div className="small overdue-text">after upload date</div>}</td>
                       <td>{viewsText(r.expected_views)}</td>
                       <td>{viewsText(r.views_24h)}{vp != null && <div className={`small ${vp >= 100 ? 'ok-text' : 'overdue-text'}`}>{vp}%</div>}</td>
                       <td>{viewsText(r.latest_views)}</td>

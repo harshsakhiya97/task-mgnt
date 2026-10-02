@@ -54,8 +54,8 @@ function TimeBar({ seconds, expected }: { seconds: number; expected: number | nu
  * Start / Pause / Stop for the editor (the task's assignee). Start → In Progress; every Start → Pause is a time block;
  * Stop = editing finished → Done. Admins can pause or stop a timer that was left running.
  */
-export function ReelTimer({ task, entries, onChanged, onError }: {
-  task: Task; entries: TimeEntry[]; onChanged: () => void; onError: (m: string) => void
+export function ReelTimer({ task, entries, onChanged, onError, onOpenReel }: {
+  task: Task; entries: TimeEntry[]; onChanged: () => void; onError: (m: string) => void; onOpenReel?: () => void
 }) {
   const { profile } = useAuth()
   const running = entries.find((e) => !e.ended_at)
@@ -98,7 +98,12 @@ export function ReelTimer({ task, entries, onChanged, onError }: {
           )}
         </div>
       </div>
-      <TimeBar seconds={seconds} expected={task.reel?.expected_minutes ?? null} />
+      {isAssignee && !done && (task.reel?.expected_minutes == null || task.reel?.expected_views == null) ? (
+        <div className="reel-nudge small">
+          Set your expected views and edit time first.
+          {onOpenReel && <button type="button" className="link" onClick={onOpenReel}>Set them in the 🎬 Reel tab</button>}
+        </div>
+      ) : <TimeBar seconds={seconds} expected={task.reel?.expected_minutes ?? null} />}
       {!isAssignee && !running && !done && seconds === 0 && <div className="muted small">The editor starts the timer from their own login.</div>}
       {confirmStop && (
         <ConfirmDialog icon={<CircleStop size={30} />} title="Finish editing?"
@@ -117,9 +122,73 @@ export function ReelPanel({ task, entries, views, onChanged, onError }: {
   if (!reel) return <p className="muted">Reel details are loading…</p>
   return (
     <>
+      <Targets task={task} onChanged={onChanged} onError={onError} />
       <PostDetails task={task} onChanged={onChanged} onError={onError} />
       <ViewsSection task={task} views={views} onChanged={onChanged} onError={onError} />
       <TimeSection task={task} entries={entries} onChanged={onChanged} onError={onError} />
+    </>
+  )
+}
+
+/** Expected views and edit time — set by the editor (or whoever gave the reel); locked for non-admins once it's Done. */
+function Targets({ task, onChanged, onError }: { task: Task; onChanged: () => void; onError: (m: string) => void }) {
+  const { profile } = useAuth()
+  const reel = task.reel!
+  const isAdmin = profile?.role === 'admin'
+  const mine = !!profile && [task.assigned_to, task.created_by, task.assigned_by].includes(profile.id)
+  const canEdit = isAdmin || (mine && task.status !== 'done')
+  const [views, setViews] = useState(reel.expected_views != null ? String(reel.expected_views) : '')
+  const [h, setH] = useState(reel.expected_minutes ? String(Math.floor(reel.expected_minutes / 60)) : '')
+  const [m, setM] = useState(reel.expected_minutes ? String(reel.expected_minutes % 60) : '')
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => {
+    setViews(reel.expected_views != null ? String(reel.expected_views) : '')
+    setH(reel.expected_minutes ? String(Math.floor(reel.expected_minutes / 60)) : '')
+    setM(reel.expected_minutes ? String(reel.expected_minutes % 60) : '')
+  }, [reel.expected_views, reel.expected_minutes])
+
+  const minutes = (Number(h) || 0) * 60 + (Number(m) || 0)
+  const nextViews = views.trim() === '' ? null : Math.round(Number(views))
+  const dirty = nextViews !== reel.expected_views || (minutes || null) !== reel.expected_minutes
+
+  const save = async () => {
+    if (nextViews != null && (!Number.isFinite(nextViews) || nextViews < 0)) return onError('Expected views should be a number')
+    if (Number(h) < 0 || Number(m) < 0) return onError('Edit time can\'t be negative')
+    setBusy(true)
+    const { error } = await supabase.from('task_reels').update({ expected_views: nextViews, expected_minutes: minutes || null }).eq('task_id', task.id)
+    setBusy(false)
+    if (error) return onError(error.message)
+    setSaved(true); window.setTimeout(() => setSaved(false), 1500)
+    onChanged()
+  }
+
+  return (
+    <>
+      <div className="form-section">Expected</div>
+      {canEdit ? (
+        <div className="reel-add-views">
+          <label className="reel-field">
+            <span>Expected views (at 24 h)</span>
+            <input type="number" inputMode="numeric" min={0} step={100} placeholder="e.g. 10000" value={views} onChange={(e) => setViews(e.target.value)} />
+          </label>
+          <label className="reel-field">
+            <span>Expected edit time</span>
+            <div className="duration-input">
+              <input type="number" inputMode="numeric" min={0} max={168} placeholder="0" value={h} onChange={(e) => setH(e.target.value)} aria-label="Hours" /><span>h</span>
+              <input type="number" inputMode="numeric" min={0} max={59} step={5} placeholder="0" value={m} onChange={(e) => setM(e.target.value)} aria-label="Minutes" /><span>m</span>
+            </div>
+          </label>
+          <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+          {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}
+        </div>
+      ) : (
+        <div className="reel-stats two">
+          <div><span>Expected views</span><b>{viewsText(reel.expected_views)}</b></div>
+          <div><span>Expected edit time</span><b>{minutesText(reel.expected_minutes)}</b></div>
+        </div>
+      )}
+      <p className="muted small">{task.status === 'done' && !isAdmin ? 'The reel is done, so only an admin can change these.' : 'Set by the editor before starting. Used in Reports → Reels.'}</p>
     </>
   )
 }
@@ -171,6 +240,7 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
             <input type="url" inputMode="url" placeholder="https://youtube.com/shorts/…" value={yt} onChange={(e) => setYt(e.target.value)} />
           </label>
         </div>
+        {reel.upload_date && <div className="small">Upload date: <b>{formatDate(reel.upload_date)}</b></div>}
         <label className="reel-field">
           <span>Posted at</span>
           <input type="datetime-local" value={posted} onChange={(e) => setPosted(e.target.value)} />

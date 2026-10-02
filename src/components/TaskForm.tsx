@@ -28,11 +28,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const [mode, setMode] = useState<Mode>(task ? (task.kind === 'reel' ? 'reel' : task.task_type) : 'adhoc')
   const type: TaskType = mode === 'recurring' ? 'recurring' : 'adhoc'
   const isReel = mode === 'reel'
-  // Reel details (2.0): caption, expected views, expected edit time.
+  // Reel details (2.0): caption and upload date. (Expected views / edit time are set by the editor in the reel's Reel tab.)
   const [caption, setCaption] = useState(task?.reel?.caption ?? '')
-  const [expViews, setExpViews] = useState(task?.reel?.expected_views != null ? String(task.reel.expected_views) : '')
-  const [expH, setExpH] = useState(task?.reel?.expected_minutes ? String(Math.floor(task.reel.expected_minutes / 60)) : '')
-  const [expM, setExpM] = useState(task?.reel?.expected_minutes ? String(task.reel.expected_minutes % 60) : '')
+  const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
@@ -76,9 +74,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     if (!creatingRecurring && task?.task_type !== 'recurring' && !dueDate) return setError('Ad hoc tasks need a due date')
     const timeErr = timePairError(from, to)
     if (timeErr) return setError(timeErr)
-    const expMinutes = (Number(expH) || 0) * 60 + (Number(expM) || 0)
-    if (isReel && (Number(expH) < 0 || Number(expM) < 0 || Number(expViews) < 0)) return setError('Expected views and time can\'t be negative')
-    const reelFields = { caption: caption.trim() || null, expected_views: expViews === '' ? null : Math.round(Number(expViews)), expected_minutes: expMinutes || null }
+    const reelFields = { caption: caption.trim() || null, upload_date: uploadDate || null }
     setBusy(true)
     try {
       if (creatingRecurring) {
@@ -111,14 +107,14 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       if (isReel) {
         // The reel's details row is made with the task; fill it in (only what changed when editing).
         const r = task?.reel
-        const changed = !r || r.caption !== reelFields.caption || r.expected_views !== reelFields.expected_views || r.expected_minutes !== reelFields.expected_minutes
+        const changed = !r || r.caption !== reelFields.caption || (r.upload_date ?? null) !== reelFields.upload_date
         if (changed) {
           const { error } = await supabase.from('task_reels').update(reelFields).eq('task_id', id!)
           if (error) throw new Error(`${task ? 'Task updated' : 'Reel created'}, but its details couldn't be saved: ${error.message}`)
         }
       }
       for (const f of files) await uploadAttachment(id!, profile.id, f)
-      if (!task) {
+      if (!task && !isReel) {
         const err = await saveDraftReminders(id!, profile.id, reminders)
           ?? await dropAutoReminders(id!, profile.id, autoAll.filter((d) => removedAuto.includes(d.key)).map((d) => d.key))
         if (err) throw new Error(`Task created, but a reminder couldn't be saved: ${err}`)
@@ -161,17 +157,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           <Field label="Caption" hint="The editor can change it later in the reel's details.">
             <textarea rows={3} placeholder="Caption for the post (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
           </Field>
-          <div className="form-grid">
-            <Field label="Expected Views" hint="Views you expect 24 hours after posting.">
-              <input type="number" inputMode="numeric" min={0} step={100} placeholder="e.g. 10000" value={expViews} onChange={(e) => setExpViews(e.target.value)} />
-            </Field>
-            <Field label="Expected Edit Time" hint="How long the edit should take.">
-              <div className="duration-input">
-                <input type="number" inputMode="numeric" min={0} max={168} placeholder="0" value={expH} onChange={(e) => setExpH(e.target.value)} aria-label="Hours" /><span>h</span>
-                <input type="number" inputMode="numeric" min={0} max={59} step={5} placeholder="0" value={expM} onChange={(e) => setExpM(e.target.value)} aria-label="Minutes" /><span>m</span>
-              </div>
-            </Field>
-          </div>
+          <Field label="Upload Date" hint="The day the reel should go up on Instagram / YouTube. The editor sets the expected views and edit time.">
+            <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
+          </Field>
         </>
       )}
       <div className="form-section">Assignment</div>
@@ -188,7 +176,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </select>
         </Field>
         {!creatingRecurring && (
-          <Field label="Due Date" required={task?.task_type !== 'recurring'}>
+          <Field label={isReel ? 'Edit Due Date' : 'Due Date'} required={task?.task_type !== 'recurring'} hint={isReel ? 'When the edit should be finished.' : undefined}>
             <input type="date" required={task?.task_type !== 'recurring'} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </Field>
         )}
@@ -212,13 +200,13 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </div>
         </>
       )}
-      {task && task.task_type !== 'recurring' && (
+      {task && task.task_type !== 'recurring' && task.kind !== 'reel' && (
         // Editing: the task's reminders, added / removed straight away (same as in its details).
         <>
           <TaskReminders task={task} onError={setError} preview={preview} />
         </>
       )}
-      {!creatingRecurring && !task && (
+      {!creatingRecurring && !task && !isReel && (
         <>
           <div className="form-section">Reminders</div>
           <AutoReminderNote priority={priority} prefilled />
@@ -227,7 +215,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
             auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />
         </>
       )}
-      {!task && !creatingRecurring && (
+      {!task && !creatingRecurring && !isReel && (
         <>
           <div className="form-section">Attachments</div>
           <FilePicker files={files} onChange={setFiles} onError={setError} />
