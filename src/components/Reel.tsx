@@ -63,6 +63,7 @@ export function ReelTimer({ task, entries, onChanged, onError, onOpenReel }: {
   const canControl = isAssignee || profile?.role === 'admin'
   const seconds = totalSeconds(entries)
   const done = task.status === 'done'
+  const needsTargets = task.reel?.expected_minutes == null || task.reel?.expected_views == null
 
   const act = async (a: 'start' | 'pause' | 'stop') => {
     setBusy(true)
@@ -85,7 +86,7 @@ export function ReelTimer({ task, entries, onChanged, onError, onOpenReel }: {
         <span className="spacer" />
         <div className="reel-timer-btns">
           {!running && !done && isAssignee && (
-            <button type="button" className="go" disabled={busy} onClick={() => act('start')}><CirclePlay size={17} /> {seconds > 0 ? 'Resume' : 'Start'}</button>
+            <button type="button" className="go" disabled={busy || needsTargets} title={needsTargets ? 'Set the expected views and edit time first' : undefined} onClick={() => act('start')}><CirclePlay size={17} /> {seconds > 0 ? 'Resume' : 'Start'}</button>
           )}
           {running && canControl && (
             <button type="button" className="secondary" disabled={busy} onClick={() => act('pause')}><CirclePause size={17} /> Pause</button>
@@ -95,9 +96,9 @@ export function ReelTimer({ task, entries, onChanged, onError, onOpenReel }: {
           )}
         </div>
       </div>
-      {isAssignee && !done && (task.reel?.expected_minutes == null || task.reel?.expected_views == null) ? (
+      {isAssignee && !done && needsTargets ? (
         <div className="reel-nudge small">
-          Set your expected views and edit time first.
+          Set your expected views and edit time before you start.
           {onOpenReel && <button type="button" className="link" onClick={onOpenReel}>Set them in the 🎬 Reel tab</button>}
         </div>
       ) : <TimeBar seconds={seconds} expected={task.reel?.expected_minutes ?? null} />}
@@ -119,7 +120,6 @@ export function ReelPanel({ task, entries, onChanged, onError }: {
   if (!reel) return <p className="muted">Reel details are loading…</p>
   return (
     <>
-      <Targets task={task} onChanged={onChanged} onError={onError} />
       <PostDetails task={task} onChanged={onChanged} onError={onError} />
       <ViewsSection task={task} onChanged={onChanged} onError={onError} />
       <TimeSection task={task} entries={entries} onChanged={onChanged} onError={onError} />
@@ -127,33 +127,38 @@ export function ReelPanel({ task, entries, onChanged, onError }: {
   )
 }
 
-/** Expected views and edit time — set by the editor (or whoever gave the reel); locked for non-admins once it's Done. */
-function Targets({ task, onChanged, onError }: { task: Task; onChanged: () => void; onError: (m: string) => void }) {
+/** Who may set the expected views / edit time: the editor or whoever gave the reel, until it's Done; admins any time. */
+function canSetExpected(task: Task, userId?: string, isAdmin?: boolean) {
+  if (isAdmin) return true
+  return !!userId && [task.assigned_to, task.created_by, task.assigned_by].includes(userId) && task.status !== 'done'
+}
+
+/** One "expected" value (views or edit time) with its own Save — shown inside the Views / Edit Time sections. */
+function ExpectedField({ task, kind, onChanged, onError }: {
+  task: Task; kind: 'views' | 'time'; onChanged: () => void; onError: (m: string) => void
+}) {
   const { profile } = useAuth()
   const reel = task.reel!
-  const isAdmin = profile?.role === 'admin'
-  const mine = !!profile && [task.assigned_to, task.created_by, task.assigned_by].includes(profile.id)
-  const canEdit = isAdmin || (mine && task.status !== 'done')
-  const [views, setViews] = useState(reel.expected_views != null ? String(reel.expected_views) : '')
-  const [h, setH] = useState(reel.expected_minutes ? String(Math.floor(reel.expected_minutes / 60)) : '')
-  const [m, setM] = useState(reel.expected_minutes ? String(reel.expected_minutes % 60) : '')
+  const cur = kind === 'views' ? reel.expected_views : reel.expected_minutes
+  const [views, setViews] = useState('')
+  const [h, setH] = useState('')
+  const [m, setM] = useState('')
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   useEffect(() => {
-    setViews(reel.expected_views != null ? String(reel.expected_views) : '')
-    setH(reel.expected_minutes ? String(Math.floor(reel.expected_minutes / 60)) : '')
-    setM(reel.expected_minutes ? String(reel.expected_minutes % 60) : '')
-  }, [reel.expected_views, reel.expected_minutes])
-
-  const minutes = (Number(h) || 0) * 60 + (Number(m) || 0)
-  const nextViews = views.trim() === '' ? null : Math.round(Number(views))
-  const dirty = nextViews !== reel.expected_views || (minutes || null) !== reel.expected_minutes
+    if (kind === 'views') setViews(cur != null ? String(cur) : '')
+    else { setH(cur ? String(Math.floor(cur / 60)) : ''); setM(cur ? String(cur % 60) : '') }
+  }, [cur, kind])
+  if (!canSetExpected(task, profile?.id, profile?.role === 'admin')) {
+    return cur == null ? <p className="muted small">{task.status === 'done' ? 'Not set. The reel is done, so only an admin can add it now.' : 'The editor sets this.'}</p> : null
+  }
+  const next = kind === 'views' ? (views.trim() === '' ? null : Math.round(Number(views))) : ((Number(h) || 0) * 60 + (Number(m) || 0)) || null
+  const dirty = next !== cur
 
   const save = async () => {
-    if (nextViews != null && (!Number.isFinite(nextViews) || nextViews < 0)) return onError('Expected views should be a number')
-    if (Number(h) < 0 || Number(m) < 0) return onError('Edit time can\'t be negative')
+    if (next != null && (!Number.isFinite(next) || next < 0)) return onError('Please type a number')
     setBusy(true)
-    const { error } = await supabase.from('task_reels').update({ expected_views: nextViews, expected_minutes: minutes || null }).eq('task_id', task.id)
+    const { error } = await supabase.from('task_reels').update(kind === 'views' ? { expected_views: next } : { expected_minutes: next }).eq('task_id', task.id)
     setBusy(false)
     if (error) return onError(error.message)
     setSaved(true); window.setTimeout(() => setSaved(false), 1500)
@@ -161,32 +166,21 @@ function Targets({ task, onChanged, onError }: { task: Task; onChanged: () => vo
   }
 
   return (
-    <>
-      <div className="form-section">Expected</div>
-      {canEdit ? (
-        <div className="reel-add-views">
-          <label className="reel-field">
-            <span>Expected views</span>
-            <input type="number" inputMode="numeric" min={0} step={100} placeholder="e.g. 10000" value={views} onChange={(e) => setViews(e.target.value)} />
-          </label>
-          <label className="reel-field">
-            <span>Expected edit time</span>
+    <div className="reel-add-views">
+      <label className="reel-field">
+        <span>{kind === 'views' ? 'Expected views' : 'Expected edit time'}{cur == null && <span className="req-dot"> · needed before Start</span>}</span>
+        {kind === 'views'
+          ? <input type="number" inputMode="numeric" min={0} step={100} placeholder="e.g. 10000" value={views} onChange={(e) => setViews(e.target.value)} />
+          : (
             <div className="duration-input">
               <input type="number" inputMode="numeric" min={0} max={168} placeholder="0" value={h} onChange={(e) => setH(e.target.value)} aria-label="Hours" /><span>h</span>
               <input type="number" inputMode="numeric" min={0} max={59} step={5} placeholder="0" value={m} onChange={(e) => setM(e.target.value)} aria-label="Minutes" /><span>m</span>
             </div>
-          </label>
-          <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
-          {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}
-        </div>
-      ) : (
-        <div className="reel-stats two">
-          <div><span>Expected views</span><b>{viewsText(reel.expected_views)}</b></div>
-          <div><span>Expected edit time</span><b>{minutesText(reel.expected_minutes)}</b></div>
-        </div>
-      )}
-      <p className="muted small">{task.status === 'done' && !isAdmin ? 'The reel is done, so only an admin can change these.' : 'Set by the editor before starting. Used in Reports → Reels.'}</p>
-    </>
+          )}
+      </label>
+      <button type="button" className="secondary" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+      {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}
+    </div>
   )
 }
 
@@ -289,6 +283,7 @@ function ViewsSection({ task, onChanged, onError }: { task: Task; onChanged: () 
             : null}
         </div>
       </div>
+      <ExpectedField task={task} kind="views" onChanged={onChanged} onError={onError} />
       <div className="reel-add-views">
         <label className="reel-field">
           <span>Actual views {reel.instagram_url && reel.youtube_url ? '(Instagram + YouTube)' : ''}</span>
@@ -339,6 +334,7 @@ function TimeSection({ task, entries, onChanged, onError }: {
         <div><span>Actual</span><b>{durationText(seconds)}</b></div>
         <div><span>Blocks</span><b>{entries.length}</b></div>
       </div>
+      <ExpectedField task={task} kind="time" onChanged={onChanged} onError={onError} />
       {list.length === 0 ? <p className="muted">No time yet. The editor's Start → Pause / Stop on the Overview tab adds a block.</p> : (
         <ul className="reel-history">
           {list.map((e) => (

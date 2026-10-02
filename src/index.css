@@ -983,3 +983,7 @@ input::-webkit-date-and-time-value { text-align: left; margin: 0; }
 .reel-nudge .link { font-size: 12px; }
 .reel-stats.two { grid-template-columns: repeat(2, 1fr); }
 p.muted.small + .form-section { margin-top: 22px; }
+.req-dot { color: var(--warn); font-weight: 400; font-size: 12px; }
+.reel-add-views + .reel-add-views { margin-top: 12px; }
+.reel-stats + .reel-add-views { margin-bottom: 4px; }
+.reel-field .duration-input input { width: 80px; flex: none; }
