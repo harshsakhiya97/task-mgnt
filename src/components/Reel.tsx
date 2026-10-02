@@ -121,46 +121,21 @@ export function ReelPanel({ task, entries, onChanged, onError }: {
   )
 }
 
-/** Sub-type, changeable by anyone on the reel (the editor too); saves as soon as it's picked. */
-function SubTypePicker({ task, onChanged, onError }: { task: Task; onChanged: () => void; onError: (m: string) => void }) {
-  const cur = task.reel?.sub_type ?? ''
-  const [value, setValue] = useState(cur)
-  const [saved, setSaved] = useState(false)
-  useEffect(() => { setValue(cur) }, [cur])
-  const change = async (v: string) => {
-    setValue(v)
-    const { error } = await supabase.from('task_reels').update({ sub_type: v || null }).eq('task_id', task.id)
-    if (error) { setValue(cur); return onError(error.message) }
-    setSaved(true); window.setTimeout(() => setSaved(false), 1500)
-    onChanged()
-  }
-  return (
-    <label className="reel-field">
-        <span>Sub-type {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}</span>
-        <select value={value} onChange={(e) => change(e.target.value)}>
-          <option value="">Select…</option>
-          {REEL_SUB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          {value && !(REEL_SUB_TYPES as readonly string[]).includes(value) && <option value={value}>{value}</option>}
-        </select>
-        <small className="muted">Saved as soon as you pick one.</small>
-      </label>
-  )
-}
-
 function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () => void; onError: (m: string) => void }) {
   const reel = task.reel!
   const [caption, setCaption] = useState(reel.caption ?? '')
   const [ig, setIg] = useState(reel.instagram_url ?? '')
   const [yt, setYt] = useState(reel.youtube_url ?? '')
   const [drive, setDrive] = useState(reel.drive_url ?? '')
+  const [subType, setSubType] = useState(reel.sub_type ?? '')
   const [posted, setPosted] = useState(toLocalInput(reel.posted_at))
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   useEffect(() => {
-    setCaption(reel.caption ?? ''); setIg(reel.instagram_url ?? ''); setYt(reel.youtube_url ?? ''); setDrive(reel.drive_url ?? ''); setPosted(toLocalInput(reel.posted_at))
-  }, [reel.caption, reel.instagram_url, reel.youtube_url, reel.drive_url, reel.posted_at])
+    setCaption(reel.caption ?? ''); setIg(reel.instagram_url ?? ''); setYt(reel.youtube_url ?? ''); setDrive(reel.drive_url ?? ''); setSubType(reel.sub_type ?? ''); setPosted(toLocalInput(reel.posted_at))
+  }, [reel.sub_type, reel.caption, reel.instagram_url, reel.youtube_url, reel.drive_url, reel.posted_at])
 
-  const dirty = caption.trim() !== (reel.caption ?? '') || ig.trim() !== (reel.instagram_url ?? '') || yt.trim() !== (reel.youtube_url ?? '') || drive.trim() !== (reel.drive_url ?? '')
+  const dirty = caption.trim() !== (reel.caption ?? '') || ig.trim() !== (reel.instagram_url ?? '') || yt.trim() !== (reel.youtube_url ?? '') || drive.trim() !== (reel.drive_url ?? '') || subType !== (reel.sub_type ?? '')
     || posted !== toLocalInput(reel.posted_at)
   const badUrl = [ig, yt, drive].some((u) => u.trim() && !/^https?:\/\/\S+$/i.test(u.trim()))
 
@@ -169,7 +144,7 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
     if (posted && new Date(posted).getTime() > Date.now() + 5 * 60e3) return onError('Posted time can\'t be in the future')
     setBusy(true)
     const { error } = await supabase.from('task_reels').update({
-      caption: caption.trim() || null, instagram_url: ig.trim() || null, youtube_url: yt.trim() || null, drive_url: drive.trim() || null, posted_at: fromLocalInput(posted),
+      caption: caption.trim() || null, instagram_url: ig.trim() || null, youtube_url: yt.trim() || null, drive_url: drive.trim() || null, sub_type: subType || null, posted_at: fromLocalInput(posted),
     }).eq('task_id', task.id)
     setBusy(false)
     if (error) return onError(error.message)
@@ -201,7 +176,14 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
         </div>
         {reel.upload_date && <div className="small">Upload date: <b>{formatDate(reel.upload_date)}</b></div>}
         <div className="form-grid">
-          <SubTypePicker task={task} onChanged={onChanged} onError={onError} />
+          <label className="reel-field">
+            <span>Sub-type</span>
+            <select value={subType} onChange={(e) => setSubType(e.target.value)}>
+              <option value="">Select…</option>
+              {REEL_SUB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {subType && !(REEL_SUB_TYPES as readonly string[]).includes(subType) && <option value={subType}>{subType}</option>}
+            </select>
+          </label>
           <label className="reel-field">
             <span>Posted at</span>
             <input type="datetime-local" value={posted} onChange={(e) => setPosted(e.target.value)} />
