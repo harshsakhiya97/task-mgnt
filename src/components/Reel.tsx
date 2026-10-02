@@ -268,6 +268,7 @@ function TimeSection({ task, entries, onChanged, onError }: {
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   useEffect(() => { setH(cur ? String(Math.floor(cur / 60)) : ''); setM(cur ? String(cur % 60) : '') }, [cur])
+  useSecondTick(entries.some((e) => !e.ended_at))   // live while the timer runs
   const seconds = totalSeconds(entries)
   const next = ((Number(h) || 0) * 60 + (Number(m) || 0)) || null
   const dirty = isEditor && next !== cur
@@ -297,8 +298,8 @@ function TimeSection({ task, entries, onChanged, onError }: {
           ) : <input disabled value={cur ? minutesText(cur) : ''} placeholder="The editor sets this" />}
         </label>
         <label className="reel-field">
-          <span>Actual edit time</span>
-          <input disabled value={durationText(seconds)} />
+          <span>Actual edit time <small className="muted">(h:mm:ss)</small></span>
+          <input disabled value={durationText(seconds, true)} title="hours:minutes:seconds" />
         </label>
         <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
       </div>
