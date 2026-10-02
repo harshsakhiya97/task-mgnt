@@ -17,6 +17,7 @@ To release a new version: bump it there, add a section below, add the user-facin
 - Expected views / edit time inputs moved into the Views and Edit Time sections of the Reel tab; the timer can't Start a reel until both are set (UI + `task_timer`). Migration `20261002130000_reel_start_needs_targets.sql`.
 - Owner: expected views / edit time are the editor's own estimate — **only the assignee** sets them (not assigner/admin), and there's **no condition before Start** (reverted). The editor can change them any time (no locks). Migration `20261002140000_reel_targets_editor_only.sql`.
 - **Automatic reminders removed**: `tasks_auto_reminders` is a no-op (migration `20261002170000_no_auto_reminders.sql`), Settings → Reminders tab + `ReminderSettings.tsx` removed, Add/Edit Task no longer shows Auto rows. `reminder_rules` table kept, unused; existing reminders untouched.
+- Reel tab: Views and Edit Time are each two columns (expected | actual) with one Save; time-block list, Blocks count and manual "add time" removed from the UI. Caption no longer on the reel Overview.
 - Add/Edit Task: `Drawer wide` (720px, like TaskView); optional sections (description/brief, caption, time, reminders, attachments) behind "+" chips (`form-extras`), open by default when editing a task that has them; 
 - (Reel stages were added in 20261002150000 and reverted the same day in 20261002160000: timer Stop → Done again; `stage` / `upload_time` columns left unused.)
 

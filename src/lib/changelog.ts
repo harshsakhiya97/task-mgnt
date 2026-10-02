@@ -21,7 +21,7 @@ export const RELEASES: Release[] = [
       { type: 'new', text: 'Add Task → 🎬 Reel: video title, brief, caption, upload date (the day it should go up) and the edit due date. Reels have no reminders or attachments.' },
       { type: 'new', text: 'Only the editor sets the expected views and expected edit time (their own estimate), any time, in the reel\'s 🎬 Reel tab. Once the reel is Done, only an admin can change them.' },
       { type: 'new', text: 'Edit timer on the reel (Overview tab): the editor taps Start (the reel moves to In Progress), Pause for breaks, and Stop when editing is finished (it moves to Done). Every Start → Pause counts as a block of edit time. A timer left running is paused at 11:59 pm.' },
-      { type: 'new', text: '🎬 Reel tab: caption (with Copy), Instagram and YouTube links, posted time, the actual views (one count, added about 24 hours after posting) and the list of edit-time blocks. Forgot the timer? Add the time by hand.' },
+      { type: 'new', text: '🎬 Reel tab: caption (with Copy), Instagram and YouTube links, posted time, the actual views (one count, added about 24 hours after posting) and expected vs actual edit time.' },
       { type: 'new', text: 'Reels show a 🎬 Reel tag in the task list, and the Type filter has "Reels".' },
       { type: 'new', admin: true, text: 'Reports → Reels: expected vs actual views and expected vs actual edit time, per editor and per reel, with Excel export.' },
       { type: 'new', admin: true, text: 'Team Board: reels have a 🎬 tag, and "● Editing" shows whose edit timer is running right now.' },
