@@ -18,7 +18,7 @@ import { useActiveUsers } from '../lib/useActiveUsers'
 import { useMinuteTick } from '../lib/useMinuteTick'
 import { AssigneeName } from './AssigneeName'
 import { TaskReminders } from './Reminders'
-import { ReelPanel, ReelTimer } from './Reel'
+import { ReelOverview, ReelPanel, uploadText } from './Reel'
 import type { TimeEntry } from '../lib/reels'
 import { CopyButton } from './CopyButton'
 
@@ -127,7 +127,7 @@ export function TaskView({ taskId, onClose, onEdit, onChanged }: {
               {tab === 'overview' && (
                 <Overview task={task} onShowDetails={() => setTab('details')}
                   onReassign={mayReassign ? () => setReassigning(true) : undefined}
-                  timer={task.kind === 'reel' ? <ReelTimer task={task} entries={entries} onChanged={refresh} onError={setError} /> : null} />
+                  timer={task.kind === 'reel' ? <ReelOverview task={task} entries={entries} onChanged={refresh} onError={setError} /> : null} />
               )}
               {tab === 'reel' && task.kind === 'reel' && (
                 <ReelPanel task={task} entries={entries} onChanged={refresh} onError={setError} />
@@ -208,7 +208,7 @@ function Overview({ task, onShowDetails, onReassign, timer }: { task: Task; onSh
         <Cell label={reel ? 'Video Title' : 'Task Title'} span={6}><span className="fcell-title">{task.title}</span></Cell>
         {reel && (
           <>
-            <Cell label="Upload Date" span={3}>{task.reel?.upload_date ? formatDate(task.reel.upload_date) : <span className="muted">Not set</span>}</Cell>
+            <Cell label="Upload Date" span={3}>{task.reel?.upload_date ? uploadText(task.reel.upload_date, task.reel.upload_time) : <span className="muted">Not set</span>}</Cell>
             <Cell label="Edit Due Date" span={3}>{formatDate(task.due_date)}</Cell>
           </>
         )}

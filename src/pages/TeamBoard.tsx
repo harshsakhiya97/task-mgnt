@@ -1,3 +1,4 @@
+import { stageChipText } from '../components/Reel'
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlarmClock, ArrowLeft, CheckCircle2, ChevronRight, Play, RefreshCw, Repeat, Search, UserX } from 'lucide-react'
@@ -181,7 +182,7 @@ export function TeamBoard() {
           <span className="tb-no">{taskCode(t.task_no)}</span>
           <PriorityBadge priority={t.priority} />
           {t.task_type === 'recurring' && <span className="tb-chip"><Repeat size={11} /> Daily</span>}
-          {t.kind === 'reel' && <span className="tb-chip reel">🎬 Reel</span>}
+          {t.kind === 'reel' && <span className="tb-chip reel">{stageChipText(t)}</span>}
           {timing.has(t.id) && <span className="tb-live" title="Edit timer running"><span className="live-dot" /> Editing</span>}
         </div>
         <div className="tb-meta">

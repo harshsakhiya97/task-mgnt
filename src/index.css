@@ -987,3 +987,27 @@ p.muted.small + .form-section { margin-top: 22px; }
 .reel-add-views + .reel-add-views { margin-top: 12px; }
 .reel-stats + .reel-add-views { margin-bottom: 4px; }
 .reel-field .duration-input input { width: 80px; flex: none; }
+
+/* ---------- 2.0 Reel stages ---------- */
+.stage-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.stage-bar .stage { background: var(--panel); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px 6px 6px; font-size: 13px; gap: 6px; }
+.stage-bar .stage:hover:not(:disabled) { background: #fff; color: var(--text); }
+.stage-bar .stage.past { color: var(--ok); border-color: #bfe5cb; background: var(--ok-soft); }
+.stage-bar .stage.on { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
+.stage-dot { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; background: rgba(0,0,0,.06); }
+.stage.on .stage-dot { background: rgba(255,255,255,.25); }
+.stage.past .stage-dot { background: #bfe5cb; }
+.reel-overview { margin: 0 0 20px; }
+.stage-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--panel); display: flex; flex-direction: column; gap: 12px; }
+.stage-card p { margin: 0; line-height: 1.5; }
+.stage-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.stage-actions .link { display: inline-flex; gap: 4px; }
+.reel-form.compact { margin-bottom: 0; }
+.reel-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+.dialog-field { text-align: left; margin: -8px 0 20px; }
+.reel-timer .reel-add-views { padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+@media (max-width: 560px) {
+  .stage-bar { flex-wrap: nowrap; gap: 4px; }
+  .stage-bar .stage { flex: 1 1 0; min-width: 0; padding: 6px 4px; font-size: 12px; justify-content: center; }
+  .stage-bar .stage-dot { display: none; }
+}

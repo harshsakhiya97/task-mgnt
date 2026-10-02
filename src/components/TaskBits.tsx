@@ -1,3 +1,4 @@
+import { stageChipText } from './Reel'
 import { DUE_TAG_LABELS, dueTag, PRIORITY_LABELS, STATUS_LABELS, type Task, type TaskPriority, type TaskStatus } from '../lib/tasks'
 
 export function PriorityBadge({ priority }: { priority: TaskPriority }) {
@@ -10,8 +11,8 @@ export function DueTagBadge({ task }: { task: Pick<Task, 'status' | 'due_date'> 
   return <span className={`badge due-${tag}`}>{DUE_TAG_LABELS[tag]}</span>
 }
 
-export function TypeChip({ task }: { task: Pick<Task, 'task_type' | 'kind'> }) {
-  if (task.kind === 'reel') return <span className="type-chip reel">🎬 Reel</span>
+export function TypeChip({ task }: { task: Pick<Task, 'task_type' | 'kind' | 'reel'> }) {
+  if (task.kind === 'reel') return <span className="type-chip reel">{stageChipText(task)}</span>
   return task.task_type === 'recurring' ? <span className="type-chip">↻ Recurring</span> : null
 }
 

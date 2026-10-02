@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            40 SQL files, applied in order (timestamps 20260925… → 20261002140000)
+  migrations/            41 SQL files, applied in order (timestamps 20260925… → 20261002150000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -80,7 +80,8 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 
 **2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` reserved for 2.1). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
 Reel = one-time task + `task_reels` row (caption, upload_date — set in Add Task by whoever gives it, instagram_url, youtube_url, posted_at — auto-set on first link, expected_views, expected_minutes — the **editor's own estimate**, only the assignee sets them (not assigner/admin), any time — owner doesn't want locks or a 'before Start' rule). Reels have no reminders (DB blocks them) and no attachments section in Add Task.
-Edit timer (`components/Reel.tsx` `ReelTimer`, RPC `task_timer`): Start (assignee only, no other condition → In Progress, pauses their other running timer) / Pause / **Stop = editing finished → Done** (assignee or admin). Blocks in `task_time_entries`; manual "add time" + delete own blocks; running timers paused 23:59 IST (cron `pause-running-timers`).
+**Stages** (`task_reels.stage`): Scripting (script writer, then reassigns to the editor) → Editing (editor: expected edit time, timer) → Review ("Editing done" asks expected views; manager reassigns back + moves to Editing for changes) → Posted (links + posted date/time; actual views after 24 h). Status Done is set **by hand**. Anyone on the reel moves stages (StageBar); timer start → Editing, stop → Review, first link → Posted. UI per stage: `ReelOverview` card; Reel tab hides later-stage fields. Upload date + optional `upload_time`.
+Edit timer (`components/Reel.tsx` `ReelTimer`, RPC `task_timer`): Start (assignee only → In Progress, pauses their other running timer) / Pause / "Editing done" = stop → stage Review (assignee or admin; reels no longer auto-Done). Blocks in `task_time_entries`; manual "add time" + delete own blocks; running timers paused 23:59 IST (cron `pause-running-timers`).
 🎬 Reel tab (`ReelPanel`): Expected (editor), caption/links/posted time, **one** view count `task_reels.actual_views` (owner: "we will add only 1 count", typed ~24 h after posting), time blocks. `reel_views` + `private.reel_views_24h` exist but are unused (kept for auto views in 2.3).
 Reports → Reels sub-tab (`components/ReelReport.tsx`, RPC `report_reels`, admin): per editor + per reel, expected vs actual views at 24 h and edit time, Excel. Team Board: 🎬 chip + "● Editing" for running timers.
 

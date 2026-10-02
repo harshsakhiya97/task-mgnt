@@ -6,6 +6,12 @@ export type TaskKind = 'task' | 'reel' | 'meeting'
 export type Platform = 'instagram' | 'youtube'
 export const PLATFORM_LABELS: Record<Platform, string> = { instagram: 'Instagram', youtube: 'YouTube' }
 
+/** Where a reel is: Scripting → Editing → Review → Posted. (Done is the task's own status, set by hand.) */
+export type ReelStage = 'scripting' | 'editing' | 'review' | 'posted'
+export const STAGES: ReelStage[] = ['scripting', 'editing', 'review', 'posted']
+export const STAGE_LABELS: Record<ReelStage, string> = { scripting: 'Scripting', editing: 'Editing', review: 'Review', posted: 'Posted' }
+export const stageAtLeast = (s: ReelStage | undefined, min: ReelStage) => STAGES.indexOf(s ?? 'scripting') >= STAGES.indexOf(min)
+
 /** The reel's own details (one row per reel task). */
 export interface ReelInfo {
   task_id: string
@@ -13,7 +19,9 @@ export interface ReelInfo {
   instagram_url: string | null
   youtube_url: string | null
   posted_at: string | null
+  stage: ReelStage
   upload_date: string | null       // day the reel should go up (set by whoever gives it)
+  upload_time: string | null       // optional time on that day
   expected_views: number | null
   expected_minutes: number | null
   actual_views: number | null        // the one view count (typed in ~24 h after posting)
@@ -82,7 +90,7 @@ export function latestViews(rows: ReelViews[], platform: Platform) {
 /** One reel's row in the Reels report (report_reels RPC). */
 export interface ReelReportRow {
   task_id: string; task_no: number; title: string; editor_id: string | null; editor_name: string | null; team_name: string | null
-  status: string; due_date: string; upload_date?: string | null; completed_at: string | null; posted_at: string | null
+  status: string; due_date: string; upload_date?: string | null; upload_time?: string | null; stage?: ReelStage; completed_at: string | null; posted_at: string | null
   instagram_url: string | null; youtube_url: string | null
   expected_views: number | null; views_24h: number | null; latest_views: number | null; latest_at: string | null
   expected_minutes: number | null; actual_minutes: number; timer_running: boolean
