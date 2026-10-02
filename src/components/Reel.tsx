@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { formatDate, timeAgo, type Task } from '../lib/tasks'
 import {
-  durationText, minutesText, timer, totalSeconds, viewsText, type TimeEntry,
+  durationText, minutesText, REEL_SUB_TYPES, timer, totalSeconds, viewsText, type TimeEntry,
 } from '../lib/reels'
 import { ConfirmDialog } from './ConfirmDialog'
 import { CopyButton } from './CopyButton'
@@ -114,10 +114,38 @@ export function ReelPanel({ task, entries, onChanged, onError }: {
   if (!reel) return <p className="muted">Reel details are loading…</p>
   return (
     <>
+      <SubTypePicker task={task} onChanged={onChanged} onError={onError} />
       <PostDetails task={task} onChanged={onChanged} onError={onError} />
       <ViewsSection task={task} onChanged={onChanged} onError={onError} />
       <TimeSection task={task} entries={entries} onChanged={onChanged} onError={onError} />
     </>
+  )
+}
+
+/** Sub-type, changeable by anyone on the reel (the editor too); saves as soon as it's picked. */
+function SubTypePicker({ task, onChanged, onError }: { task: Task; onChanged: () => void; onError: (m: string) => void }) {
+  const cur = task.reel?.sub_type ?? ''
+  const [value, setValue] = useState(cur)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => { setValue(cur) }, [cur])
+  const change = async (v: string) => {
+    setValue(v)
+    const { error } = await supabase.from('task_reels').update({ sub_type: v || null }).eq('task_id', task.id)
+    if (error) { setValue(cur); return onError(error.message) }
+    setSaved(true); window.setTimeout(() => setSaved(false), 1500)
+    onChanged()
+  }
+  return (
+    <div className="reel-subtype">
+      <label className="reel-field">
+        <span>Sub-type {saved && <span className="saved-tick"><Check size={14} /> Saved</span>}</span>
+        <select value={value} onChange={(e) => change(e.target.value)}>
+          <option value="">Select…</option>
+          {REEL_SUB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          {value && !(REEL_SUB_TYPES as readonly string[]).includes(value) && <option value={value}>{value}</option>}
+        </select>
+      </label>
+    </div>
   )
 }
 

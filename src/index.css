@@ -998,3 +998,4 @@ p.muted.small + .form-section { margin-top: 22px; }
 .reel-pair .reel-field .duration-input input { width: auto; flex: 1 1 0; min-width: 0; }
 .form-grid.three { grid-template-columns: repeat(3, 1fr); gap: 0 16px; }
 @media (max-width: 800px) { .form-grid.three { grid-template-columns: 1fr; gap: 12px; } }
+.reel-subtype { max-width: 360px; margin-bottom: 18px; }
