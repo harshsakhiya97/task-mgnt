@@ -37,11 +37,11 @@ src/
                          (template texts/samples for previews), changelog.ts (What's New content), version.ts, adminApi.ts
   notifications/         NotificationsProvider (realtime + poll), NotificationBell, NotificationIcon
   pages/                 Home (dashboard), Tasks, Calendar, Notifications, TeamBoard, Reports, Users (Users/Roles/Teams tabs),
-                         Settings (tabs: Perisclaw, WhatsApp, Reminders), Perisclaw, WhatsAppLogs, ReminderSettings,
+                         Settings (tabs: Perisclaw, WhatsApp), Perisclaw, WhatsAppLogs,
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            42 SQL files, applied in order (timestamps 20260925… → 20261002160000)
+  migrations/            43 SQL files, applied in order (timestamps 20260925… → 20261002170000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -78,6 +78,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
 **1.5.4 (1 Oct)** — iPhone: date/time inputs no longer widen forms (no sideways slide); 16px fields on phones.
 
+**2.0 also:** Add/Edit Task is wide (720px) with optional sections behind "+" buttons (Description, Time, Reminders, Attachments; reel: Brief, Caption, Time); automatic reminders removed.
 **2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` reserved for 2.1). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
 Reel = one-time task + `task_reels` row (caption, upload_date — set in Add Task by whoever gives it, instagram_url, youtube_url, posted_at — auto-set on first link, expected_views, expected_minutes — the **editor's own estimate**, only the assignee sets them (not assigner/admin), any time — owner doesn't want locks or a 'before Start' rule). Reels have no reminders (DB blocks them) and no attachments section in Add Task.
 Edit timer (`components/Reel.tsx` `ReelTimer`, RPC `task_timer`): Start (assignee only, no other condition → In Progress, pauses their other running timer) / Pause / **Stop = editing finished → Done** (assignee or admin). Blocks in `task_time_entries`; manual "add time" + delete own blocks; running timers paused 23:59 IST (cron `pause-running-timers`).
@@ -136,7 +137,7 @@ Rows already in the sheet when it's first connected are `skipped_existing` (Add 
 
 `task_reminders`: target `assignee` (whoever holds the task at send time) or `person` (+`person_id`); either `minutes_before` (amount, 0 = right at) + `direction` (before/after) + `anchor` (start/end) — moves with the task — or fixed `remind_at`; `auto`, `sent_at`, `skipped` (reason). Fire time: `private.reminder_fire_at(...)`. Start = start time on the due date (no start time → start-based reminders skipped).
 Deadline = due date + end time, or **7:00 pm IST** if no time. Recurring tasks: no reminders.
-`reminder_rules` (Settings → Reminders, admin; each column has minutes + direction + anchor): defaults **urgent** = assignee 120 min + assigner 60 min; **high** = assignee 120 min; medium/low none. Added on task insert and swapped on priority change (assigner rule skipped for self-tasks).
+**No automatic reminders since 2.0** (owner: add only when wanted): `tasks_auto_reminders` is a no-op and Settings → Reminders was removed; `reminder_rules` table remains unused.
 Who may add: anyone who can see the task → for themselves; assigner/creator/admin → also for the assignee/others.
 `send_due_reminders()` (every minute): bell type `reminder` + `push_outbox` row (phone notification; since 1.4 no WhatsApp); skipped if done, no assignee, deadline passed, auto reminder already past when the task was created, or >3 h late. `tasks_reminders_recheck` re-opens skipped reminders when date/time/status/assignee change.
 

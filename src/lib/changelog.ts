@@ -16,6 +16,7 @@ export const RELEASES: Release[] = [
     title: 'Reels',
     summary: 'A new task type for the reel editors: video title, caption, expected views and edit time, a Start / Pause / Stop edit timer, post links and view counts, plus a Reels report.',
     changes: [
+      { type: 'removed', text: 'No more automatic reminders by priority: reminders are added only when you want one (+ Reminders in Add Task, or the task\'s Reminders tab). Settings → Reminders is gone. Reminders already on tasks stay.', admin: true },
       { type: 'improved', text: 'Add / Edit Task is wider (same as the task view) and shorter: just title, person, priority and due date. Description, time, reminders and attachments are added with the "+" buttons only when you need them.' },
       { type: 'new', text: 'Add Task → 🎬 Reel: video title, brief, caption, upload date (the day it should go up) and the edit due date. Reels have no reminders or attachments.' },
       { type: 'new', text: 'Only the editor sets the expected views and expected edit time (their own estimate), any time, in the reel\'s 🎬 Reel tab. Once the reel is Done, only an admin can change them.' },

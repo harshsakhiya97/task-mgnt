@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { AlarmClock, Clock, FileText, MessageSquareText, Paperclip, Plus } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
@@ -9,8 +9,7 @@ import { Field } from './Fields'
 import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
 import { fromDbTime, TimeRangeInput, timePairError, toDbTime } from './TimeRangeInput'
-import { AutoReminderNote, autoDrafts, DraftReminderList, dropAutoReminders, saveDraftReminders, TaskReminders, type AutoKey, type AutoPreview, type DraftReminder } from './Reminders'
-import { loadReminderRules, type ReminderRule } from '../lib/reminders'
+import { DraftReminderList, saveDraftReminders, TaskReminders, type DraftReminder } from './Reminders'
 
 type Mode = TaskType | 'reel'
 /** Optional parts of the form, opened with "+ …" buttons so the form starts short. */
@@ -55,29 +54,12 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     ...(task?.start_time || initial?.from ? ['time' as const] : []),
   ])
   const open = (x: Extra) => setOpened((o) => (o.includes(x) ? o : [...o, x]))
-  // Automatic reminders (Settings → Reminders) are shown as rows in the form; the ones taken out are removed after saving.
-  const [rules, setRules] = useState<ReminderRule[]>([])
-  const [removedAuto, setRemovedAuto] = useState<AutoKey[]>([])
-  useEffect(() => { loadReminderRules(true).then(setRules) }, [])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   // If the task was created but a later step failed, "Create" again finishes that task instead of adding a copy.
   const [createdId, setCreatedId] = useState<string | null>(null)
   const creatingRecurring = !task && type === 'recurring'
   const assigneeIsMe = assignedTo === profile?.id
-  const autoAll = !task && !creatingRecurring && dueDate ? autoDrafts(rules.find((r) => r.priority === priority), assigneeIsMe) : []
-  const autoShown = autoAll.filter((d) => !removedAuto.includes(d.key))
-  // Editing with a different priority: show the Auto reminders the task will get on Update (the database swaps them).
-  const priorityChanged = !!task && task.task_type !== 'recurring' && priority !== task.priority
-  const editAssigner = task?.assigned_by
-  const editAuto = priorityChanged && dueDate
-    ? autoDrafts(rules.find((r) => r.priority === priority), (assignedTo || null) === editAssigner) : []
-  const nameOf = (id?: string | null) => id === profile?.id ? 'Remind me' : `Remind ${users.find((u) => u.id === id)?.full_name ?? (id === task?.assigned_to ? task?.assignee?.full_name : task?.assigner?.full_name) ?? 'someone'}`
-  const preview: AutoPreview | undefined = priorityChanged ? {
-    rows: editAuto.filter((d) => !removedAuto.includes(d.key))
-      .map((d) => ({ ...d, label: nameOf(d.key === 'assignee' ? assignedTo || null : editAssigner) })),
-    onRemove: (k) => setRemovedAuto((r) => [...r, k]),
-  } : undefined
 
   const submit = async () => {
     if (!profile) return
@@ -106,10 +88,6 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       if (task) {
         const { error } = await supabase.from('tasks').update(fields).eq('id', task.id)
         if (error) throw new Error(error.message)
-        // Auto reminders taken out in the form (the database just added them for the new priority).
-        const dropped = editAuto.filter((d) => removedAuto.includes(d.key)).map((d) => d.key)
-        const err = dropped.length ? await dropAutoReminders(task.id, task.assigned_by, dropped) : null
-        if (err) throw new Error(`Task updated, but a reminder couldn't be removed: ${err}`)
       } else if (createdId) {
         const { error } = await supabase.from('tasks').update(fields).eq('id', createdId)
         if (error) throw new Error(error.message)
@@ -133,7 +111,6 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       for (const f of files) await uploadAttachment(id!, profile.id, f)
       if (!task && !isReel) {
         const err = await saveDraftReminders(id!, profile.id, reminders)
-          ?? await dropAutoReminders(id!, profile.id, autoAll.filter((d) => removedAuto.includes(d.key)).map((d) => d.key))
         if (err) throw new Error(`Task created, but a reminder couldn't be saved: ${err}`)
       }
       onSaved({ taskId: id })
@@ -149,15 +126,14 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     ? [...users, { id: task.assigned_to, full_name: `${task.assignee.full_name} (inactive)` } as Profile]
     : users
 
-  const isOpen = (x: Extra) => opened.includes(x) || (x === 'reminders' && priorityChanged)
+  const isOpen = (x: Extra) => opened.includes(x)
   const canReminders = !creatingRecurring && !isReel && task?.task_type !== 'recurring' && task?.kind !== 'reel'
   const canFiles = !task && !creatingRecurring && !isReel
-  const autoCount = !task ? autoShown.length : 0
   const extras: { key: Extra; label: string; icon: typeof Plus; show: boolean }[] = [
     { key: 'desc', label: isReel ? 'Brief' : 'Description', icon: FileText, show: true },
     { key: 'caption', label: 'Caption', icon: MessageSquareText, show: isReel },
     { key: 'time', label: 'Time', icon: Clock, show: true },
-    { key: 'reminders', label: autoCount ? `Reminders (${autoCount} auto)` : 'Reminders', icon: AlarmClock, show: canReminders },
+    { key: 'reminders', label: 'Reminders', icon: AlarmClock, show: canReminders },
     { key: 'files', label: 'Attachments', icon: Paperclip, show: canFiles },
   ]
   const closedExtras = extras.filter((x) => x.show && !isOpen(x.key))
@@ -186,7 +162,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           </select>
         </Field>
         <Field label="Priority">
-          <select value={priority} onChange={(e) => { setPriority(e.target.value as TaskPriority); setRemovedAuto([]) }}>
+          <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
             {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </Field>
@@ -234,15 +210,13 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       )}
       {canReminders && isOpen('reminders') && task && (
         // Editing: the task's reminders, added / removed straight away (same as in its details).
-        <TaskReminders task={task} onError={setError} preview={preview} />
+        <TaskReminders task={task} onError={setError} />
       )}
       {canReminders && isOpen('reminders') && !task && (
         <>
           <div className="form-section">Reminders</div>
-          <AutoReminderNote priority={priority} prefilled />
           <DraftReminderList drafts={reminders} onChange={setReminders} canRemindAssignee
-            assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate} hasStart={!!from}
-            auto={autoShown} onRemoveAuto={(k) => setRemovedAuto((r) => [...r, k])} />
+            assigneeIsMe={assigneeIsMe} assigneeName={users.find((u) => u.id === assignedTo)?.full_name} hasDue={!!dueDate} hasStart={!!from} />
         </>
       )}
       {canFiles && isOpen('files') && (
