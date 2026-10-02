@@ -16,6 +16,7 @@ export const RELEASES: Release[] = [
     title: 'Copy a task',
     summary: 'A Copy button on every task in the list opens Add Task with the same details filled in.',
     changes: [
+      { type: 'improved', admin: true, text: 'Reports → Reels works like the old Results panel: totals for estimate given / no estimate, result in / pending, uploaded / not uploaded, a card per person (actual vs estimated views and edit time), and a click on a person lists their reels with the same filters.' },
       { type: 'removed', text: 'No more WhatsApp messages for "task assigned to you" and new comments: those come as phone notifications and in the bell. The day-end report and "unassigned task" alerts stay on WhatsApp.' },
       { type: 'improved', text: 'Team Board: the status filter is a dropdown, like on the Tasks page.', admin: true },
       { type: 'improved', text: 'Calendar: reels show their 🎬 tag (sub-type) on the calendar too.' },

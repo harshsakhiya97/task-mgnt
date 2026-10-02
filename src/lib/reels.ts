@@ -92,7 +92,7 @@ export function latestViews(rows: ReelViews[], platform: Platform) {
 /** One reel's row in the Reels report (report_reels RPC). */
 export interface ReelReportRow {
   task_id: string; task_no: number; title: string; editor_id: string | null; editor_name: string | null; team_name: string | null
-  status: string; due_date: string; upload_date?: string | null; sub_type?: string | null; completed_at: string | null; posted_at: string | null
+  status: string; due_date: string; upload_date?: string | null; sub_type?: string | null; drive_url?: string | null; completed_at: string | null; posted_at: string | null
   instagram_url: string | null; youtube_url: string | null
   expected_views: number | null; views_24h: number | null; latest_views: number | null; latest_at: string | null
   expected_minutes: number | null; actual_minutes: number; timer_running: boolean
