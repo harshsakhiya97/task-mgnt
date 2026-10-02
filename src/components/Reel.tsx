@@ -126,23 +126,24 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
   const [caption, setCaption] = useState(reel.caption ?? '')
   const [ig, setIg] = useState(reel.instagram_url ?? '')
   const [yt, setYt] = useState(reel.youtube_url ?? '')
+  const [drive, setDrive] = useState(reel.drive_url ?? '')
   const [posted, setPosted] = useState(toLocalInput(reel.posted_at))
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   useEffect(() => {
-    setCaption(reel.caption ?? ''); setIg(reel.instagram_url ?? ''); setYt(reel.youtube_url ?? ''); setPosted(toLocalInput(reel.posted_at))
-  }, [reel.caption, reel.instagram_url, reel.youtube_url, reel.posted_at])
+    setCaption(reel.caption ?? ''); setIg(reel.instagram_url ?? ''); setYt(reel.youtube_url ?? ''); setDrive(reel.drive_url ?? ''); setPosted(toLocalInput(reel.posted_at))
+  }, [reel.caption, reel.instagram_url, reel.youtube_url, reel.drive_url, reel.posted_at])
 
-  const dirty = caption.trim() !== (reel.caption ?? '') || ig.trim() !== (reel.instagram_url ?? '') || yt.trim() !== (reel.youtube_url ?? '')
+  const dirty = caption.trim() !== (reel.caption ?? '') || ig.trim() !== (reel.instagram_url ?? '') || yt.trim() !== (reel.youtube_url ?? '') || drive.trim() !== (reel.drive_url ?? '')
     || posted !== toLocalInput(reel.posted_at)
-  const badUrl = [ig, yt].some((u) => u.trim() && !/^https?:\/\/\S+$/i.test(u.trim()))
+  const badUrl = [ig, yt, drive].some((u) => u.trim() && !/^https?:\/\/\S+$/i.test(u.trim()))
 
   const save = async () => {
     if (badUrl) return onError('Links should start with https://')
     if (posted && new Date(posted).getTime() > Date.now() + 5 * 60e3) return onError('Posted time can\'t be in the future')
     setBusy(true)
     const { error } = await supabase.from('task_reels').update({
-      caption: caption.trim() || null, instagram_url: ig.trim() || null, youtube_url: yt.trim() || null, posted_at: fromLocalInput(posted),
+      caption: caption.trim() || null, instagram_url: ig.trim() || null, youtube_url: yt.trim() || null, drive_url: drive.trim() || null, posted_at: fromLocalInput(posted),
     }).eq('task_id', task.id)
     setBusy(false)
     if (error) return onError(error.message)
@@ -158,7 +159,7 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
           <span>Caption {caption.trim() && <CopyButton text={caption.trim()} />}</span>
           <textarea rows={3} placeholder="Caption for the post" value={caption} onChange={(e) => setCaption(e.target.value)} />
         </label>
-        <div className="form-grid">
+        <div className="form-grid three">
           <label className="reel-field">
             <span>Instagram link {reel.instagram_url && <a href={reel.instagram_url} target="_blank" rel="noopener noreferrer" className="link-icon"><ExternalLink size={13} /> Open</a>}</span>
             <input type="url" inputMode="url" placeholder="https://www.instagram.com/reel/…" value={ig} onChange={(e) => setIg(e.target.value)} />
@@ -166,6 +167,10 @@ function PostDetails({ task, onChanged, onError }: { task: Task; onChanged: () =
           <label className="reel-field">
             <span>YouTube link {reel.youtube_url && <a href={reel.youtube_url} target="_blank" rel="noopener noreferrer" className="link-icon"><ExternalLink size={13} /> Open</a>}</span>
             <input type="url" inputMode="url" placeholder="https://youtube.com/shorts/…" value={yt} onChange={(e) => setYt(e.target.value)} />
+          </label>
+          <label className="reel-field">
+            <span>Drive link {reel.drive_url && <a href={reel.drive_url} target="_blank" rel="noopener noreferrer" className="link-icon"><ExternalLink size={13} /> Open</a>}</span>
+            <input type="url" inputMode="url" placeholder="https://drive.google.com/…" value={drive} onChange={(e) => setDrive(e.target.value)} />
           </label>
         </div>
         {reel.upload_date && <div className="small">Upload date: <b>{formatDate(reel.upload_date)}</b></div>}

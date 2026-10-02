@@ -12,6 +12,7 @@ export interface ReelInfo {
   caption: string | null
   instagram_url: string | null
   youtube_url: string | null
+  drive_url: string | null         // Google Drive link (edited video / files); not a post link
   posted_at: string | null
   upload_date: string | null       // day the reel should go up (set by whoever gives it)
   expected_views: number | null
