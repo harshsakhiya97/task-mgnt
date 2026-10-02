@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 1.5.4**, released 1 Oct 2026. Live at **https://pride.viralsakhiya.com**.
+**Current version: 2.0.0** (branch `v2.0`, built 2 Oct 2026 — not deployed until the owner says so; 1.5.4 is live). Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            35 SQL files, applied in order (timestamps 20260925… → 20261001150000)
+  migrations/            36 SQL files, applied in order (timestamps 20260925… → 20261002100000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -78,11 +78,17 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
 **1.5.4 (1 Oct)** — iPhone: date/time inputs no longer widen forms (no sideways slide); 16px fields on phones.
 
+**2.0 (2 Oct) — Reels.** `tasks.kind` (`task` / `reel` / `meeting` reserved for 2.1). Add Task picker: One-time / ↻ Recurring / 🎬 Reel.
+Reel = one-time task + `task_reels` row (caption, instagram_url, youtube_url, posted_at — auto-set on first link, expected_views, expected_minutes).
+Edit timer (`components/Reel.tsx` `ReelTimer`, RPC `task_timer`): Start (assignee only → In Progress, pauses their other running timer) / Pause / **Stop = editing finished → Done** (assignee or admin). Blocks in `task_time_entries`; manual "add time" + delete own blocks; running timers paused 23:59 IST (cron `pause-running-timers`).
+🎬 Reel tab (`ReelPanel`): caption/links/posted time, manual view counts (`reel_views`, per platform), time blocks. Views at 24 h = count closest to posted+24 h within 18–48 h (`private.reel_views_24h`, same rule in lib/reels.ts).
+Reports → Reels sub-tab (`components/ReelReport.tsx`, RPC `report_reels`, admin): per editor + per reel, expected vs actual views at 24 h and edit time, Excel. Team Board: 🎬 chip + "● Editing" for running timers.
+
 ---
 
 ## 4. Database (schema `public`, RLS on everything)
 
-Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, team_id, is_active), `roles`, `teams`, `tasks`, `recurring_tasks`, `task_comments`, `task_attachments`, `task_activity`, `notifications`, `whatsapp_outbox`, `perisclaw_settings` (single row id=1), `perisclaw_entries`, `task_reminders`, `reminder_rules`, `push_subscriptions` (one per device; own rows), `push_outbox`, `health_check` (legacy).
+Tables: `profiles` (full_name, phone, email, role enum + `role_id` → `roles`, team_id, is_active), `roles`, `teams`, `tasks`, `recurring_tasks`, `task_comments`, `task_attachments`, `task_activity`, `notifications`, `whatsapp_outbox`, `perisclaw_settings` (single row id=1), `perisclaw_entries`, `task_reminders`, `reminder_rules`, `push_subscriptions` (one per device; own rows), `push_outbox`, `task_reels`, `reel_views`, `task_time_entries`, `health_check` (legacy).
 
 Key `tasks` columns: `task_no` (shown as `TM-<n>`), title, description, `assigned_by`, `assigned_to` (nullable), `created_by`, `participants uuid[]` (drives RLS read/update), due_date, start_time, end_time, priority, status, task_type (`adhoc`/`recurring`), `recurring_id`, `occurrence_date`, `seen_at`, `reassigned`, `completed_at`.
 
@@ -90,9 +96,9 @@ Important triggers on `tasks`: `tasks_before_write` (permission rules, participa
 Other: `notifications_push` (assigned→assignee / comment → push_outbox), `task_comments_whatsapp`, `whatsapp_outbox_kick` (instant send via pg_net), `perisclaw_entries_guard`, `perisclaw_unassigned_alert`, `task_reminders_before`, `profiles_role_sync`, `roles_guard`.
 
 Helpers in schema `private` (security definer): `is_admin()`, `can_see_task()`, `person_name()`, `active_admins()`, `today_ist()`, `task_deadline()`, `reminder_deadline()` (end time or 19:00 IST), `setting(key)` (from `private.app_settings`, e.g. `app_url`), `wa_enqueue()`, `wa_text()`, `wa_due_text()`, `notify()`, `send_due_reminders()`, `perisclaw_kick()`, `wa_kick()`.
-Public RPCs: `report_by_person`, `plan_recurring_day`, `sync_app_url` (admin; keeps `app_url` in sync with where admins open the app, ignores localhost), `whatsapp_claim_batch` / `whatsapp_mark` (service role), `whatsapp_retry` (admin), `whatsapp_set_config` / `whatsapp_config_status` (admin), `whatsapp_get_config` (service role only), `push_subscribe` / `push_public_key` / `push_test` (users), `push_claim_batch` / `push_mark` / `push_get_keys` / `push_set_keys` (service role). VAPID keys: private in Vault `vapid_private_key`, public in `private.app_settings.vapid_public_key` (created once by push-sender; never replace — devices are tied to it).
+Public RPCs: `report_by_person`, `report_reels` (admin), `task_timer`, `plan_recurring_day`, `sync_app_url` (admin; keeps `app_url` in sync with where admins open the app, ignores localhost), `whatsapp_claim_batch` / `whatsapp_mark` (service role), `whatsapp_retry` (admin), `whatsapp_set_config` / `whatsapp_config_status` (admin), `whatsapp_get_config` (service role only), `push_subscribe` / `push_public_key` / `push_test` (users), `push_claim_batch` / `push_mark` / `push_get_keys` / `push_set_keys` (service role). VAPID keys: private in Vault `vapid_private_key`, public in `private.app_settings.vapid_public_key` (created once by push-sender; never replace — devices are tied to it).
 
-pg_cron jobs (UTC): `generate-recurring-tasks` 35 18 * * * (00:05 IST) + retry 35 0 * * *; `whatsapp-sender` every minute; `whatsapp-daily-report` 45 15 * * * (21:15 IST); `perisclaw-sync` every 2 min; `task-reminders` every minute; `push-sender` every minute (`private.push_kick()`; reminders also kick it instantly).
+pg_cron jobs (UTC): `generate-recurring-tasks` 35 18 * * * (00:05 IST) + retry 35 0 * * *; `whatsapp-sender` every minute; `whatsapp-daily-report` 45 15 * * * (21:15 IST); `perisclaw-sync` every 2 min; `task-reminders` every minute; `push-sender` every minute (`private.push_kick()`; reminders also kick it instantly); `pause-running-timers` 29 18 * * * (23:59 IST).
 
 Timezone: everything user-facing is IST (Asia/Kolkata).
 
@@ -166,5 +172,6 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
    where kind in ('task_assigned', 'task_comment') and status in ('queued', 'sending');
   ```
   Then drop `task_assigned` / `task_comment` from `WA_ACTIVE_KINDS` (src/lib/whatsappTemplates.ts) and from `KINDS` in whatsapp-sender. Undo = recreate the two triggers (functions `private.wa_task_assigned` / `private.wa_task_comment` still exist).
+- **v2 roadmap** (agreed 2 Oct): 2.1 Meetings (kind `meeting`: attendees, Zoom link, agenda; reminders + push + calendar for all attendees). 2.2 Zoom integration (auto link; cloud recording → transcript → summary → action items via Gemini, organiser approves before tasks are created — recommended). 2.3 Auto views (YouTube Data API, Instagram Graph API; hourly `reel_views` rows with `source='auto'`). Open questions to the owner: Zoom plan / cloud recording / Zoom admin; Instagram accounts Business/Creator linked to FB Pages?; confirm Stop = Done (default taken) vs a separate "Posted" step.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.
