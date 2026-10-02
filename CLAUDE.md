@@ -41,7 +41,7 @@ src/
                          WhatsNew, Profile, Login, ForgotPassword, ResetPassword, Setup
   index.css              all styles (plain CSS, design tokens as CSS vars)
 supabase/
-  migrations/            40 SQL files, applied in order (timestamps 20260925… → 20261002140000)
+  migrations/            42 SQL files, applied in order (timestamps 20260925… → 20261002160000)
   functions/             admin-users, setup-admin, perisclaw-sync (index.ts, lib.ts, google.ts), whatsapp-sender, push-sender (index.ts, webpush.ts)
 docs/                    perisclaw.md (setup guide), whatsapp-templates.md (all WATI templates)
 .github/workflows/deploy.yml   build + FTP deploy to cPanel
@@ -173,5 +173,6 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
   ```
   Then drop `task_assigned` / `task_comment` from `WA_ACTIVE_KINDS` (src/lib/whatsappTemplates.ts) and from `KINDS` in whatsapp-sender. Undo = recreate the two triggers (functions `private.wa_task_assigned` / `private.wa_task_comment` still exist).
 - **v2 roadmap** (agreed 2 Oct): 2.1 Meetings (kind `meeting`: attendees, Zoom link, agenda; reminders + push + calendar for all attendees). 2.2 Zoom integration (auto link; cloud recording → transcript → summary → action items via Gemini, organiser approves before tasks are created — recommended). 2.3 Auto views (YouTube Data API, Instagram Graph API; hourly `reel_views` rows with `source='auto'`). Open questions to the owner: Zoom plan / cloud recording / Zoom admin; Instagram accounts Business/Creator linked to FB Pages?; confirm Stop = Done (default taken) vs a separate "Posted" step.
+- **Reel stages were tried and reverted (2 Oct, owner's call):** Scripting → Editing → Review → Posted with Done by hand (migration 20261002150000, code in commit 93b3620). Reverted by 20261002160000 + commit d7a9d9b; columns `task_reels.stage` / `upload_time` and trigger `task_reels_log_stage` (now a no-op) remain unused. Revisit only if the owner asks.
 - Future ideas mentioned: Google Calendar/Meet via an organiser Gmail account (Pride has no Google Workspace), custom SMTP for auth emails, leaked-password protection, reminders on recurring tasks (explicitly out of scope for now).
 - Perisclaw edits made after a task exists are matched by Task No / row number; if Perisclaw inserts rows above old ones, row-number matching (for rows without Task No) can miss.
