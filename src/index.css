@@ -1041,3 +1041,5 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .rr-badge.bad { color: var(--danger); background: var(--danger-soft); }
 .warn-text { color: var(--warn); font-weight: 600; }
 @media (min-width: 1100px) { .stats.rr-stats { grid-template-columns: repeat(7, 1fr); } }
+.rr-chips button:hover:not(:disabled):not(.on) { background: var(--primary-soft); color: var(--primary); border-color: #c5c9ee; }
+.rr-chips button.on:hover:not(:disabled) { background: var(--primary-hover); color: #fff; }
