@@ -1,7 +1,7 @@
 -- 2.0 (owner, 2 Oct): the expected views and edit time are the editor's own estimate.
 --   * Only the editor (the reel's assignee) sets them — not the assigner, not an admin.
 --   * No condition before Start (the earlier "set them before Start" rule is removed).
---   * Expected edit time is fixed once the reel is Done; expected views once the actual views are in.
+--   * The editor can set or change them any time (no lock after Done / after the actual views).
 
 create or replace function private.task_reels_guard() returns trigger
 language plpgsql security definer set search_path = '' as $$
@@ -13,11 +13,9 @@ begin
     -- Expected views / edit time: the editor's own estimate, so only the editor (assignee) sets them.
     if new.expected_minutes is distinct from old.expected_minutes then
       if me is distinct from t.assigned_to then raise exception 'Only the editor of this reel can set the expected edit time'; end if;
-      if t.status = 'done' then raise exception 'This reel is done, so the expected edit time can''t change any more'; end if;
     end if;
     if new.expected_views is distinct from old.expected_views then
       if me is distinct from t.assigned_to then raise exception 'Only the editor of this reel can set the expected views'; end if;
-      if old.actual_views is not null then raise exception 'The actual views are already in, so the expected views can''t change any more'; end if;
     end if;
     if new.upload_date is distinct from old.upload_date and not private.is_admin() and me not in (t.created_by, t.assigned_by) then
       raise exception 'Only the person who gave this reel (or an admin) can change the upload date';

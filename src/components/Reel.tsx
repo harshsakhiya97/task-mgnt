@@ -122,12 +122,9 @@ export function ReelPanel({ task, entries, onChanged, onError }: {
 }
 
 /** The expected views / edit time are the editor's own estimate: only the editor sets them.
- *  Edit time is fixed once the reel is Done; views once the actual views are in. */
-function expectedLock(task: Task, kind: 'views' | 'time', userId?: string): string | null {
-  if (!userId || task.assigned_to !== userId) return 'The editor sets this.'
-  if (kind === 'time' && task.status === 'done') return 'Fixed now that the reel is done.'
-  if (kind === 'views' && task.reel?.actual_views != null) return 'Fixed now that the actual views are in.'
-  return null
+ *  They can change it any time. */
+function expectedLock(task: Task, userId?: string): string | null {
+  return !userId || task.assigned_to !== userId ? 'The editor sets this.' : null
 }
 
 /** One "expected" value (views or edit time) with its own Save — shown inside the Views / Edit Time sections. */
@@ -146,7 +143,7 @@ function ExpectedField({ task, kind, onChanged, onError }: {
     if (kind === 'views') setViews(cur != null ? String(cur) : '')
     else { setH(cur ? String(Math.floor(cur / 60)) : ''); setM(cur ? String(cur % 60) : '') }
   }, [cur, kind])
-  const lock = expectedLock(task, kind, profile?.id)
+  const lock = expectedLock(task, profile?.id)
   if (lock) return cur == null ? <p className="muted small">{lock}</p> : null
   const next = kind === 'views' ? (views.trim() === '' ? null : Math.round(Number(views))) : ((Number(h) || 0) * 60 + (Number(m) || 0)) || null
   const dirty = next !== cur
