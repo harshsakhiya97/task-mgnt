@@ -48,6 +48,7 @@ export function Tasks() {
   const [pageSize, setPageSize] = useState(10)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Task | null>(null)
+  const [copying, setCopying] = useState<Task | null>(null)
   const [viewing, setViewing] = useState<string | null>(params.get('task'))
   const [deleting, setDeleting] = useState<Task | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
@@ -228,7 +229,7 @@ export function Tasks() {
           ) : (
             <TaskTable tasks={rows} offset={(page - 1) * pageSize} person={personCol}
               onOpen={(t) => openTask(t.id)} onStatus={changeStatus}
-              onDelete={view !== 'mine' ? setDeleting : undefined} />
+              onDelete={view !== 'mine' ? setDeleting : undefined} onCopy={setCopying} />
           )}
         </div>
         <Pagination page={page} pageSize={pageSize} total={visible.length} onPage={setPage} onPageSize={setPageSize} />
@@ -249,6 +250,10 @@ export function Tasks() {
             : 'The task, its comments and attachments will be permanently deleted.'}
           confirmLabel="Yes, Delete" busy={deleteBusy} onConfirm={removeTask} onCancel={() => setDeleting(null)} />
       )}
+      {copying && <TaskForm copyFrom={copying} users={users} onClose={() => setCopying(null)} onSaved={(r: TaskSaved) => {
+        setCopying(null); load()
+        if (r.taskId) openTask(r.taskId)
+      }} />}
       {editing && (
         <TaskForm task={editing} users={users} onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); load() }} />

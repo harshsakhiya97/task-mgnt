@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AlarmClock, Clock, FileText, MessageSquareText, Paperclip, Plus } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
-import { todayStr, uploadAttachment, PRIORITY_LABELS, type Task, type TaskPriority, type TaskType } from '../lib/tasks'
+import { taskCode, todayStr, uploadAttachment, PRIORITY_LABELS, type Task, type TaskPriority, type TaskType } from '../lib/tasks'
 import type { Profile } from '../lib/types'
 import { Drawer } from './Drawer'
 import { REEL_SUB_TYPES } from '../lib/reels'
@@ -19,8 +19,10 @@ type Extra = 'desc' | 'caption' | 'time' | 'reminders' | 'files'
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
 /** Create a new task (ad hoc or recurring), or edit the details of an existing one (creator/admin only). */
-export function TaskForm({ task, users, initial, onClose, onSaved }: {
+export function TaskForm({ task, copyFrom, users, initial, onClose, onSaved }: {
   task?: Task
+  /** "Copy": a new task prefilled with this task's details. */
+  copyFrom?: Task
   users: Profile[]
   /** Prefill for a new task, e.g. from a slot picked on the calendar. */
   initial?: { dueDate?: string; from?: string; to?: string; assignTo?: string }
@@ -28,22 +30,24 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   onSaved: (r: TaskSaved) => void
 }) {
   const { profile } = useAuth()
-  const [mode, setMode] = useState<Mode>(task ? (task.kind === 'reel' ? 'reel' : task.task_type) : 'adhoc')
+  // Prefill from the task being edited, or from the one being copied (a copy is always a new one-time task / reel).
+  const src = task ?? copyFrom
+  const [mode, setMode] = useState<Mode>(task ? (task.kind === 'reel' ? 'reel' : task.task_type) : copyFrom?.kind === 'reel' ? 'reel' : 'adhoc')
   const type: TaskType = mode === 'recurring' ? 'recurring' : 'adhoc'
   const isReel = mode === 'reel'
   // Reel details (2.0): caption and upload date. (Expected views / edit time are set by the editor in the reel's Reel tab.)
-  const [caption, setCaption] = useState(task?.reel?.caption ?? '')
-  const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? '')
-  const [subType, setSubType] = useState(task?.reel?.sub_type ?? '')
-  const [title, setTitle] = useState(task?.title ?? '')
-  const [description, setDescription] = useState(task?.description ?? '')
+  const [caption, setCaption] = useState(src?.reel?.caption ?? '')
+  const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? (copyFrom?.reel?.upload_date && copyFrom.reel.upload_date >= todayStr() ? copyFrom.reel.upload_date : ''))
+  const [subType, setSubType] = useState(src?.reel?.sub_type ?? '')
+  const [title, setTitle] = useState(src?.title ?? '')
+  const [description, setDescription] = useState(src?.description ?? '')
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
-  const [assignedTo, setAssignedTo] = useState(task ? task.assigned_to ?? '' : initial?.assignTo ?? profile?.id ?? '')
+  const [assignedTo, setAssignedTo] = useState(task ? task.assigned_to ?? '' : copyFrom?.assigned_to ?? initial?.assignTo ?? profile?.id ?? '')
   const wasUnassigned = !!task && !task.assigned_to
-  const [dueDate, setDueDate] = useState(task ? task.due_date ?? '' : initial?.dueDate ?? todayStr())
-  const [from, setFrom] = useState(task ? fromDbTime(task.start_time) : initial?.from ?? '')
-  const [to, setTo] = useState(task ? fromDbTime(task.end_time) : initial?.to ?? '')
-  const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium')
+  const [dueDate, setDueDate] = useState(task ? task.due_date ?? '' : copyFrom?.due_date && copyFrom.due_date >= todayStr() ? copyFrom.due_date : initial?.dueDate ?? todayStr())
+  const [from, setFrom] = useState(src ? fromDbTime(src.start_time) : initial?.from ?? '')
+  const [to, setTo] = useState(src ? fromDbTime(src.end_time) : initial?.to ?? '')
+  const [priority, setPriority] = useState<TaskPriority>(src?.priority ?? 'medium')
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5, 6])
   const [startDate, setStartDate] = useState(todayStr())
   const [endDate, setEndDate] = useState('')
@@ -51,9 +55,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const [reminders, setReminders] = useState<DraftReminder[]>([])
   // Optional sections start closed (open if editing a task that already has them).
   const [opened, setOpened] = useState<Extra[]>(() => [
-    ...(task?.description ? ['desc' as const] : []),
-    ...(task?.reel?.caption ? ['caption' as const] : []),
-    ...(task?.start_time || initial?.from ? ['time' as const] : []),
+    ...(src?.description ? ['desc' as const] : []),
+    ...(src?.reel?.caption ? ['caption' as const] : []),
+    ...(src?.start_time || initial?.from ? ['time' as const] : []),
   ])
   const open = (x: Extra) => setOpened((o) => (o.includes(x) ? o : [...o, x]))
   const [error, setError] = useState('')
@@ -141,7 +145,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   const closedExtras = extras.filter((x) => x.show && !isOpen(x.key))
 
   return (
-    <Drawer wide title={task ? 'Edit Task' : 'Add Task'} onClose={onClose} onSubmit={submit}
+    <Drawer wide title={task ? 'Edit Task' : copyFrom ? `Copy ${taskCode(copyFrom.task_no)}` : 'Add Task'} onClose={onClose} onSubmit={submit}
       submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : 'Create Task'} busy={busy}>
       {!task && (
         <div className="segmented type-picker" role="tablist" aria-label="Task type">
@@ -149,6 +153,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>{l}</button>
           ))}
         </div>
+      )}
+      {copyFrom && (
+        <div className="hint-box">A copy of <b>{taskCode(copyFrom.task_no)}</b>. Change anything you need, then create it. Comments, attachments, reminders and timer time aren't copied.</div>
       )}
       {task?.task_type === 'recurring' && (
         <div className="hint-box">This is one day's copy of a recurring task. Changes here affect only this day. To change the schedule, edit it under <b>Tasks → Recurring</b>.</div>

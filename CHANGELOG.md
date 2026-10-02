@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.1.0 — (in progress)
+
+- Copy task: `TaskTable` `onCopy` (Copy icon next to View) → `TaskForm copyFrom={task}` ("Copy TM-n"): new task prefilled with title, description, assignee, priority, due date (today if it was in the past), time; reels also sub-type, caption, upload date (dropped if past). Not copied: comments, attachments, reminders, timer, links, views. Recurring copies become one-time tasks.
+
 ## Version 2.0.0 — 2 Oct 2026
 
 - Task kinds: `tasks.kind` (`task` | `reel` | `meeting` — meeting reserved for 2.1). Add Task has One-time / Recurring / 🎬 Reel. Reels are one-time tasks.

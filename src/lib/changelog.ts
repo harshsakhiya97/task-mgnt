@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '2.1.0',
+    date: '2026-10-02',
+    title: 'Copy a task',
+    summary: 'A Copy button on every task in the list opens Add Task with the same details filled in.',
+    changes: [
+      { type: 'new', text: 'Tasks list: the new Copy button (next to View) opens Add Task filled with that task\'s title, description, person, priority, due date, time — and for reels the sub-type, caption and upload date. Change what you need and create it. Comments, attachments, reminders and timer time aren\'t copied; a past due date becomes today.' },
+    ],
+  },
+  {
     version: '2.0.0',
     date: '2026-10-02',
     title: 'Reels',
