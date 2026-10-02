@@ -301,7 +301,7 @@ function TimeSection({ task, entries, onChanged, onError }: {
           <span>Actual edit time <small className="muted">(h:mm:ss)</small></span>
           <input disabled value={durationText(seconds, true)} title="hours:minutes:seconds" />
         </label>
-        <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+        {isEditor && <button type="button" disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>}
       </div>
       <p className="muted small">
         {saved ? <span className="saved-tick"><Check size={14} /> Saved</span>
