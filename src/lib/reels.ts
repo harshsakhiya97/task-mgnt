@@ -6,10 +6,19 @@ export type TaskKind = 'task' | 'reel' | 'meeting'
 export type Platform = 'instagram' | 'youtube'
 export const PLATFORM_LABELS: Record<Platform, string> = { instagram: 'Instagram', youtube: 'YouTube' }
 
+/** Reel sub-types (the kind of content work), picked when the reel is given. */
+export const REEL_SUB_TYPES = [
+  'Podcast Editing', 'Podcast Teaser', 'Podcast Reel', 'Reel / Short', 'Instagram Reel', 'Source Video Editing',
+  'Ads Video Editing', 'Raw Cut', 'Shoot', 'PPT Creation', 'Thumbnail Design', 'Cover Photo', 'Social Media Post',
+  'Script Writing', 'Publishing / SEO', 'Review / QC', 'Correction', 'Meeting', 'AI Audio / Video Generate',
+  'Instagram Automation', 'Other',
+] as const
+
 /** The reel's own details (one row per reel task). */
 export interface ReelInfo {
   task_id: string
   caption: string | null
+  sub_type: string | null          // REEL_SUB_TYPES (or an older value)
   instagram_url: string | null
   youtube_url: string | null
   drive_url: string | null         // Google Drive link (edited video / files); not a post link
@@ -83,7 +92,7 @@ export function latestViews(rows: ReelViews[], platform: Platform) {
 /** One reel's row in the Reels report (report_reels RPC). */
 export interface ReelReportRow {
   task_id: string; task_no: number; title: string; editor_id: string | null; editor_name: string | null; team_name: string | null
-  status: string; due_date: string; upload_date?: string | null; completed_at: string | null; posted_at: string | null
+  status: string; due_date: string; upload_date?: string | null; sub_type?: string | null; completed_at: string | null; posted_at: string | null
   instagram_url: string | null; youtube_url: string | null
   expected_views: number | null; views_24h: number | null; latest_views: number | null; latest_at: string | null
   expected_minutes: number | null; actual_minutes: number; timer_running: boolean

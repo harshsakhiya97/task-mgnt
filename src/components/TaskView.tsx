@@ -207,8 +207,9 @@ function Overview({ task, onShowDetails, onReassign, timer }: { task: Task; onSh
         <Cell label={reel ? 'Video Title' : 'Task Title'} span={6}><span className="fcell-title">{task.title}</span></Cell>
         {reel && (
           <>
-            <Cell label="Upload Date" span={3}>{task.reel?.upload_date ? formatDate(task.reel.upload_date) : <span className="muted">Not set</span>}</Cell>
-            <Cell label="Edit Due Date" span={3}>{formatDate(task.due_date)}</Cell>
+            <Cell label="Sub-type" span={2}>{task.reel?.sub_type ?? <span className="muted">Not set</span>}</Cell>
+            <Cell label="Upload Date" span={2}>{task.reel?.upload_date ? formatDate(task.reel.upload_date) : <span className="muted">Not set</span>}</Cell>
+            <Cell label="Edit Due Date" span={2}>{formatDate(task.due_date)}</Cell>
           </>
         )}
       </div>

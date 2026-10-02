@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { todayStr, uploadAttachment, PRIORITY_LABELS, type Task, type TaskPriority, type TaskType } from '../lib/tasks'
 import type { Profile } from '../lib/types'
 import { Drawer } from './Drawer'
+import { REEL_SUB_TYPES } from '../lib/reels'
 import { Field } from './Fields'
 import { FilePicker } from './FilePicker'
 import { WeekdayPicker } from './WeekdayPicker'
@@ -33,6 +34,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   // Reel details (2.0): caption and upload date. (Expected views / edit time are set by the editor in the reel's Reel tab.)
   const [caption, setCaption] = useState(task?.reel?.caption ?? '')
   const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? '')
+  const [subType, setSubType] = useState(task?.reel?.sub_type ?? '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
@@ -68,7 +70,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     if (!creatingRecurring && task?.task_type !== 'recurring' && !dueDate) return setError('Ad hoc tasks need a due date')
     const timeErr = timePairError(from, to)
     if (timeErr) return setError(timeErr)
-    const reelFields = { caption: caption.trim() || null, upload_date: uploadDate || null }
+    const reelFields = { caption: caption.trim() || null, upload_date: uploadDate || null, sub_type: subType || null }
     setBusy(true)
     try {
       if (creatingRecurring) {
@@ -102,7 +104,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       if (isReel) {
         // The reel's details row is made with the task; fill it in (only what changed when editing).
         const r = task?.reel
-        const changed = !r || r.caption !== reelFields.caption || (r.upload_date ?? null) !== reelFields.upload_date
+        const changed = !r || r.caption !== reelFields.caption || (r.upload_date ?? null) !== reelFields.upload_date || (r.sub_type ?? null) !== reelFields.sub_type
         if (changed) {
           const { error } = await supabase.from('task_reels').update(reelFields).eq('task_id', id!)
           if (error) throw new Error(`${task ? 'Task updated' : 'Reel created'}, but its details couldn't be saved: ${error.message}`)
@@ -154,6 +156,15 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       <Field label={isReel ? 'Video Title' : 'Title'} required>
         <input required autoFocus placeholder={isReel ? 'e.g. 5 tips for Class 10 boards' : 'What needs to be done?'} value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
+      {isReel && (
+        <Field label="Sub-type">
+          <select value={subType} onChange={(e) => setSubType(e.target.value)}>
+            <option value="">Select…</option>
+            {REEL_SUB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            {subType && !(REEL_SUB_TYPES as readonly string[]).includes(subType) && <option value={subType}>{subType}</option>}
+          </select>
+        </Field>
+      )}
       <div className="form-grid">
         <Field label="Assign To" required={!wasUnassigned}>
           <select required={!wasUnassigned} value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>

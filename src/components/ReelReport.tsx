@@ -31,9 +31,9 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
     const list = (data as ReelReportRow[]) ?? []
     // Upload dates live on task_reels (not in the RPC).
     if (list.length) {
-      const { data: up } = await supabase.from('task_reels').select('task_id, upload_date').in('task_id', list.map((r) => r.task_id))
-      const map = new Map(((up ?? []) as { task_id: string; upload_date: string | null }[]).map((u) => [u.task_id, u.upload_date]))
-      for (const r of list) r.upload_date = map.get(r.task_id) ?? null
+      const { data: up } = await supabase.from('task_reels').select('task_id, upload_date, sub_type').in('task_id', list.map((r) => r.task_id))
+      const map = new Map(((up ?? []) as { task_id: string; upload_date: string | null; sub_type: string | null }[]).map((u) => [u.task_id, u]))
+      for (const r of list) { const u = map.get(r.task_id); r.upload_date = u?.upload_date ?? null; r.sub_type = u?.sub_type ?? null }
     }
     setRows(list)
     setLoading(false)
@@ -77,9 +77,9 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
         [{ value: '* Only reels with both an expected and an actual view count. ** Only reels with an expected time and some timed work.' }],
       ]
       const detail = [
-        head(['Task No.', 'Video Title', 'Editor', 'Due Date', 'Upload Date', 'Status', 'Posted At', 'Instagram', 'YouTube', 'Expected Views', 'Actual Views', 'Views %', 'Expected Time (min)', 'Actual Time (min)', 'Time %']),
+        head(['Task No.', 'Video Title', 'Sub-type', 'Editor', 'Due Date', 'Upload Date', 'Status', 'Posted At', 'Instagram', 'YouTube', 'Expected Views', 'Actual Views', 'Views %', 'Expected Time (min)', 'Actual Time (min)', 'Time %']),
         ...rows.map((r) => [
-          { value: taskCode(r.task_no) }, { value: r.title }, { value: r.editor_name ?? '' }, { value: formatDate(r.due_date) }, { value: r.upload_date ? formatDate(r.upload_date) : '' },
+          { value: taskCode(r.task_no) }, { value: r.title }, { value: r.sub_type ?? '' }, { value: r.editor_name ?? '' }, { value: formatDate(r.due_date) }, { value: r.upload_date ? formatDate(r.upload_date) : '' },
           { value: STATUS_LABELS[r.status as TaskStatus] ?? r.status },
           { value: r.posted_at ? new Date(r.posted_at).toLocaleString('en-IN') : '' },
           { value: r.instagram_url ?? '' }, { value: r.youtube_url ?? '' },
@@ -91,7 +91,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
         sheets: ['Editors', 'Reels'],
         columns: [
           [{ width: 24 }, ...Array(9).fill({ width: 16 })],
-          [{ width: 10 }, { width: 36 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 20 }, { width: 30 }, { width: 30 }, ...Array(7).fill({ width: 14 })],
+          [{ width: 10 }, { width: 36 }, { width: 20 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 20 }, { width: 30 }, { width: 30 }, ...Array(7).fill({ width: 14 })],
         ],
         fileName: `Reels-Report_${from}_to_${to}.xlsx`,
       })
@@ -164,7 +164,7 @@ export function ReelReport({ from, to, teamId, onOpen }: { from: string; to: str
                   return (
                     <tr key={r.task_id} className={onOpen ? 'clickable' : ''} onClick={() => onOpen?.(r.task_id)}>
                       <td className="task-no">{taskCode(r.task_no)}</td>
-                      <td><div className="task-title" title={r.title}>{r.title}</div></td>
+                      <td><div className="task-title" title={r.title}>{r.title}</div>{r.sub_type && <div className="muted small">{r.sub_type}</div>}</td>
                       <td>{r.editor_name ?? '—'}</td>
                       <td>{STATUS_LABELS[r.status as TaskStatus] ?? r.status}{r.timer_running && <div className="small ok-text">● editing now</div>}</td>
                       <td>{r.upload_date ? formatDate(r.upload_date) : '—'}</td>
