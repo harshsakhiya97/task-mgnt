@@ -14,7 +14,7 @@ import { TaskForm } from '../components/TaskForm'
 type StatusFilter = 'open' | 'todo' | 'in_progress' | 'done' | 'all'
 type DueFilter = 'any' | 'today_overdue' | 'today' | 'overdue' | 'week'
 
-const STATUS_OPTIONS: [StatusFilter, string][] = [['open', 'Open'], ['todo', 'To Do'], ['in_progress', 'In Progress'], ['done', 'Done'], ['all', 'All']]
+const STATUS_OPTIONS: [StatusFilter, string][] = [['open', 'Open Tasks'], ['all', 'All Statuses'], ['todo', 'To Do'], ['in_progress', 'In Progress'], ['done', 'Done']]
 const DUE_OPTIONS: [DueFilter, string][] = [['any', 'Any due date'], ['today_overdue', 'Today & overdue'], ['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'Due this week']]
 const UNASSIGNED = '__unassigned'
 /** One person's board: a column per status. Done shows the last 7 days (by completion). */
@@ -288,9 +288,9 @@ export function TeamBoard() {
 
       <div className="tb-filters">
         {!personId && (
-          <div className="view-tabs">
-            {STATUS_OPTIONS.map(([v, l]) => <button key={v} className={status === v ? 'active' : ''} onClick={() => setStatus(v)}>{l}</button>)}
-          </div>
+          <select className="pill-select" value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)} aria-label="Status">
+            {STATUS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
         )}
         <select className="pill-select" value={due} onChange={(e) => setDue(e.target.value as DueFilter)} aria-label="Due date">
           {DUE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
