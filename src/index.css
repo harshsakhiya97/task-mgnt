@@ -1060,16 +1060,8 @@ input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner
 .mt-when .spacer { flex: 1; }
 a.btn.mt-join { display: inline-flex; align-items: center; gap: 6px; background: #0f9d8a; color: #fff; padding: 7px 14px; border-radius: 8px; font-weight: 600; text-decoration: none; }
 a.btn.mt-join:hover { background: #0b7f70; }
-.mt-rsvp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mt-rsvp .small { margin-right: 4px; font-weight: 600; }
-.mt-rsvp button { padding: 5px 14px; font-size: 13px; }
-.mt-rsvp button.on.going { background: var(--ok); border-color: var(--ok); color: #fff; }
-.mt-rsvp button.on.declined { background: var(--danger); border-color: var(--danger); color: #fff; }
 .mt-people ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
 .mt-people li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
-.mt-resp { margin-left: auto; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 1px 8px; background: #eef0f6; color: #454b66; }
-.mt-resp.going { background: var(--ok-soft); color: var(--ok); }
-.mt-resp.declined { background: var(--danger-soft); color: var(--danger); }
 textarea.mt-notes { width: 100%; margin-bottom: 8px; }
 .mt-items-head { display: flex; align-items: center; gap: 8px; margin-top: 22px; }
 .mt-items-head .spacer { flex: 1; }
@@ -1083,6 +1075,6 @@ textarea.mt-notes { width: 100%; margin-bottom: 8px; }
 .cal-panel .fc-event.tk-timed.tk-meeting.due-completed { background: #5fb8ac; border-color: #3d8c81; }
 @media (max-width: 640px) { .mt-when { flex-wrap: wrap; } .mt-people ul { grid-template-columns: 1fr; } }
 .mt-card + .form-section { margin-top: 18px; }
-@media (max-width: 640px) { .mt-rsvp .small { width: 100%; } .mt-rsvp button { flex: 1; } }
+
 .att-chip.organiser { background: #ddf6f2; border-color: #b5e8df; padding-right: 6px; }
 .att-chip .att-tag { font-size: 10.5px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: .3px; }

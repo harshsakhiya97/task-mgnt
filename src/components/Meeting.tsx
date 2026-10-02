@@ -3,27 +3,14 @@ import { CalendarClock, Check, ExternalLink, Plus, UserRound, Video } from 'luci
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 import { formatDate, formatTimeRange, STATUS_LABELS, TASK_SELECT, taskCode, timeAgo, type Task, type TaskStatus } from '../lib/tasks'
-import { RESPONSE_LABELS, type AttendeeResponse } from '../lib/meetings'
 import { initials } from '../lib/initials'
 
 type Props = { task: Task; onChanged: () => void; onError: (m: string) => void }
 
-/** Meeting overview: when, link, organiser, attendees and their answers, and my own answer. */
-export function MeetingOverview({ task, onChanged, onError }: Props) {
-  const { profile } = useAuth()
-  const me = task.attendees?.find((a) => a.user_id === profile?.id)
-  const [busy, setBusy] = useState(false)
-  const answer = async (r: AttendeeResponse) => {
-    if (!profile) return
-    setBusy(true)
-    const { error } = await supabase.from('task_attendees').update({ response: r }).eq('task_id', task.id).eq('user_id', profile.id)
-    setBusy(false)
-    if (error) onError(error.message); else onChanged()
-  }
+/** Meeting overview: when, link, organiser and attendees. */
+export function MeetingOverview({ task }: Props) {
   const link = task.meeting?.meeting_link
   const list = [...(task.attendees ?? [])].sort((a, b) => (a.person?.full_name ?? '').localeCompare(b.person?.full_name ?? ''))
-  const going = list.filter((a) => a.response === 'going').length
-  const declined = list.filter((a) => a.response === 'declined').length
 
   return (
     <div className="mt-card">
@@ -36,22 +23,14 @@ export function MeetingOverview({ task, onChanged, onError }: Props) {
         <span className="spacer" />
         {link && <a className="btn mt-join" href={link} target="_blank" rel="noopener noreferrer"><Video size={16} /> Join</a>}
       </div>
-      {me && (
-        <div className="mt-rsvp">
-          <span className="small">Are you coming?</span>
-          <button type="button" className={me.response === 'going' ? 'on going' : 'secondary'} disabled={busy} onClick={() => answer('going')}>Going</button>
-          <button type="button" className={me.response === 'declined' ? 'on declined' : 'secondary'} disabled={busy} onClick={() => answer('declined')}>Can't make it</button>
-        </div>
-      )}
       <div className="mt-people">
-        <div className="small muted">{list.length} attendee{list.length === 1 ? '' : 's'} · {going} going{declined ? ` · ${declined} can't make it` : ''}</div>
+        <div className="small muted">{list.length} attendee{list.length === 1 ? '' : 's'}</div>
         {list.length === 0 ? <p className="muted small">No attendees yet. Edit the meeting to invite people.</p> : (
           <ul>
             {list.map((a) => (
               <li key={a.user_id}>
                 <span className="att-avatar">{initials(a.person?.full_name ?? '?')}</span>
                 <span>{a.person?.full_name ?? 'Someone'}</span>
-                <span className={`mt-resp ${a.response}`}>{RESPONSE_LABELS[a.response]}</span>
               </li>
             ))}
           </ul>
