@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.2.1 — 2 Oct 2026
+
+- Task list: for meetings the Assigned To column lists the attendees (one per line on desktop, comma-separated on phone cards); Assigned By shows the organiser.
+
 ## Version 2.2.0 — 2 Oct 2026
 
 - **Meetings** (`tasks.kind = 'meeting'`). Organiser = creator (`assigned_to` = organiser). Add Task → 📅 Meeting: title, date, time (required), attendees (`AttendeePicker`, "Add everyone"), meeting link, "Remind everyone" (default 10 min before), agenda (= description), attachments.

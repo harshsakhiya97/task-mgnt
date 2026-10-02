@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 2.2.0**, released 2 Oct 2026 (deployed; tag v2.2 on the Mac). Live at **https://pride.viralsakhiya.com**.
+**Current version: 2.2.1** (branch `v2.2.1`, not deployed yet; 2.2.0 is live, tag v2.2). Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -78,6 +78,7 @@ Build: `npm run build` (= `tsc -b && vite build`). Dev: `npm run dev` (localhost
 **1.5.3 (1 Oct)** — No pinch / double-tap zoom on phones (viewport + touch-action + iOS gesture events in lib/install.ts).
 **1.5.4 (1 Oct)** — iPhone: date/time inputs no longer widen forms (no sideways slide); 16px fields on phones.
 
+**2.2.1 (2 Oct)** — Task list: meetings show attendees in the Assigned To column (`.att-names`).
 **2.2 (2 Oct) — Meetings.** `tasks.kind='meeting'`; organiser = creator = `assigned_to`. Add Task → 📅 Meeting (title, date, time required, attendees via `AttendeePicker` + "Add everyone", link, "Remind everyone" default 10 min, agenda = description, attachments). `task_meetings` (meeting_link, notes, notes_updated_at/by, remind_minutes, reminded_at; made by trigger `tasks_meeting_row`) + `task_attendees` (`response` column unused — owner removed the Going / Can't make it step). Participants = organiser + attendees (recomputed in `tasks_before_write`); only organiser/admin change link, reminder, attendees, status. Invite → bell + push (type `meeting`); `tasks_notify` skips meetings. Cron `meeting-reminders` (every min) → bell + push to organiser + attendees; cron `finish-ended-meetings` (every minute) marks Done at the end time. TaskView: meeting card in Overview (Join, organiser, attendee list) + Agenda; 📝 Notes tab (shared notes + action items = normal tasks with `tasks.meeting_id`, made via TaskForm `actionFor`); no Reminders tab / Reassign. Calendar: teal `tk-meeting`, 📅 tag, "N people", on every attendee's calendar (`isMine` in lib/tasks.ts). Excluded from `report_by_person`, day-end WhatsApp, Team Board, Dashboard counts (Dashboard "Today" lists today's meetings until they end). Files: `components/Meeting.tsx`, `components/AttendeePicker.tsx`, `lib/meetings.ts`.
 **2.1 (2 Oct)** — Copy button in the task list → Add Task prefilled from that task (`TaskForm copyFrom`); reel tag on calendar; Team Board status dropdown; WhatsApp for assigned/comment off; Reports → Reels redone like the old Results panel (count cards, card per person, person modal).
 **2.0 also:** Add/Edit Task is wide (720px) with optional sections behind "+" buttons (Description, Time, Reminders, Attachments; reel: Brief, Caption, Time); automatic reminders removed.

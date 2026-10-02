@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '2.2.1',
+    date: '2026-10-02',
+    title: 'Attendees in the task list',
+    summary: 'Meetings show their attendees in the task list.',
+    changes: [
+      { type: 'improved', text: 'Tasks list: for a meeting, the Assigned To column lists everyone invited; Assigned By shows the organiser.' },
+    ],
+  },
+  {
     version: '2.2.0',
     date: '2026-10-02',
     title: 'Meetings',

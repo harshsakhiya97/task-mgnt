@@ -44,7 +44,9 @@ export function TaskTable({ tasks, offset = 0, person, onOpen, onStatus, onDelet
                 <div className="reassigned-tag">↪ Reassigned by {t.assigner.full_name} · {timeAgo(t.assigned_at)}</div>
               )}
             </td>
-            {person !== 'assigner' && <td className="c-to" data-label="To"><AssigneeName task={t} /></td>}
+            {person !== 'assigner' && <td className="c-to" data-label="To">{t.kind === 'meeting'
+              ? (t.attendees?.length ? <div className="att-names">{[...t.attendees].sort((x, y) => (x.person?.full_name ?? '').localeCompare(y.person?.full_name ?? '')).map((a) => <div key={a.user_id}>{a.person?.full_name ?? 'Someone'}</div>)}</div> : <span className="muted">No attendees</span>)
+              : <AssigneeName task={t} />}</td>}
             {person !== 'assignee' && <td className="c-by" data-label="By">{t.assigner?.full_name ?? '—'}</td>}
             <td className="c-due">
               <div className="due-cell">
