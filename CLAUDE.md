@@ -2,7 +2,7 @@
 
 Internal task & execution app for **Pride Educare**. Owner: Viral Sakhiya · Maintainer: Harsh Sakhiya.
 Pilot: TVS team (≈7 users), then the whole company (16–20).
-**Current version: 2.2.1** (branch `v2.2.1`, not deployed yet; 2.2.0 is live, tag v2.2). Live at **https://pride.viralsakhiya.com**.
+**Current version: 2.2.1**, released 2 Oct 2026 (deployed; tag v2.2.1 on the Mac). Live at **https://pride.viralsakhiya.com**.
 
 ---
 
@@ -161,7 +161,7 @@ Kinds / template names (all Utility, English, named `{{variables}}`, each ends w
 - **Deploy only when the owner says "deploy"**: merge into `main`, then fast-forward `deploy` and push → GitHub Actions (`deploy.yml`) builds with Node 20 and uploads changed files to cPanel over FTPS (secrets `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 - Database migrations and Edge Functions are applied/deployed directly to Supabase when built (they're live before the frontend deploy — keep frontend and DB compatible).
 - **Every release:** bump `package.json` (+ lockfile) version, add a section to `CHANGELOG.md`, add a user-facing entry at the top of `src/lib/changelog.ts` (What's New; `admin: true` for admin-only items), tag `vX.Y(.Z)`. Version label shows `major.minor` plus patch when ≠ 0.
-- Owner's Mac repo: `/Users/harshsakhiya/Documents/Projects/Task Mgnt/Repo` (on `main`, tags v1.0 … v2.2 local). Sync from the cloud session by `git bundle` → copy to the Mac → `git fetch`/`merge --ff-only`.
+- Owner's Mac repo: `/Users/harshsakhiya/Documents/Projects/Task Mgnt/Repo` (on `main`, tags v1.0 … v2.2.1 local). Sync from the cloud session by `git bundle` → copy to the Mac → `git fetch`/`merge --ff-only`.
 - Working style: discuss first when the owner is exploring an idea; build when they say start/go. Test DB changes with rollback blocks; verify live behaviour; don't paste or ask for secrets in chat (owner adds them in Supabase/GitHub or in the app).
 
 ---
