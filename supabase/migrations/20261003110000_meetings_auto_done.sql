@@ -1,4 +1,4 @@
--- 2.2 Meetings: a meeting is marked Done automatically once its end time has passed,
+-- 2.2 Meetings: a meeting is marked Done automatically at its end time (checked every minute),
 -- so past meetings don't sit in To Do forever (the organiser can still change it by hand).
 
 create or replace function private.finish_ended_meetings() returns int
@@ -12,4 +12,4 @@ begin
   return n;
 end $$;
 
-select cron.schedule('finish-ended-meetings', '*/5 * * * *', $$select private.finish_ended_meetings()$$);
+select cron.schedule('finish-ended-meetings', '* * * * *', $$select private.finish_ended_meetings()$$);

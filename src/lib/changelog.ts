@@ -20,7 +20,7 @@ export const RELEASES: Release[] = [
       { type: 'new', text: 'Attendees get a bell + phone notification when invited, and the meeting shows on their calendar and in their task list. They answer Going or Can\'t make it in the meeting; the organiser is told if someone can\'t make it.' },
       { type: 'new', text: 'Before the meeting everyone (except those who can\'t make it) gets a phone notification; the Join button opens the link.' },
       { type: 'new', text: '📝 Notes tab: shared meeting notes, and "Add action item" turns a follow-up into a normal task for that person, linked to the meeting.' },
-      { type: 'improved', text: 'Meetings are marked Done automatically when they end, and they don\'t count in task reports, the Team Board or the dashboard numbers.' },
+      { type: 'improved', text: 'Meetings are marked Done automatically at their end time, and they don\'t count in task reports, the Team Board or the dashboard numbers.' },
     ],
   },
   {
