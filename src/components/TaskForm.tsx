@@ -224,7 +224,7 @@ export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, o
           </div>
           <TimeRangeInput from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} label="Time *"
             hint="Shows on everyone's calendar at this time." />
-          <Field label="Attendees" hint={task ? 'People you add get a notification. You (the organiser) are always in.' : 'Everyone you add gets a notification and the meeting on their calendar. You (the organiser) are always in.'}>
+          <Field label="Attendees" hint={task ? 'People you add get a notification. The organiser is always in.' : 'Everyone you add gets a notification and the meeting on their calendar. The organiser is always in.'}>
             <AttendeePicker users={users} value={attendees} onChange={setAttendees} organiserId={task?.assigned_to ?? profile?.id}
               extraNames={Object.fromEntries((src?.attendees ?? []).map((a) => [a.user_id, a.person?.full_name ?? 'Someone']))} />
           </Field>
