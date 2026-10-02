@@ -31,7 +31,6 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
   // Reel details (2.0): caption and upload date. (Expected views / edit time are set by the editor in the reel's Reel tab.)
   const [caption, setCaption] = useState(task?.reel?.caption ?? '')
   const [uploadDate, setUploadDate] = useState(task?.reel?.upload_date ?? '')
-  const [uploadTime, setUploadTime] = useState(task?.reel?.upload_time?.slice(0, 5) ?? '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   // An unassigned task (e.g. from Perisclaw) stays unassigned until someone is picked.
@@ -77,7 +76,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
     if (!creatingRecurring && task?.task_type !== 'recurring' && !dueDate) return setError('Ad hoc tasks need a due date')
     const timeErr = timePairError(from, to)
     if (timeErr) return setError(timeErr)
-    const reelFields = { caption: caption.trim() || null, upload_date: uploadDate || null, upload_time: uploadDate && uploadTime ? uploadTime : null }
+    const reelFields = { caption: caption.trim() || null, upload_date: uploadDate || null }
     setBusy(true)
     try {
       if (creatingRecurring) {
@@ -115,7 +114,7 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
       if (isReel) {
         // The reel's details row is made with the task; fill it in (only what changed when editing).
         const r = task?.reel
-        const changed = !r || r.caption !== reelFields.caption || (r.upload_date ?? null) !== reelFields.upload_date || (r.upload_time?.slice(0, 5) ?? null) !== reelFields.upload_time
+        const changed = !r || r.caption !== reelFields.caption || (r.upload_date ?? null) !== reelFields.upload_date
         if (changed) {
           const { error } = await supabase.from('task_reels').update(reelFields).eq('task_id', id!)
           if (error) throw new Error(`${task ? 'Task updated' : 'Reel created'}, but its details couldn't be saved: ${error.message}`)
@@ -165,14 +164,9 @@ export function TaskForm({ task, users, initial, onClose, onSaved }: {
           <Field label="Caption" hint="The editor can change it later in the reel's details.">
             <textarea rows={3} placeholder="Caption for the post (optional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
           </Field>
-          <div className="form-grid">
-            <Field label="Upload Date" hint="When the reel should go up (optional).">
-              <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
-            </Field>
-            <Field label="Upload Time" hint="Optional.">
-              <input type="time" step={300} value={uploadTime} disabled={!uploadDate} onChange={(e) => setUploadTime(e.target.value)} />
-            </Field>
-          </div>
+          <Field label="Upload Date" hint="The day the reel should go up on Instagram / YouTube. The editor sets the expected views and edit time.">
+            <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
+          </Field>
         </>
       )}
       <div className="form-section">Assignment</div>
