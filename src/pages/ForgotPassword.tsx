@@ -15,7 +15,7 @@ export function ForgotPassword() {
     e.preventDefault()
     setError(''); setBusy(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}reset-password`,
     })
     setBusy(false)
     if (error) setError(error.message)

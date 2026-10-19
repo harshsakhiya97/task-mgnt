@@ -6,12 +6,12 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Serve real files/folders directly, send everything else to index.html
-RewriteBase /
+# App lives in /task/ — serve real files/folders directly, send everything else to /task/index.html
+RewriteBase /task/
 RewriteRule ^index\.html$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
+RewriteRule . /task/index.html [L]
 
 # Cache hashed assets for a long time, never cache index.html
 <IfModule mod_headers.c>

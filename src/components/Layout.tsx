@@ -70,7 +70,7 @@ export function Layout() {
   // Keep the app's web address (used in WhatsApp links) in sync with where admins open it.
   // The database ignores local/dev addresses, so this is safe on localhost.
   useEffect(() => {
-    if (profile?.role === 'admin') supabase.rpc('sync_app_url', { p_url: window.location.origin }).then(() => {})
+    if (profile?.role === 'admin') supabase.rpc('sync_app_url', { p_url: window.location.origin + import.meta.env.BASE_URL }).then(() => {})
   }, [profile?.role])
   useEffect(() => {
     try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0') } catch { /* ignore */ }

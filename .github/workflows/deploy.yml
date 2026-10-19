@@ -1,7 +1,7 @@
 # Builds the app and uploads it to cPanel over FTP.
 # Runs when the `deploy` branch is pushed, or manually: Actions → Deploy to cPanel → Run workflow.
 # Needs repository secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-# Optional secret FTP_SERVER_DIR (default "./" = the FTP account's home folder, e.g. the site folder).
+# Optional secret FTP_SERVER_DIR (default "./" = the FTP account's home folder, e.g. the site folder); files go to <that>/task/.
 name: Deploy to cPanel
 
 on:
@@ -46,4 +46,6 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./dist/
-          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
+          # The app lives in the task/ sub-folder of the site (https://pride.viralsakhiya.com/task/).
+          # FTP_SERVER_DIR (optional) must end with '/'.
+          server-dir: ${{ format('{0}task/', secrets.FTP_SERVER_DIR || './') }}

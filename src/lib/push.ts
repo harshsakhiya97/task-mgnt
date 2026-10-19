@@ -21,7 +21,7 @@ const supported = () => typeof window !== 'undefined' && 'serviceWorker' in navi
 async function registration(timeoutMs = 5000): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null
   const existing = await navigator.serviceWorker.getRegistration()
-  if (!existing) await navigator.serviceWorker.register('/sw.js').catch(() => null)
+  if (!existing) await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => null)
   return Promise.race([navigator.serviceWorker.ready, new Promise<null>((r) => setTimeout(() => r(null), timeoutMs))])
 }
 
