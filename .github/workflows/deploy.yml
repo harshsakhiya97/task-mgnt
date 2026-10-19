@@ -49,3 +49,14 @@ jobs:
           # The app lives in the task/ sub-folder of the site (https://pride.viralsakhiya.com/task/).
           # FTP_SERVER_DIR (optional) must end with '/'.
           server-dir: ${{ format('{0}task/', secrets.FTP_SERVER_DIR || './') }}
+
+      - name: Upload the site-root redirect to /task (deploy-root/)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          security: loose
+          local-dir: ./deploy-root/
+          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
