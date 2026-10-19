@@ -1,0 +1,17 @@
+# Supabase CLI settings — used by `npx supabase functions deploy` (Edge Functions only).
+project_id = "prchqeeodckvbraspzxd"
+
+[functions.admin-users]
+verify_jwt = true
+
+[functions.setup-admin]
+verify_jwt = false
+
+[functions.whatsapp-sender]
+verify_jwt = false
+
+[functions.perisclaw-sync]
+verify_jwt = false
+
+[functions.push-sender]
+verify_jwt = false

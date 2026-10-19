@@ -118,7 +118,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if exists (select 1 from public.perisclaw_settings where enabled and sheet_id is not null) then
     perform net.http_post(
-      url := 'https://tazlvzjalhxsudceabqy.supabase.co/functions/v1/perisclaw-sync',
+      url := 'https://prchqeeodckvbraspzxd.supabase.co/functions/v1/perisclaw-sync',
       headers := '{"Content-Type": "application/json"}'::jsonb,
       body := '{}'::jsonb,
       timeout_milliseconds := 60000);

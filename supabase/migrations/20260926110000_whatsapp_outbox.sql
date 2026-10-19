@@ -258,7 +258,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if exists (select 1 from public.whatsapp_outbox where status = 'queued' and send_after <= now()) then
     perform net.http_post(
-      url := 'https://tazlvzjalhxsudceabqy.supabase.co/functions/v1/whatsapp-sender',
+      url := 'https://prchqeeodckvbraspzxd.supabase.co/functions/v1/whatsapp-sender',
       headers := '{"Content-Type": "application/json"}'::jsonb,
       body := '{}'::jsonb,
       timeout_milliseconds := 30000);

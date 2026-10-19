@@ -139,7 +139,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if exists (select 1 from public.push_outbox where status = 'queued') then
     perform net.http_post(
-      url := 'https://tazlvzjalhxsudceabqy.supabase.co/functions/v1/push-sender',
+      url := 'https://prchqeeodckvbraspzxd.supabase.co/functions/v1/push-sender',
       headers := '{"Content-Type": "application/json"}'::jsonb,
       body := '{}'::jsonb,
       timeout_milliseconds := 30000);
