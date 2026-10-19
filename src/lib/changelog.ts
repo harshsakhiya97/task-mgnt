@@ -11,6 +11,16 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '2.3.1',
+    date: '2026-10-19',
+    title: 'New address: pride.viralsakhiya.com/task',
+    summary: 'Task Mgnt moved to pride.viralsakhiya.com/task. Your tasks are all here; set a new password once with "Forgot password", and turn phone notifications on again.',
+    changes: [
+      { type: 'improved', text: 'The app now lives at pride.viralsakhiya.com/task (the old address forwards here). If you installed it on your phone, remove the old icon and install it again from the new address.' },
+      { type: 'improved', text: 'Please set a new password once with "Forgot password", and turn phone notifications on again (My Profile → Phone Notifications).' },
+    ],
+  },
+  {
     version: '2.3.0',
     date: '2026-10-02',
     title: 'Meetings report, new Tasks report layout',

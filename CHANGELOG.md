@@ -3,6 +3,11 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.3.1 — 19 Oct 2026
+
+- Moved to a new Supabase project (`prchqeeodckvbraspzxd`), restored from the 8 Oct backup (`restore/1-schema.sql`, `restore/2-data.sql`; `supabase/config.toml` for `npx supabase functions deploy`). Added the missing `private` schema migration (`20260925100500_private_schema.sql`).
+- App now served from https://pride.viralsakhiya.com/task: Vite `base: '/task/'`, router basename, relative manifest, service worker scope `/task/`, `.htaccess` RewriteBase `/task/`, FTP upload to `task/`. Site root (`deploy-root/`) redirects to `/task/` and removes the old root service worker. `sync_app_url` accepts a path (migration `20261019100000_app_url_subpath.sql`).
+
 ## Version 2.3.0 — 2 Oct 2026
 
 - Reports → 📅 Meetings sub-tab (`components/MeetingReport.tsx`, `?view=meetings`), RPC `report_meetings(from, to, team)` (admin; migration `20261003120000_report_meetings.sql`): one row per meeting with people (organiser + attendees, team) and action items (`tasks.meeting_id`: assignee, status, expired). Team filter = meetings with someone from that team; person cards only for that team.
