@@ -3,6 +3,10 @@
 The version shown in the app (sidebar footer and login page) comes from `"version"` in `package.json`.
 To release a new version: bump it there, add a section below, add the user-facing entry at the top of `src/lib/changelog.ts` (the in-app "What's New" page), rebuild, then commit and tag (`git tag v1.2.1`).
 
+## Version 2.3.2 — 19 Oct 2026
+
+- Add Task: the 🎬 Reel option is hidden (`SHOW_REEL_PICKER = false` in TaskForm). Existing reels, the Reel tab and Reports → Reels are unchanged.
+
 ## Version 2.3.1 — 19 Oct 2026
 
 - Moved to a new Supabase project (`prchqeeodckvbraspzxd`), restored from the 8 Oct backup (`restore/1-schema.sql`, `restore/2-data.sql`; `supabase/config.toml` for `npx supabase functions deploy`). Added the missing `private` schema migration (`20260925100500_private_schema.sql`).

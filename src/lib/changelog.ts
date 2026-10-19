@@ -11,6 +11,15 @@ export interface Release { version: string; date: string; title: string; summary
 
 export const RELEASES: Release[] = [
   {
+    version: '2.3.2',
+    date: '2026-10-19',
+    title: 'Reels hidden from Add Task',
+    summary: 'Add Task no longer offers the Reel option for now.',
+    changes: [
+      { type: 'removed', text: 'Add Task: the 🎬 Reel option is hidden for now. Reels already created still open as before.' },
+    ],
+  },
+  {
     version: '2.3.1',
     date: '2026-10-19',
     title: 'New address: pride.viralsakhiya.com/task',

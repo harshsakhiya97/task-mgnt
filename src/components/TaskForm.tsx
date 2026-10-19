@@ -21,6 +21,9 @@ type Extra = 'desc' | 'caption' | 'time' | 'reminders' | 'files'
 export type TaskSaved = { taskId?: string; recurring?: boolean }
 
 /** Create a new task (ad hoc or recurring), or edit the details of an existing one (creator/admin only). */
+/** Reels are hidden from the Add Task picker for now (owner, 19 Oct). Existing reels still open and edit as before. */
+const SHOW_REEL_PICKER = false
+
 export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, onSaved }: {
   task?: Task
   /** "Copy": a new task prefilled with this task's details. */
@@ -184,7 +187,7 @@ export function TaskForm({ task, copyFrom, actionFor, users, initial, onClose, o
       submitLabel={task ? 'Update' : creatingRecurring ? 'Create Recurring Task' : isReel ? 'Create Reel' : isMeeting ? 'Create Meeting' : 'Create Task'} busy={busy}>
       {!task && (
         <div className="segmented type-picker" role="tablist" aria-label="Task type">
-          {([['adhoc', 'One-time'], ['recurring', '↻ Recurring'], ['reel', '🎬 Reel'], ['meeting', '📅 Meeting']] as [Mode, string][]).map(([m, l]) => (
+          {([['adhoc', 'One-time'], ['recurring', '↻ Recurring'], ...(SHOW_REEL_PICKER ? [['reel', '🎬 Reel']] : []), ['meeting', '📅 Meeting']] as [Mode, string][]).map(([m, l]) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>{l}</button>
           ))}
         </div>
